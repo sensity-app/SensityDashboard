@@ -809,7 +809,12 @@ start_services() {
     sudo -u "$APP_USER" pm2 start ecosystem.config.js
     sudo -u "$APP_USER" pm2 save
 
-    print_success "All services started"
+    # Configure PM2 to start on boot automatically
+    print_status "Configuring PM2 auto-startup..."
+    sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u esp8266app --hp /home/esp8266app --silent
+    sudo -u "$APP_USER" pm2 save
+
+    print_success "All services started and configured for auto-startup"
 }
 
 # Function to create initial setup completion file
@@ -1145,6 +1150,60 @@ detect_existing_installation() {
             done
         fi
     fi
+}
+
+# Main installation function
+main() {
+    print_header
+    check_requirements
+
+    # Get configuration
+    get_user_input
+
+    # Check for existing installation
+    check_existing_installation
+
+    print_status "Starting installation process..."
+
+    # Installation steps
+    update_system
+    install_nodejs
+    install_postgresql
+    install_redis
+    create_app_user
+    setup_application
+    install_app_dependencies
+    setup_database
+    configure_nginx
+
+    if [[ "$DEVELOPMENT_MODE" != "true" ]]; then
+        setup_ssl
+    fi
+
+    setup_firewall
+    start_services
+    create_setup_completion
+
+    # Final success message
+    echo
+    print_success "🎉 ESP8266 IoT Platform installation completed successfully!"
+    echo
+
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        SERVER_IP=$(hostname -I | awk '{print $1}')
+        echo -e "${GREEN}✓ Access your platform at: ${CYAN}http://$SERVER_IP${NC}"
+        echo -e "${YELLOW}⚠ Development mode: HTTP only (no SSL)${NC}"
+    else
+        echo -e "${GREEN}✓ Access your platform at: ${CYAN}https://$DOMAIN${NC}"
+        echo -e "${GREEN}✓ SSL certificates configured and auto-renewing${NC}"
+    fi
+
+    echo -e "${BLUE}📋 Installation details saved to: $APP_DIR/INSTALLATION_INFO.md${NC}"
+    echo -e "${BLUE}📊 Check service status: ${CYAN}sudo -u esp8266app pm2 status${NC}"
+    echo -e "${BLUE}📝 View logs: ${CYAN}sudo -u esp8266app pm2 logs${NC}"
+    echo
+    echo -e "${PURPLE}🚀 Your IoT platform is ready! Register the first admin user via the web interface.${NC}"
+    echo
 }
 
 # Handle script termination

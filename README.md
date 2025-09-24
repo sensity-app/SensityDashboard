@@ -312,6 +312,41 @@ psql -d esp8266_platform -f database/schema.sql
 3. **Review documentation**: See [DEPLOYMENT.md](DEPLOYMENT.md)
 4. **Community support**: GitHub Issues and Discussions
 
+### Failed Installation Recovery
+If your installation fails or you need to start over:
+
+**Automatic Cleanup (Recommended):**
+```bash
+# The installer will detect existing components and offer cleanup
+wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh
+sudo ./install-ubuntu.sh
+```
+
+**Manual Cleanup:**
+```bash
+# Download and run the cleanup script
+wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/cleanup-installation.sh
+chmod +x cleanup-installation.sh
+sudo ./cleanup-installation.sh
+```
+
+**Quick Manual Commands:**
+```bash
+# Stop services
+sudo systemctl stop nginx postgresql redis-server
+sudo -u esp8266app pm2 delete all && sudo -u esp8266app pm2 kill
+
+# Remove components
+sudo rm -rf /opt/esp8266-platform
+sudo userdel -r esp8266app
+sudo -u postgres dropdb esp8266_platform
+sudo -u postgres dropuser esp8266user
+
+# Clean nginx config
+sudo rm -f /etc/nginx/sites-*/esp8266-platform
+sudo systemctl restart nginx
+```
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

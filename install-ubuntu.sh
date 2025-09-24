@@ -369,7 +369,12 @@ install_app_dependencies() {
     # Install backend dependencies
     if [[ -f "$APP_DIR/backend/package.json" ]]; then
         cd "$APP_DIR/backend"
-        sudo -u "$APP_USER" npm ci --production
+        if [[ -f "package-lock.json" ]]; then
+            sudo -u "$APP_USER" npm ci --production
+        else
+            print_warning "package-lock.json not found, using npm install"
+            sudo -u "$APP_USER" npm install --production
+        fi
         print_success "Backend dependencies installed"
     else
         print_warning "Backend package.json not found - skipping backend dependencies"
@@ -378,7 +383,12 @@ install_app_dependencies() {
     # Install frontend dependencies and build
     if [[ -f "$APP_DIR/frontend/package.json" ]]; then
         cd "$APP_DIR/frontend"
-        sudo -u "$APP_USER" npm ci
+        if [[ -f "package-lock.json" ]]; then
+            sudo -u "$APP_USER" npm ci
+        else
+            print_warning "package-lock.json not found, using npm install"
+            sudo -u "$APP_USER" npm install
+        fi
         sudo -u "$APP_USER" npm run build
         print_success "Frontend built successfully"
     else
@@ -927,6 +937,9 @@ main() {
     detect_ubuntu
     gather_input
 
+    # Check for existing installation
+    detect_existing_installation
+
     print_status "Starting installation process..."
 
     # Installation steps
@@ -953,8 +966,150 @@ main() {
     print_warning "Remember to copy your application files to $APP_DIR if you haven't done so already."
 }
 
+# Function to clean up failed installation
+cleanup_failed_installation() {
+    print_status "Cleaning up failed installation..."
+
+    # Stop services
+    systemctl stop nginx 2>/dev/null || true
+    systemctl stop postgresql 2>/dev/null || true
+    systemctl stop redis-server 2>/dev/null || true
+
+    # Stop PM2 processes
+    if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "esp8266"; then
+        sudo -u "$APP_USER" pm2 delete all 2>/dev/null || true
+        sudo -u "$APP_USER" pm2 kill 2>/dev/null || true
+    fi
+
+    # Remove application directory
+    if [[ -d "$APP_DIR" ]]; then
+        print_status "Removing application directory..."
+        rm -rf "$APP_DIR"
+    fi
+
+    # Remove application user
+    if id "$APP_USER" &>/dev/null; then
+        print_status "Removing application user..."
+        userdel -r "$APP_USER" 2>/dev/null || true
+    fi
+
+    # Remove database and user
+    if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw esp8266_platform; then
+        print_status "Removing database..."
+        sudo -u postgres dropdb esp8266_platform 2>/dev/null || true
+    fi
+
+    if sudo -u postgres psql -t -c '\du' | cut -d \| -f 1 | grep -qw esp8266user; then
+        print_status "Removing database user..."
+        sudo -u postgres dropuser esp8266user 2>/dev/null || true
+    fi
+
+    # Remove nginx configuration
+    rm -f "/etc/nginx/sites-enabled/$DOMAIN" 2>/dev/null || true
+    rm -f "/etc/nginx/sites-available/$DOMAIN" 2>/dev/null || true
+    rm -f "/etc/nginx/sites-enabled/esp8266-platform" 2>/dev/null || true
+    rm -f "/etc/nginx/sites-available/esp8266-platform" 2>/dev/null || true
+
+    # Remove SSL certificates (only in production mode)
+    if [[ "$DEVELOPMENT_MODE" != "true" && -d "/etc/letsencrypt/live/$DOMAIN" ]]; then
+        print_status "Removing SSL certificates..."
+        certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
+    fi
+
+    # Remove cron jobs
+    rm -f /etc/cron.d/certbot-renew 2>/dev/null || true
+
+    # Reset firewall
+    ufw --force reset >/dev/null 2>&1 || true
+
+    print_success "Cleanup completed"
+}
+
+# Function to detect existing installation
+detect_existing_installation() {
+    local found_components=()
+
+    # Check for existing application directory
+    if [[ -d "$APP_DIR" ]]; then
+        found_components+=("Application directory ($APP_DIR)")
+    fi
+
+    # Check for existing user
+    if id "$APP_USER" &>/dev/null; then
+        found_components+=("Application user ($APP_USER)")
+    fi
+
+    # Check for database
+    if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266_platform; then
+        found_components+=("Database (esp8266_platform)")
+    fi
+
+    # Check for nginx config
+    if [[ -f "/etc/nginx/sites-available/$DOMAIN" ]] || [[ -f "/etc/nginx/sites-available/esp8266-platform" ]]; then
+        found_components+=("Nginx configuration")
+    fi
+
+    # Check for PM2 processes
+    if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "esp8266" 2>/dev/null; then
+        found_components+=("PM2 processes")
+    fi
+
+    if [[ ${#found_components[@]} -gt 0 ]]; then
+        print_warning "Found existing installation components:"
+        for component in "${found_components[@]}"; do
+            echo "  • $component"
+        done
+        echo
+
+        # Handle non-interactive mode
+        if [[ ! -t 0 ]]; then
+            print_warning "Running in non-interactive mode. Auto-cleaning existing installation..."
+            cleanup_failed_installation
+            print_success "Cleanup completed. Continuing with fresh installation..."
+        else
+            echo "Options:"
+            echo "1) Clean up and reinstall (removes all existing data)"
+            echo "2) Continue installation (may cause conflicts)"
+            echo "3) Exit (manual cleanup required)"
+            echo
+
+            while true; do
+                read -p "Choose an option (1-3): " choice < /dev/tty
+                case $choice in
+                    1)
+                        cleanup_failed_installation
+                        print_success "Cleanup completed. Continuing with fresh installation..."
+                        break
+                        ;;
+                    2)
+                        print_warning "Continuing with existing components (may cause issues)..."
+                        break
+                        ;;
+                    3)
+                        print_status "Installation cancelled. Manual cleanup required:"
+                        echo
+                        echo "To clean up manually, run these commands:"
+                        echo "  sudo systemctl stop nginx postgresql redis-server"
+                        echo "  sudo -u $APP_USER pm2 delete all && sudo -u $APP_USER pm2 kill"
+                        echo "  sudo rm -rf $APP_DIR"
+                        echo "  sudo userdel -r $APP_USER"
+                        echo "  sudo -u postgres dropdb esp8266_platform"
+                        echo "  sudo -u postgres dropuser esp8266user"
+                        echo "  sudo rm -f /etc/nginx/sites-*/*esp8266* /etc/nginx/sites-*/*$DOMAIN*"
+                        echo
+                        exit 0
+                        ;;
+                    *)
+                        print_error "Please enter 1, 2, or 3"
+                        ;;
+                esac
+            done
+        fi
+    fi
+}
+
 # Handle script termination
-trap 'print_error "Installation interrupted. You may need to clean up manually."; exit 1' INT TERM
+trap 'print_error "Installation interrupted. Run the installer again to clean up or continue."; exit 1' INT TERM
 
 # Run main installation
 main "$@"

@@ -6,7 +6,8 @@
       "Bash(node:*)",
       "Bash(grep:*)",
       "Bash(chmod:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm install)"
     ],
     "deny": [],
     "ask": []

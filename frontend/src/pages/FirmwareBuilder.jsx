@@ -5,6 +5,7 @@ import WebFlasher from '../components/WebFlasher';
 const FirmwareBuilder = () => {
     const [sensorOptions, setSensorOptions] = useState({});
     const [pinMapping, setPinMapping] = useState({});
+    const [availablePins, setAvailablePins] = useState({ digital: [], analog: [] });
     const [templates, setTemplates] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -43,6 +44,7 @@ const FirmwareBuilder = () => {
             if (data.success) {
                 setSensorOptions(data.sensors);
                 setPinMapping(data.pin_mapping);
+                setAvailablePins(data.available_pins || { digital: [], analog: [] });
             }
         } catch (error) {
             console.error('Failed to load sensor options:', error);
@@ -119,11 +121,17 @@ const FirmwareBuilder = () => {
     };
 
     const handleSensorChange = (sensorType, enabled) => {
+        const sensorInfo = sensorOptions[sensorType];
         setConfig(prev => ({
             ...prev,
             sensors: {
                 ...prev.sensors,
-                [sensorType]: enabled ? { enabled: true } : { enabled: false }
+                [sensorType]: enabled
+                    ? {
+                        enabled: true,
+                        pin: sensorInfo?.default_pin || sensorInfo?.pins?.[0] || 'D4'
+                      }
+                    : { enabled: false }
             }
         }));
     };
@@ -155,14 +163,25 @@ const FirmwareBuilder = () => {
         const enabledSensors = Object.keys(config.sensors).filter(key => config.sensors[key]?.enabled);
 
         for (const sensorType of enabledSensors) {
+            const sensorConfig = config.sensors[sensorType];
             const sensorInfo = sensorOptions[sensorType];
-            if (sensorInfo?.pins) {
-                for (const pin of sensorInfo.pins) {
-                    if (usedPins[pin]) {
-                        errors.push(`Pin ${pin} conflict: ${sensorType} and ${usedPins[pin]}`);
-                    } else {
-                        usedPins[pin] = sensorType;
-                    }
+
+            // Get the actual pin(s) used by this sensor
+            let sensorPins = [];
+            if (sensorConfig.pin) {
+                // Handle distance sensors which use two pins (e.g., "D5,D6")
+                sensorPins = sensorConfig.pin.includes(',') ? sensorConfig.pin.split(',') : [sensorConfig.pin];
+            } else if (sensorInfo?.pins) {
+                // Fallback to default pins if no pin is configured
+                sensorPins = sensorInfo.pins;
+            }
+
+            for (const pin of sensorPins) {
+                const trimmedPin = pin.trim();
+                if (usedPins[trimmedPin]) {
+                    errors.push(`Pin ${trimmedPin} conflict: ${sensorType} and ${usedPins[trimmedPin]}`);
+                } else {
+                    usedPins[trimmedPin] = sensorType;
                 }
             }
         }
@@ -211,6 +230,61 @@ const FirmwareBuilder = () => {
         }
     };
 
+    const renderPinSelector = (sensorType, sensorInfo, sensorConfig) => {
+        const currentPin = sensorConfig.pin || sensorInfo.default_pin || sensorInfo.pins?.[0];
+
+        // Filter available pins based on sensor requirements
+        let availablePinOptions = [];
+        if (sensorInfo.pin_type === 'analog') {
+            availablePinOptions = availablePins.analog;
+        } else if (sensorInfo.pin_type === 'digital') {
+            availablePinOptions = availablePins.digital;
+        } else {
+            // Fallback: use all pins if pin_type not specified
+            availablePinOptions = [...availablePins.digital, ...availablePins.analog];
+        }
+
+        // For sensors that require multiple pins (like distance sensor)
+        if (sensorInfo.pins_required === 2) {
+            return (
+                <select
+                    value={currentPin}
+                    onChange={(e) => handleSensorConfigChange(sensorType, 'pin', e.target.value)}
+                    className="w-32 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                    {sensorInfo.recommended_pins?.map(pinPair => (
+                        <option key={pinPair} value={pinPair}>
+                            {pinPair}
+                        </option>
+                    ))}
+                </select>
+            );
+        }
+
+        // Single pin sensors
+        return (
+            <div className="flex items-center space-x-2">
+                <select
+                    value={currentPin}
+                    onChange={(e) => handleSensorConfigChange(sensorType, 'pin', e.target.value)}
+                    className="w-20 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                    {availablePinOptions.map(pinOption => {
+                        const isRecommended = sensorInfo.recommended_pins?.includes(pinOption.pin);
+                        return (
+                            <option key={pinOption.pin} value={pinOption.pin}>
+                                {pinOption.pin} {isRecommended ? '⭐' : ''}
+                            </option>
+                        );
+                    })}
+                </select>
+                <span className="text-xs text-gray-500">
+                    {availablePinOptions.find(p => p.pin === currentPin)?.note}
+                </span>
+            </div>
+        );
+    };
+
     const renderSensorConfig = (sensorType, sensorInfo) => {
         const isEnabled = config.sensors[sensorType]?.enabled || false;
         const sensorConfig = config.sensors[sensorType] || {};
@@ -232,9 +306,22 @@ const FirmwareBuilder = () => {
                             </label>
                         </div>
                         <p className="text-xs text-gray-600 mt-1">{sensorInfo.description}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                            Pins: {sensorInfo.pins?.join(', ')}
-                        </p>
+                        {sensorInfo.wiring_notes && (
+                            <p className="text-xs text-blue-600 mt-1">💡 {sensorInfo.wiring_notes}</p>
+                        )}
+                        {isEnabled && (
+                            <div className="mt-2">
+                                <label className="text-xs text-gray-600 block mb-1">
+                                    Pin Selection:
+                                </label>
+                                {renderPinSelector(sensorType, sensorInfo, sensorConfig)}
+                            </div>
+                        )}
+                        {!isEnabled && sensorInfo.recommended_pins && (
+                            <p className="text-xs text-gray-500 mt-1">
+                                Recommended pins: {sensorInfo.recommended_pins.join(', ')}
+                            </p>
+                        )}
                         {sensorInfo.conflicts_with && (
                             <p className="text-xs text-red-500 mt-1">
                                 ⚠️ Conflicts with: {sensorInfo.conflicts_with.join(', ')}
@@ -271,7 +358,38 @@ const FirmwareBuilder = () => {
     };
 
     const enabledSensorsCount = Object.values(config.sensors).filter(s => s?.enabled).length;
-    const hasA0Conflict = ['light', 'sound', 'gas'].filter(s => config.sensors[s]?.enabled).length > 1;
+
+    // Check for pin conflicts more accurately
+    const getUsedPins = () => {
+        const usedPins = {};
+        const enabledSensors = Object.keys(config.sensors).filter(key => config.sensors[key]?.enabled);
+
+        for (const sensorType of enabledSensors) {
+            const sensorConfig = config.sensors[sensorType];
+            const sensorInfo = sensorOptions[sensorType];
+
+            let sensorPins = [];
+            if (sensorConfig.pin) {
+                sensorPins = sensorConfig.pin.includes(',') ? sensorConfig.pin.split(',') : [sensorConfig.pin];
+            } else if (sensorInfo?.default_pin) {
+                sensorPins = sensorInfo.default_pin.includes(',') ? sensorInfo.default_pin.split(',') : [sensorInfo.default_pin];
+            }
+
+            for (const pin of sensorPins) {
+                const trimmedPin = pin.trim();
+                if (usedPins[trimmedPin]) {
+                    usedPins[trimmedPin].push(sensorType);
+                } else {
+                    usedPins[trimmedPin] = [sensorType];
+                }
+            }
+        }
+        return usedPins;
+    };
+
+    const usedPins = getUsedPins();
+    const hasA0Conflict = usedPins['A0']?.length > 1;
+    const pinConflicts = Object.entries(usedPins).filter(([pin, sensors]) => sensors.length > 1);
 
     // Template selection view
     if (showTemplates) {
@@ -569,25 +687,28 @@ const FirmwareBuilder = () => {
                             <h2 className="text-lg font-semibold text-gray-900">Sensor Configuration</h2>
                             <div className="flex items-center space-x-4 text-sm text-gray-600">
                                 <span>{enabledSensorsCount} sensors enabled</span>
-                                {hasA0Conflict && (
+                                {pinConflicts.length > 0 && (
                                     <div className="flex items-center space-x-1 text-red-600">
                                         <AlertTriangle className="w-4 h-4" />
-                                        <span>Pin conflict detected</span>
+                                        <span>{pinConflicts.length} pin conflict{pinConflicts.length > 1 ? 's' : ''}</span>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {hasA0Conflict && (
+                        {pinConflicts.length > 0 && (
                             <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
                                 <div className="flex items-start space-x-3">
                                     <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
                                     <div>
                                         <h3 className="text-sm font-medium text-red-800">Pin Conflict Warning</h3>
-                                        <p className="text-sm text-red-700 mt-1">
-                                            Multiple sensors are trying to use pin A0. Only one sensor can use the analog pin at a time.
-                                            Please disable all but one of: Light, Sound, or Gas sensors.
-                                        </p>
+                                        <div className="text-sm text-red-700 mt-1">
+                                            {pinConflicts.map(([pin, sensors]) => (
+                                                <p key={pin} className="mb-1">
+                                                    Pin {pin} is being used by: {sensors.join(', ')}. Please select different pins.
+                                                </p>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -620,9 +741,9 @@ const FirmwareBuilder = () => {
                     <div className="flex items-center justify-center space-x-4 pt-6 border-t">
                         <button
                             onClick={() => setShowWebFlasher(true)}
-                            disabled={loading || hasA0Conflict}
+                            disabled={loading || pinConflicts.length > 0}
                             className={`flex items-center space-x-3 px-6 py-3 rounded-lg font-medium ${
-                                loading || hasA0Conflict
+                                loading || pinConflicts.length > 0
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
                             }`}
@@ -632,9 +753,9 @@ const FirmwareBuilder = () => {
                         </button>
                         <button
                             onClick={buildFirmware}
-                            disabled={loading || hasA0Conflict}
+                            disabled={loading || pinConflicts.length > 0}
                             className={`flex items-center space-x-3 px-6 py-3 rounded-lg font-medium ${
-                                loading || hasA0Conflict
+                                loading || pinConflicts.length > 0
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
                             }`}

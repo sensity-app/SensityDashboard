@@ -27,20 +27,20 @@ const templates = {
                 },
                 light: {
                     enabled: true,
-                    min: 50,
-                    max: 950,
+                    light_min: 50,
+                    light_max: 950,
                     calibration_offset: 0.0,
                     calibration_multiplier: 1.0
                 },
                 motion: {
                     enabled: true,
                     pin: 'D2',
-                    timeout: 60000
+                    motion_timeout: 60000
                 },
                 gas: {
                     enabled: false, // Disabled by default due to A0 conflict
-                    min: 100,
-                    max: 500
+                    gas_min: 100,
+                    gas_max: 500
                 },
                 magnetic: {
                     enabled: true,
@@ -101,22 +101,21 @@ const templates = {
                 },
                 light: {
                     enabled: true,
-                    min: 20,
-                    max: 980,
+                    light_min: 20,
+                    light_max: 980,
                     calibration_offset: 0.0,
                     calibration_multiplier: 1.0
                 },
                 motion: {
                     enabled: true,
                     pin: 'D2',
-                    timeout: 10000
+                    motion_timeout: 10000
                 },
                 distance: {
                     enabled: true,
-                    trigger_pin: 'D5',
-                    echo_pin: 'D6',
-                    min: 10.0,
-                    max: 100.0
+                    pin: 'D5,D6',
+                    distance_min: 10.0,
+                    distance_max: 100.0
                 },
                 magnetic: {
                     enabled: true,
@@ -185,13 +184,13 @@ const templates = {
                 },
                 gas: {
                     enabled: false, // Can be enabled instead of light for air quality
-                    min: 100,
-                    max: 400
+                    gas_min: 100,
+                    gas_max: 400
                 },
                 motion: {
                     enabled: false, // Optional occupancy detection
                     pin: 'D2',
-                    timeout: 300000
+                    motion_timeout: 300000
                 },
                 distance: {
                     enabled: false
@@ -248,22 +247,21 @@ const templates = {
                 },
                 light: {
                     enabled: true,
-                    min: 100,
-                    max: 900,
+                    light_min: 100,
+                    light_max: 900,
                     calibration_offset: 0.0,
                     calibration_multiplier: 1.0
                 },
                 distance: {
                     enabled: true,
-                    trigger_pin: 'D5',
-                    echo_pin: 'D6',
-                    min: 5.0,
-                    max: 50.0 // Water tank level monitoring
+                    pin: 'D5,D6',
+                    distance_min: 5.0,
+                    distance_max: 50.0 // Water tank level monitoring
                 },
                 motion: {
                     enabled: true,
                     pin: 'D2',
-                    timeout: 120000 // Security
+                    motion_timeout: 120000 // Security
                 },
                 magnetic: {
                     enabled: true,
@@ -382,8 +380,8 @@ const templates = {
                 },
                 sound: {
                     enabled: true, // Monitor noise levels
-                    min: 200,
-                    max: 800
+                    sound_min: 200,
+                    sound_max: 800
                 },
                 vibration: {
                     enabled: true,
@@ -392,7 +390,7 @@ const templates = {
                 motion: {
                     enabled: true,
                     pin: 'D2',
-                    timeout: 30000
+                    motion_timeout: 30000
                 },
                 magnetic: {
                     enabled: true,

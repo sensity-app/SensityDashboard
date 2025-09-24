@@ -109,9 +109,12 @@ router.get('/sensor-options', (req, res) => {
     const sensorOptions = {
         temperature_humidity: {
             name: 'Temperature & Humidity (DHT22)',
-            pins: ['D4'],
+            pin_type: 'digital',
+            recommended_pins: ['D4', 'D2', 'D5'],
+            default_pin: 'D4',
             description: 'Monitors temperature and humidity levels',
             required_libraries: ['DHT sensor library'],
+            wiring_notes: 'Requires 3.3V/5V power and pull-up resistor (10kΩ)',
             thresholds: {
                 temperature_min: { default: -10, min: -40, max: 50 },
                 temperature_max: { default: 40, min: -40, max: 85 },
@@ -121,9 +124,13 @@ router.get('/sensor-options', (req, res) => {
         },
         light: {
             name: 'Light Sensor (LDR/Photodiode)',
-            pins: ['A0'],
+            pin_type: 'analog',
+            recommended_pins: ['A0'],
+            default_pin: 'A0',
             description: 'Measures ambient light levels',
             required_libraries: [],
+            wiring_notes: 'LDR between A0 and 3.3V, 10kΩ resistor between A0 and GND',
+            exclusive_analog: true,
             thresholds: {
                 light_min: { default: 100, min: 0, max: 1024 },
                 light_max: { default: 900, min: 0, max: 1024 }
@@ -131,18 +138,25 @@ router.get('/sensor-options', (req, res) => {
         },
         motion: {
             name: 'Motion Sensor (PIR)',
-            pins: ['D2'],
+            pin_type: 'digital',
+            recommended_pins: ['D2', 'D1', 'D5', 'D6', 'D7'],
+            default_pin: 'D2',
             description: 'Detects movement and occupancy',
             required_libraries: [],
+            wiring_notes: 'VCC to 3.3V/5V, GND to GND, OUT to digital pin',
             thresholds: {
                 motion_timeout: { default: 30000, min: 1000, max: 300000 }
             }
         },
         distance: {
             name: 'Distance Sensor (HC-SR04)',
-            pins: ['D5', 'D6'],
-            description: 'Ultrasonic distance measurement',
+            pin_type: 'digital',
+            recommended_pins: ['D5,D6', 'D1,D2', 'D3,D7'],
+            default_pin: 'D5,D6',
+            description: 'Ultrasonic distance measurement (requires 2 pins: Trig and Echo)',
             required_libraries: ['Ultrasonic sensor library'],
+            wiring_notes: 'Trig pin connects to first pin, Echo pin to second pin. Requires 5V power.',
+            pins_required: 2,
             thresholds: {
                 distance_min: { default: 5, min: 2, max: 400 },
                 distance_max: { default: 200, min: 2, max: 400 }
@@ -150,9 +164,13 @@ router.get('/sensor-options', (req, res) => {
         },
         sound: {
             name: 'Sound Level Sensor',
-            pins: ['A0'],
-            description: 'Monitors noise levels',
+            pin_type: 'analog',
+            recommended_pins: ['A0'],
+            default_pin: 'A0',
+            description: 'Monitors noise levels and sound intensity',
             required_libraries: [],
+            wiring_notes: 'Requires analog input. VCC to 3.3V, GND to ground, OUT to A0.',
+            exclusive_analog: true,
             conflicts_with: ['light', 'gas'],
             thresholds: {
                 sound_min: { default: 100, min: 0, max: 1024 },
@@ -161,23 +179,33 @@ router.get('/sensor-options', (req, res) => {
         },
         magnetic: {
             name: 'Magnetic Door/Window Sensor',
-            pins: ['D3'],
-            description: 'Detects door/window open/close',
+            pin_type: 'digital',
+            recommended_pins: ['D3', 'D1', 'D7', 'D8'],
+            default_pin: 'D3',
+            description: 'Detects door/window open/close using reed switch',
             required_libraries: [],
+            wiring_notes: 'Reed switch with built-in pull-up. Connect one end to pin, other to GND.',
             thresholds: {}
         },
         vibration: {
             name: 'Vibration Sensor',
-            pins: ['D7'],
-            description: 'Detects vibrations and impacts',
+            pin_type: 'digital',
+            recommended_pins: ['D7', 'D1', 'D8', 'D3'],
+            default_pin: 'D7',
+            description: 'Detects vibrations and impacts (SW-420 or similar)',
             required_libraries: [],
+            wiring_notes: 'Digital output sensor. VCC to 3.3V, GND to ground, DO to pin.',
             thresholds: {}
         },
         gas: {
             name: 'Gas Sensor (MQ series)',
-            pins: ['A0'],
-            description: 'Detects gas leaks and air quality',
+            pin_type: 'analog',
+            recommended_pins: ['A0'],
+            default_pin: 'A0',
+            description: 'Detects gas leaks and air quality (MQ-2, MQ-135, etc.)',
             required_libraries: [],
+            wiring_notes: 'Analog output sensor. VCC to 5V, GND to ground, AO to A0. Requires 24h burn-in.',
+            exclusive_analog: true,
             conflicts_with: ['light', 'sound'],
             thresholds: {
                 gas_min: { default: 100, min: 0, max: 1024 },
@@ -200,6 +228,22 @@ router.get('/sensor-options', (req, res) => {
             'D7': 'GPIO13 (MOSI)',
             'D8': 'GPIO15 (SS, pull-down required)',
             'A0': 'ADC0 (Analog input, 0-1V, use voltage divider for 3.3V)'
+        },
+        available_pins: {
+            digital: [
+                { pin: 'D0', label: 'D0 (GPIO16)', note: 'LED_BUILTIN, no PWM/interrupt' },
+                { pin: 'D1', label: 'D1 (GPIO5)', note: 'SCL - avoid if using I2C' },
+                { pin: 'D2', label: 'D2 (GPIO4)', note: 'SDA - avoid if using I2C' },
+                { pin: 'D3', label: 'D3 (GPIO0)', note: 'FLASH button, pull-up required' },
+                { pin: 'D4', label: 'D4 (GPIO2)', note: 'LED_BUILTIN on some boards, pull-up required' },
+                { pin: 'D5', label: 'D5 (GPIO14)', note: 'SCK' },
+                { pin: 'D6', label: 'D6 (GPIO12)', note: 'MISO' },
+                { pin: 'D7', label: 'D7 (GPIO13)', note: 'MOSI' },
+                { pin: 'D8', label: 'D8 (GPIO15)', note: 'SS, pull-down required' }
+            ],
+            analog: [
+                { pin: 'A0', label: 'A0 (ADC0)', note: 'Analog input, 0-1V range, use voltage divider for 3.3V' }
+            ]
         }
     });
 });

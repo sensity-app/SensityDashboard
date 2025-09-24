@@ -297,6 +297,15 @@ install_postgresql() {
     systemctl start postgresql
     systemctl enable postgresql
 
+    # Clean up any existing database components to prevent conflicts
+    print_status "Cleaning up any existing database components..."
+    # Terminate any active connections to the database
+    sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'esp8266_platform' AND pid <> pg_backend_pid();" 2>/dev/null || true
+    # Drop database first (must come before user due to ownership)
+    sudo -u postgres dropdb esp8266_platform 2>/dev/null || true
+    # Drop user
+    sudo -u postgres dropuser esp8266app 2>/dev/null || true
+
     # Create database and user
     print_status "Creating database user..."
     if ! sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266app; then

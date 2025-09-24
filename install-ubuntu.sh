@@ -90,24 +90,86 @@ detect_ubuntu() {
     if [[ ! "$UBUNTU_VERSION" =~ ^(18\.04|20\.04|22\.04|24\.04)$ ]]; then
         print_warning "This script has been tested on Ubuntu 18.04, 20.04, 22.04, and 24.04"
         print_warning "Your version ($UBUNTU_VERSION) may work but is not officially supported"
-        read -p "Continue anyway? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
+
+        # Only prompt if running interactively
+        if [[ -t 0 ]]; then
+            read -p "Continue anyway? (y/N): " -n 1 -r < /dev/tty
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                exit 1
+            fi
+        else
+            print_warning "Running non-interactively, continuing with unsupported Ubuntu version..."
         fi
     fi
+}
+
+# Function to check for environment variables
+check_env_vars() {
+    # Check if all required environment variables are set
+    if [[ -n "$DOMAIN" && -n "$EMAIL" && -n "$DB_PASSWORD" ]]; then
+        print_status "Using environment variables for configuration"
+
+        # Validate domain format
+        if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
+            print_error "Invalid DOMAIN environment variable format"
+            exit 1
+        fi
+
+        # Validate email format
+        if [[ ! "$EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            print_error "Invalid EMAIL environment variable format"
+            exit 1
+        fi
+
+        # Check password length
+        if [[ ${#DB_PASSWORD} -lt 8 ]]; then
+            print_error "DB_PASSWORD must be at least 8 characters long"
+            exit 1
+        fi
+
+        # Generate JWT secret
+        JWT_SECRET=$(openssl rand -base64 64 | tr -d '\n')
+        print_success "Configuration validated successfully"
+        return 0
+    fi
+    return 1
 }
 
 # Function to gather user input
 gather_input() {
     echo
     print_status "Configuration Setup"
+
+    # First check if environment variables are provided
+    if check_env_vars; then
+        return 0
+    fi
+
+    # Check if running interactively (connected to a terminal)
+    if [[ ! -t 0 ]]; then
+        print_error "This script requires interactive input but is being run in a non-interactive environment."
+        echo
+        print_status "To run this script interactively, save it first and run it directly:"
+        echo "  wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh"
+        echo "  chmod +x install-ubuntu.sh"
+        echo "  sudo ./install-ubuntu.sh"
+        echo
+        print_status "Or set environment variables and run non-interactively:"
+        echo "  export DOMAIN=your-domain.com"
+        echo "  export EMAIL=your-email@example.com"
+        echo "  export DB_PASSWORD=your-secure-password"
+        echo "  curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash"
+        echo
+        exit 1
+    fi
+
     echo "Please provide the following information:"
     echo
 
     # Domain name
     while [[ -z "$DOMAIN" ]]; do
-        read -p "Enter your domain name (e.g., iot.example.com): " DOMAIN
+        read -p "Enter your domain name (e.g., iot.example.com): " DOMAIN < /dev/tty
         if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
             print_error "Invalid domain name format"
             DOMAIN=""
@@ -116,7 +178,7 @@ gather_input() {
 
     # Email for SSL certificates
     while [[ -z "$EMAIL" ]]; do
-        read -p "Enter your email for SSL certificates: " EMAIL
+        read -p "Enter your email for SSL certificates: " EMAIL < /dev/tty
         if [[ ! "$EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
             print_error "Invalid email format"
             EMAIL=""
@@ -125,7 +187,7 @@ gather_input() {
 
     # Database password
     while [[ -z "$DB_PASSWORD" ]]; do
-        read -s -p "Enter database password (will be created): " DB_PASSWORD
+        read -s -p "Enter database password (will be created): " DB_PASSWORD < /dev/tty
         echo
         if [[ ${#DB_PASSWORD} -lt 8 ]]; then
             print_error "Password must be at least 8 characters long"

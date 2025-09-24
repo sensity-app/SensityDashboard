@@ -70,8 +70,19 @@ A comprehensive web-based platform for managing ESP8266 IoT devices with **drag-
 
 ### Option 1: One-Click Ubuntu Install (Recommended)
 
+**Interactive Installation:**
 ```bash
-curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo bash
+wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh
+chmod +x install-ubuntu.sh
+sudo ./install-ubuntu.sh
+```
+
+**Non-interactive Installation (with environment variables):**
+```bash
+export DOMAIN=your-domain.com
+export EMAIL=your-email@example.com
+export DB_PASSWORD=your-secure-password
+curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash
 ```
 
 This will:
@@ -304,8 +315,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🎉 Ready to Get Started?
 
 ### Quick Deploy
+**Interactive Installation:**
 ```bash
-curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo bash
+wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh
+chmod +x install-ubuntu.sh
+sudo ./install-ubuntu.sh
+```
+
+**Or with environment variables:**
+```bash
+export DOMAIN=your-domain.com EMAIL=your-email@example.com DB_PASSWORD=your-password
+curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash
 ```
 
 ### Or Explore First

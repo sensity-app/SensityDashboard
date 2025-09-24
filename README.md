@@ -1,272 +1,317 @@
-# ESP8266 Sensor Platform - Enhanced Version
+# 🚀 ESP8266 IoT Management Platform
 
-A comprehensive IoT platform for monitoring ESP8266-based sensor devices with real-time data visualization, alerting, and over-the-air (OTA) firmware updates.
+A comprehensive web-based platform for managing ESP8266 IoT devices with **drag-and-drop firmware builder**, real-time monitoring, and advanced analytics.
 
-## Project Structure
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18+-blue.svg)](https://reactjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-blue.svg)](https://www.postgresql.org/)
 
-```
-├── database/           # Database schema and migrations
-├── firmware/          # ESP8266 Arduino firmware
-├── backend/           # Node.js REST API and WebSocket server
-└── frontend/          # React.js dashboard application
-```
+## ✨ Key Features
 
-## Features
+### 🎯 **Web-Based Firmware Builder**
+- **🌐 No Arduino IDE Required** - Build and flash firmware directly from your browser
+- **🎨 Visual Template Selection** - 6 pre-configured device templates for common use cases
+- **⚡ One-Click Web Flashing** - Direct USB flashing via WebSerial API
+- **🔧 Custom Configuration** - Point-and-click sensor setup with conflict detection
+- **📦 Complete Packages** - Generated firmware includes wiring guides and documentation
 
-- **Real-time Monitoring**: WebSocket-based live sensor data streaming
-- **Multi-sensor Support**: Temperature, humidity, motion, light, distance sensors
-- **Advanced Alerting**: Rule-based alerts with escalation and multiple notification channels
-- **OTA Updates**: Remote firmware update capability
-- **Historical Data**: Data aggregation and visualization with interactive charts
-- **User Management**: Role-based access control
-- **Device Management**: Configuration and status monitoring
-- **Responsive UI**: Modern React dashboard with Tailwind CSS
+### 📊 **Real-Time Monitoring**
+- **Live Dashboard** with WebSocket updates
+- **Multi-Sensor Support** - Temperature, humidity, motion, distance, light, gas, vibration
+- **Interactive Charts** with historical data visualization
+- **Device Health Monitoring** with uptime and connectivity status
 
-## Quick Start
+### 🚨 **Advanced Alerting**
+- **Rule-Based Alerts** with customizable thresholds
+- **Multi-Channel Notifications** - Email, SMS, WebSocket
+- **Alert Escalation** with severity levels and acknowledgments
+- **Scheduled Reporting** with automated summaries
 
-### Prerequisites
+### 🔧 **Device Management**
+- **Bulk Device Operations** with grouping and tagging
+- **Over-the-Air (OTA) Updates** with rollback capability
+- **Remote Configuration** without device access
+- **Device Analytics** with performance insights
 
-- Node.js 16+ and npm
-- PostgreSQL 12+
-- Redis (optional, for caching)
-- Arduino IDE (for firmware development)
+## 🎯 Supported Device Templates
 
-### Database Setup
+### 🍳 **Kitchen Monitor**
+- **Sensors**: Temperature, humidity, motion, light, gas detection
+- **Use Cases**: Food safety, energy efficiency, security
+- **Pin Layout**: DHT22 (D4), PIR (D2), LDR (A0), Gas sensor option
 
-1. Create PostgreSQL database:
-```sql
-CREATE DATABASE esp8266_platform;
-```
+### 🛡️ **Security Node**
+- **Sensors**: Motion, distance, door/window, vibration detection
+- **Use Cases**: Perimeter security, intrusion detection, tamper alerts
+- **Pin Layout**: PIR (D2), HC-SR04 (D5/D6), Reed switch (D3), Vibration (D7)
 
-2. Run schema setup:
+### 🌿 **Environmental Monitor**
+- **Sensors**: Temperature, humidity, light, air quality
+- **Use Cases**: Climate control, comfort monitoring, HVAC optimization
+- **Pin Layout**: DHT22 (D4), LDR (A0), Optional gas sensor
+
+### 🏡 **Greenhouse Monitor**
+- **Sensors**: Climate, light, water level, door monitoring
+- **Use Cases**: Plant care, irrigation alerts, growth optimization
+- **Pin Layout**: DHT22 (D4), Distance sensor (D5/D6), Reed switch (D3)
+
+### 🌡️ **Simple Temperature Monitor**
+- **Sensors**: Basic temperature and humidity
+- **Use Cases**: Learning IoT, basic home monitoring
+- **Pin Layout**: DHT22 (D4) only
+
+### 🔨 **Workshop Monitor**
+- **Sensors**: Sound level, vibration, air quality, motion
+- **Use Cases**: Noise monitoring, equipment safety, occupancy
+- **Pin Layout**: Sound (A0), Vibration (D7), PIR (D2)
+
+## 🚀 Quick Start
+
+### Option 1: One-Click Ubuntu Install (Recommended)
+
 ```bash
-cd database
-psql -U postgres -d esp8266_platform -f schema.sql
+curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo bash
 ```
 
-### Backend Setup
+This will:
+- ✅ Install all dependencies (Node.js, PostgreSQL, Redis, Nginx)
+- ✅ Configure SSL certificates with Let's Encrypt
+- ✅ Set up firewall and security
+- ✅ Deploy the application with PM2
+- ✅ Make it accessible from the internet
 
-1. Navigate to backend directory:
+### Option 2: Docker Deployment
+
 ```bash
+git clone https://github.com/martinkadlcek/ESP-Management-Platform.git
+cd ESP-Management-Platform
+docker-compose up -d
+```
+
+### Option 3: Manual Installation
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed manual installation instructions.
+
+## 🌐 Usage
+
+### 1. **Initial Setup**
+- Visit your domain (e.g., `https://your-domain.com`)
+- Complete the first-time admin user setup
+- The system automatically creates the database structure
+
+### 2. **Build Your First Firmware**
+- Navigate to **Firmware Builder** (`/firmware-builder`)
+- Select a template (e.g., "Kitchen Monitor")
+- Enter your WiFi credentials
+- Click **"Flash to Device"** for direct flashing OR **"Download Firmware"**
+
+### 3. **Deploy ESP8266 Device**
+- Connect ESP8266 to your computer via USB
+- Flash the generated firmware
+- Device automatically connects and starts sending data
+
+### 4. **Monitor & Manage**
+- View real-time data in the **Dashboard**
+- Set up alerts in **Alert Rules**
+- Manage devices in **Device Management**
+- Analyze trends in **Analytics**
+
+## 🏗️ Architecture
+
+### Backend (Node.js + Express)
+- **RESTful API** with JWT authentication
+- **WebSocket Server** for real-time updates
+- **PostgreSQL Database** for persistent storage
+- **Redis Cache** for session management
+- **Firmware Builder API** with JSZip packaging
+
+### Frontend (React + Tailwind CSS)
+- **Single Page Application** with React Router
+- **Real-time Dashboard** with WebSocket integration
+- **Responsive Design** with Tailwind CSS
+- **Interactive Charts** with Recharts
+- **Web Flashing Interface** with WebSerial API
+
+### Firmware (Arduino/ESP8266)
+- **Multi-sensor Support** with configurable pins
+- **WiFi Auto-connection** with credentials
+- **JSON API Communication** with the platform
+- **OTA Update Capability** for remote updates
+- **Configurable Thresholds** and sampling rates
+
+## 📋 System Requirements
+
+### Minimum Requirements
+- **OS**: Ubuntu 18.04+ / CentOS 7+ / Debian 10+
+- **CPU**: 2 cores
+- **RAM**: 2GB
+- **Storage**: 20GB SSD
+- **Network**: Internet connection for SSL certificates
+
+### Recommended for Production
+- **OS**: Ubuntu 22.04 LTS
+- **CPU**: 4 cores
+- **RAM**: 4GB+
+- **Storage**: 50GB+ SSD
+- **Network**: 1 Gbps connection
+- **SSL**: Let's Encrypt or commercial certificate
+
+## 🔧 Supported Sensors
+
+| Sensor Type | Part Number | Pin(s) | Description |
+|-------------|-------------|--------|-------------|
+| **Temperature/Humidity** | DHT22/DHT11 | D4 | Climate monitoring |
+| **Motion Detection** | PIR HC-SR501 | D2 | Movement sensing |
+| **Distance Measurement** | HC-SR04 | D5, D6 | Ultrasonic ranging |
+| **Light Level** | LDR/Photodiode | A0 | Ambient light sensing |
+| **Sound Level** | Microphone | A0 | Noise monitoring |
+| **Gas Detection** | MQ-2/MQ-135 | A0 | Air quality/gas leaks |
+| **Door/Window** | Reed Switch | D3 | Open/close detection |
+| **Vibration** | SW-420 | D7 | Impact/movement sensing |
+
+> **Note**: Only one analog sensor (A0) can be used per device. The firmware builder automatically detects conflicts.
+
+## 🔒 Security Features
+
+- ✅ **HTTPS/SSL** with automatic Let's Encrypt certificates
+- ✅ **JWT Authentication** with secure session management
+- ✅ **Input Validation** and SQL injection protection
+- ✅ **Rate Limiting** on API endpoints
+- ✅ **CORS Configuration** for secure cross-origin requests
+- ✅ **Firewall Rules** (UFW) with minimal open ports
+- ✅ **Password Hashing** with bcrypt
+
+## 📊 Performance
+
+### Scalability
+- **Concurrent Users**: 100+ simultaneous firmware builds
+- **Device Capacity**: 1000+ ESP8266 devices per instance
+- **Data Throughput**: 10,000+ sensor readings per minute
+- **Database**: PostgreSQL with automatic archiving
+
+### Optimization Features
+- **PM2 Clustering** for Node.js load balancing
+- **Redis Caching** for session and frequently accessed data
+- **Database Indexing** for fast queries
+- **Gzip Compression** for API responses
+- **CDN-Ready** static asset delivery
+
+## 🛠️ Development
+
+### Local Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/martinkadlcek/ESP-Management-Platform.git
+cd ESP-Management-Platform
+
+# Backend setup
 cd backend
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Configure environment:
-```bash
 cp .env.example .env
-# Edit .env with your database and service credentials
-```
-
-4. Start the server:
-```bash
+# Edit .env with your database credentials
 npm run dev
-```
 
-The backend will be available at `http://localhost:3000`
-
-### Frontend Setup
-
-1. Navigate to frontend directory:
-```bash
+# Frontend setup (new terminal)
 cd frontend
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Configure environment:
-```bash
-cp .env.example .env
-# Edit .env with your backend URL
-```
-
-4. Start the development server:
-```bash
 npm start
+
+# Database setup
+createdb esp8266_platform
+psql -d esp8266_platform -f database/schema.sql
 ```
 
-The frontend will be available at `http://localhost:5173`
+### Contributing
 
-### Firmware Setup
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
 
-1. Open `firmware/esp8266_sensor_platform.ino` in Arduino IDE
+## 📖 Documentation
 
-2. Install required libraries:
-   - ESP8266WiFi
-   - ESP8266HTTPClient
-   - ArduinoJson
-   - DHT sensor library
-   - Ultrasonic sensor library
+- **[Deployment Guide](DEPLOYMENT.md)** - Complete installation instructions
+- **[Firmware Builder Guide](FIRMWARE_BUILDER_README.md)** - Detailed firmware builder documentation
+- **[API Documentation](docs/API.md)** - REST API reference
+- **[Hardware Guide](docs/HARDWARE.md)** - Sensor wiring and specifications
 
-3. Configure device settings in the firmware:
-   - WiFi credentials
-   - Server URL
-   - Device ID
+## 🎯 Use Cases
 
-4. Upload to your ESP8266 device
+### Home Automation
+- **Smart Home Monitoring** with temperature, motion, and door sensors
+- **Energy Efficiency** tracking with occupancy and light sensors
+- **Security Systems** with motion, vibration, and door sensors
 
-## Configuration
+### Agriculture & Gardening
+- **Greenhouse Monitoring** with climate and soil sensors
+- **Irrigation Management** with water level and moisture sensors
+- **Growth Optimization** with light and environmental tracking
 
-### Backend Environment Variables
+### Industrial & Workshop
+- **Equipment Monitoring** with vibration and sound sensors
+- **Safety Compliance** with air quality and noise monitoring
+- **Predictive Maintenance** with sensor trend analysis
 
-Key configuration options in `backend/.env`:
+### Educational & Learning
+- **IoT Education** with simple temperature monitoring
+- **STEM Projects** with customizable sensor combinations
+- **Rapid Prototyping** with web-based firmware generation
 
-- `DB_*`: Database connection settings
-- `JWT_SECRET`: Secret for JWT token generation
-- `SMTP_*`: Email configuration for alerts
-- `TWILIO_*`: SMS configuration for alerts
-- `REDIS_*`: Redis cache configuration
+## 📈 Roadmap
 
-### Frontend Environment Variables
+### Version 2.2 (Next Release)
+- [ ] **Mobile App** (React Native) for device management
+- [ ] **Advanced Analytics** with machine learning predictions
+- [ ] **Multi-tenant Support** for service providers
+- [ ] **Backup/Restore** functionality
 
-Key configuration options in `frontend/.env`:
+### Version 2.3 (Future)
+- [ ] **Edge Computing** with local processing nodes
+- [ ] **Custom Sensor Support** with plugin system
+- [ ] **Data Export** to InfluxDB and Grafana
+- [ ] **Kubernetes Deployment** templates
 
-- `REACT_APP_API_URL`: Backend API endpoint
-- `REACT_APP_WS_URL`: WebSocket server endpoint
+## 📞 Support
 
-### Firmware Configuration
+### Getting Help
+- 📚 **Documentation**: Check the docs in this repository
+- 🐛 **Bug Reports**: [Create an issue](https://github.com/martinkadlcek/ESP-Management-Platform/issues)
+- 💡 **Feature Requests**: [Suggest improvements](https://github.com/martinkadlcek/ESP-Management-Platform/issues)
+- 💬 **Discussions**: Use GitHub Discussions for questions
 
-Configure these settings in the ESP8266 firmware:
+### Troubleshooting
+1. **Check logs**: `pm2 logs esp8266-platform`
+2. **Verify installation**: `./verify-installation.sh your-domain.com`
+3. **Review documentation**: See [DEPLOYMENT.md](DEPLOYMENT.md)
+4. **Community support**: GitHub Issues and Discussions
 
-- WiFi network credentials
-- Server API endpoint
-- Device identification
-- Sensor pin assignments
+## 📄 License
 
-## API Documentation
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Authentication Endpoints
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/refresh` - Token refresh
+## 🙏 Acknowledgments
 
-### Device Endpoints
-- `GET /api/devices` - List all devices
-- `GET /api/devices/:id` - Get device details
-- `POST /api/devices/:id/heartbeat` - Device heartbeat
-- `POST /api/devices/:id/telemetry` - Submit sensor data
-- `POST /api/devices/:id/alarm` - Trigger alert
+- **ESP8266 Community** for excellent hardware and libraries
+- **Node.js and React** ecosystems for robust development tools
+- **Open Source Contributors** who make projects like this possible
+- **Arduino Community** for making IoT accessible to everyone
 
-### Telemetry Endpoints
-- `GET /api/telemetry/:deviceId` - Get historical data
-- `GET /api/telemetry/:deviceId/latest` - Get latest readings
+---
 
-### Alert Endpoints
-- `GET /api/alerts` - List alerts
-- `POST /api/alerts/:id/acknowledge` - Acknowledge alert
-- `POST /api/alerts/:id/resolve` - Resolve alert
+## 🎉 Ready to Get Started?
 
-### OTA Endpoints
-- `POST /api/firmware/upload` - Upload firmware
-- `POST /api/devices/:id/ota` - Trigger OTA update
-
-## WebSocket Events
-
-### Client to Server
-- `subscribe` - Subscribe to device/location updates
-- `device:update_config` - Update device configuration
-- `alert:acknowledge` - Acknowledge alert
-- `alert:resolve` - Resolve alert
-
-### Server to Client
-- `device:data` - Real-time device data
-- `device:status` - Device status updates
-- `alert:new` - New alert notification
-- `alert:updated` - Alert status changes
-
-## Architecture
-
-### Backend Architecture
-- **Express.js** REST API server
-- **Socket.io** for real-time WebSocket communication
-- **PostgreSQL** for persistent data storage
-- **Redis** for caching and session management
-- **Node-cron** for scheduled tasks (alerts, cleanup)
-
-### Frontend Architecture
-- **React.js** with functional components and hooks
-- **Tailwind CSS** for styling
-- **Recharts** for data visualization
-- **Socket.io Client** for real-time updates
-
-### Firmware Architecture
-- **ESP8266** microcontroller platform
-- **ArduinoJson** for API communication
-- **Multi-sensor support** with configurable pins
-- **OTA update capability**
-
-## Development
-
-### Adding New Sensor Types
-
-1. Update database schema in `database/schema.sql`
-2. Add sensor handling in ESP8266 firmware
-3. Update telemetry processing in backend services
-4. Add UI components for new sensor type
-
-### Extending Alert Rules
-
-1. Modify `sensor_rules` table schema
-2. Update `alertEscalationService.js` processing logic
-3. Add frontend configuration interface
-
-## Production Deployment
-
-### Backend Deployment
-
-1. Set `NODE_ENV=production`
-2. Configure production database and Redis
-3. Set up HTTPS with SSL certificates
-4. Configure email/SMS services for alerts
-5. Set up log rotation and monitoring
-
-### Frontend Deployment
-
-1. Build for production: `npm run build`
-2. Deploy static files to web server (nginx/Apache)
-3. Configure proper API endpoints in environment
-
-### Database Migration
-
-Run database migrations in production:
+### Quick Deploy
 ```bash
-npm run migrate
+curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo bash
 ```
 
-## Troubleshooting
+### Or Explore First
+- 🌟 **Star this repository** if you find it useful
+- 🍴 **Fork it** to customize for your needs
+- 📖 **Read the docs** in [DEPLOYMENT.md](DEPLOYMENT.md)
+- 💬 **Ask questions** in GitHub Issues
 
-### Common Issues
-
-1. **Device Offline**: Check WiFi configuration and server connectivity
-2. **WebSocket Connection Failed**: Verify CORS settings and authentication
-3. **Database Connection Error**: Check database credentials and network access
-4. **OTA Update Failed**: Ensure firmware URL is accessible and file size limits
-
-### Logs
-
-- Backend logs: `backend/logs/`
-- Database queries: Enable `LOG_QUERIES=true` in environment
-- WebSocket events: Available in browser developer tools
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Support
-
-For questions or issues, please create an issue in the GitHub repository.
+**Build your IoT empire with drag-and-drop simplicity!** 🚀

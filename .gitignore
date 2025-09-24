@@ -85,3 +85,24 @@ backend/temp/
 # Arduino IDE
 *.ino.bak
 *.ino~
+
+# Additional cleanup
+*.tmp
+*.bak
+*.old
+.cache/
+pm2.config.js
+ecosystem.config.js
+
+# SSL certificates (should not be in repo)
+*.pem
+*.crt
+*.key
+*.csr
+
+# Backup files
+backup_*.sql
+*.dump
+
+# Installation files
+INSTALLATION_INFO.md

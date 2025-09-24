@@ -4,89 +4,93 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: esp8266_postgres
+    container_name: esp8266-postgres
     environment:
       POSTGRES_DB: esp8266_platform
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: esp8266app
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme123}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - esp8266-network
 
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: esp8266_redis
-    ports:
-      - "6379:6379"
+    container_name: esp8266-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - esp8266-network
 
-  # Backend API Server
+  # Backend API
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: esp8266_backend
+    container_name: esp8266-backend
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: esp8266_platform
+      DB_USER: esp8266app
+      DB_PASSWORD: ${DB_PASSWORD:-changeme123}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${DOMAIN:-http://localhost:3000}
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=esp8266_platform
-      - DB_USER=postgres
-      - DB_PASSWORD=password
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-      - FRONTEND_URL=http://localhost:5173
-    volumes:
-      - ./backend/uploads:/app/uploads
-      - ./backend/logs:/app/logs
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      - postgres
+      - redis
+    restart: unless-stopped
+    volumes:
+      - ./firmware:/app/firmware:ro
+      - app_logs:/var/log/app
+    networks:
+      - esp8266-network
 
-  # Frontend (for production)
+  # Frontend (Nginx)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: esp8266_frontend
+      args:
+        REACT_APP_API_URL: ${DOMAIN:-http://localhost:3000}
+        REACT_APP_WS_URL: ${WS_URL:-ws://localhost:3000}
+    container_name: esp8266-frontend
     ports:
       - "80:80"
-    environment:
-      - REACT_APP_API_URL=http://localhost:3000/api
-      - REACT_APP_WS_URL=ws://localhost:3000
+      - "443:443"
     depends_on:
       - backend
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ssl_certs:/etc/ssl/certs
+    networks:
+      - esp8266-network
 
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
+  app_logs:
+    driver: local
+  ssl_certs:
+    driver: local
 
 networks:
-  default:
-    name: esp8266_network
+  esp8266-network:
+    driver: bridge

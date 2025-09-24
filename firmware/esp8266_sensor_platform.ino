@@ -6,6 +6,7 @@
 #include <EEPROM.h>
 #include <DHT.h>
 #include <Ultrasonic.h>
+#include "device_config.h"
 
 // Configuration structure
 struct DeviceConfig {
@@ -97,30 +98,30 @@ void loop() {
 }
 
 void loadConfiguration() {
-    // Try to load from EEPROM, otherwise use hardcoded defaults
-    EEPROM.get(0, config);
+    // Use predefined configuration from device_config.h
+    strcpy(config.wifi_ssid, WIFI_SSID);
+    strcpy(config.wifi_password, WIFI_PASSWORD);
+    strcpy(config.server_url, SERVER_URL);
+    strcpy(config.device_id, DEVICE_ID);
+    config.heartbeat_interval = HEARTBEAT_INTERVAL_SEC;
+    config.armed = DEVICE_ARMED;
+    config.ota_enabled = OTA_ENABLED;
+    config.debug_mode = DEBUG_MODE;
+    config.config_version = 2;  // Version 2 uses predefined config
 
-    // Check if configuration is valid (magic number check)
-    if (config.config_version == 0 || config.config_version > 1000) {
-        // Set default configuration
-        strcpy(config.wifi_ssid, "YOUR_WIFI_SSID");
-        strcpy(config.wifi_password, "YOUR_WIFI_PASSWORD");
-        strcpy(config.server_url, "https://your-server.com");
-        strcpy(config.device_id, "ESP8266_001");
-        config.heartbeat_interval = 300;
-        config.armed = true;
-        config.ota_enabled = true;
-        config.debug_mode = false;
-        config.config_version = 1;
-
-        saveConfiguration();
-    }
+    // Save to EEPROM for runtime updates if needed
+    saveConfiguration();
 
     if (config.debug_mode) {
-        Serial.println("Configuration loaded:");
+        Serial.println("=== DEVICE CONFIGURATION ===");
         Serial.println("Device ID: " + String(config.device_id));
-        Serial.println("Heartbeat interval: " + String(config.heartbeat_interval));
-        Serial.println("Armed: " + String(config.armed));
+        Serial.println("Location: " + String(DEVICE_LOCATION));
+        Serial.println("WiFi SSID: " + String(config.wifi_ssid));
+        Serial.println("Server: " + String(config.server_url));
+        Serial.println("Heartbeat interval: " + String(config.heartbeat_interval) + "s");
+        Serial.println("Armed: " + String(config.armed ? "Yes" : "No"));
+        Serial.println("OTA Enabled: " + String(config.ota_enabled ? "Yes" : "No"));
+        Serial.println("===========================");
     }
 }
 
@@ -131,34 +132,107 @@ void saveConfiguration() {
 }
 
 void initializeSensors() {
-    // Example sensor configurations - this would be loaded from server
     sensorCount = 0;
 
-    // Photodiode on A0
-    sensors[sensorCount] = {A0, "photodiode", "Light Sensor", 0, 1, true, 0, 1024};
-    sensorCount++;
-
-    // Temperature/Humidity on D4 (if DHT22 connected)
-    if (digitalRead(D4) != -1) {
-        dht = new DHT(D4, DHT22);
-        dht->begin();
-
-        sensors[sensorCount] = {D4, "temperature", "Temperature", 0, 1, true, -40, 85};
-        sensorCount++;
-
-        sensors[sensorCount] = {D4, "humidity", "Humidity", 0, 1, true, 0, 100};
-        sensorCount++;
+    if (config.debug_mode) {
+        Serial.println("=== INITIALIZING SENSORS ===");
     }
 
-    // Motion sensor on D2
-    pinMode(D2, INPUT);
-    sensors[sensorCount] = {D2, "motion", "Motion Detector", 0, 1, true, 0, 1};
+    // Temperature & Humidity Sensor (DHT)
+    #if SENSOR_DHT_ENABLED
+    dht = new DHT(SENSOR_DHT_PIN, SENSOR_DHT_TYPE);
+    dht->begin();
+    pinMode(SENSOR_DHT_PIN, INPUT_PULLUP);
+
+    sensors[sensorCount] = {SENSOR_DHT_PIN, "temperature", "Temperature", 0, 1, true, TEMP_THRESHOLD_MIN, TEMP_THRESHOLD_MAX};
     sensorCount++;
 
-    // Ultrasonic sensor on D5 (trigger) and D6 (echo)
-    ultrasonic = new Ultrasonic(D5, D6);
-    sensors[sensorCount] = {D5, "distance", "Distance Sensor", 0, 1, true, 0, 400};
+    sensors[sensorCount] = {SENSOR_DHT_PIN, "humidity", "Humidity", 0, 1, true, HUMIDITY_THRESHOLD_MIN, HUMIDITY_THRESHOLD_MAX};
     sensorCount++;
+
+    if (config.debug_mode) {
+        Serial.println("DHT sensor initialized on pin " + String(SENSOR_DHT_PIN));
+    }
+    #endif
+
+    // Light Sensor (Photodiode/LDR)
+    #if SENSOR_LIGHT_ENABLED
+    sensors[sensorCount] = {SENSOR_LIGHT_PIN, "light", "Light Sensor", LIGHT_CALIBRATION_OFFSET, LIGHT_CALIBRATION_MULTIPLIER, true, LIGHT_THRESHOLD_MIN, LIGHT_THRESHOLD_MAX};
+    sensorCount++;
+
+    if (config.debug_mode) {
+        Serial.println("Light sensor initialized on pin A0");
+    }
+    #endif
+
+    // Motion Sensor (PIR)
+    #if SENSOR_MOTION_ENABLED
+    pinMode(SENSOR_MOTION_PIN, INPUT);
+    sensors[sensorCount] = {SENSOR_MOTION_PIN, "motion", "Motion Detector", 0, 1, true, MOTION_THRESHOLD_MIN, MOTION_THRESHOLD_MAX};
+    sensorCount++;
+
+    if (config.debug_mode) {
+        Serial.println("Motion sensor initialized on pin " + String(SENSOR_MOTION_PIN));
+    }
+    #endif
+
+    // Distance Sensor (Ultrasonic)
+    #if SENSOR_DISTANCE_ENABLED
+    ultrasonic = new Ultrasonic(SENSOR_DISTANCE_TRIGGER_PIN, SENSOR_DISTANCE_ECHO_PIN);
+    sensors[sensorCount] = {SENSOR_DISTANCE_TRIGGER_PIN, "distance", "Distance Sensor", 0, 1, true, DISTANCE_THRESHOLD_MIN, DISTANCE_THRESHOLD_MAX};
+    sensorCount++;
+
+    if (config.debug_mode) {
+        Serial.println("Ultrasonic sensor initialized - Trigger: " + String(SENSOR_DISTANCE_TRIGGER_PIN) + ", Echo: " + String(SENSOR_DISTANCE_ECHO_PIN));
+    }
+    #endif
+
+    // Sound Sensor
+    #if SENSOR_SOUND_ENABLED
+    sensors[sensorCount] = {SENSOR_SOUND_PIN, "sound", "Sound Level", 0, 1, true, SOUND_THRESHOLD_MIN, SOUND_THRESHOLD_MAX};
+    sensorCount++;
+
+    if (config.debug_mode) {
+        Serial.println("Sound sensor initialized on pin A0");
+    }
+    #endif
+
+    // Magnetic Door/Window Sensor
+    #if SENSOR_MAGNETIC_ENABLED
+    pinMode(SENSOR_MAGNETIC_PIN, INPUT_PULLUP);
+    sensors[sensorCount] = {SENSOR_MAGNETIC_PIN, "magnetic", "Door/Window Sensor", 0, 1, true, MAGNETIC_THRESHOLD_MIN, MAGNETIC_THRESHOLD_MAX};
+    sensorCount++;
+
+    if (config.debug_mode) {
+        Serial.println("Magnetic sensor initialized on pin " + String(SENSOR_MAGNETIC_PIN));
+    }
+    #endif
+
+    // Vibration Sensor
+    #if SENSOR_VIBRATION_ENABLED
+    pinMode(SENSOR_VIBRATION_PIN, INPUT);
+    sensors[sensorCount] = {SENSOR_VIBRATION_PIN, "vibration", "Vibration Sensor", 0, 1, true, VIBRATION_THRESHOLD_MIN, VIBRATION_THRESHOLD_MAX};
+    sensorCount++;
+
+    if (config.debug_mode) {
+        Serial.println("Vibration sensor initialized on pin " + String(SENSOR_VIBRATION_PIN));
+    }
+    #endif
+
+    // Gas Sensor
+    #if SENSOR_GAS_ENABLED
+    sensors[sensorCount] = {SENSOR_GAS_PIN, "gas", "Gas Sensor", 0, 1, true, GAS_THRESHOLD_MIN, GAS_THRESHOLD_MAX};
+    sensorCount++;
+
+    if (config.debug_mode) {
+        Serial.println("Gas sensor initialized on pin A0");
+    }
+    #endif
+
+    if (config.debug_mode) {
+        Serial.println("Total sensors initialized: " + String(sensorCount));
+        Serial.println("============================");
+    }
 }
 
 void readAndProcessSensors() {
@@ -173,7 +247,12 @@ void readAndProcessSensors() {
         bool hasReading = false;
 
         // Read sensor based on type
-        if (sensors[i].type == "photodiode") {
+        if (sensors[i].type == "light") {
+            rawValue = analogRead(sensors[i].pin);
+            processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+            hasReading = true;
+
+        } else if (sensors[i].type == "photodiode") {
             rawValue = analogRead(sensors[i].pin);
             processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
@@ -199,6 +278,26 @@ void readAndProcessSensors() {
 
         } else if (sensors[i].type == "distance" && ultrasonic != nullptr) {
             rawValue = ultrasonic->read();
+            processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+            hasReading = true;
+
+        } else if (sensors[i].type == "sound") {
+            rawValue = analogRead(sensors[i].pin);
+            processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+            hasReading = true;
+
+        } else if (sensors[i].type == "magnetic") {
+            rawValue = digitalRead(sensors[i].pin);
+            processedValue = rawValue;
+            hasReading = true;
+
+        } else if (sensors[i].type == "vibration") {
+            rawValue = digitalRead(sensors[i].pin);
+            processedValue = rawValue;
+            hasReading = true;
+
+        } else if (sensors[i].type == "gas") {
+            rawValue = analogRead(sensors[i].pin);
             processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
         }
@@ -254,7 +353,9 @@ void sendHeartbeat() {
 
     StaticJsonDocument<512> doc;
     doc["device_id"] = config.device_id;
-    doc["firmware_version"] = "2.0.0";
+    doc["device_name"] = DEVICE_NAME;
+    doc["device_location"] = DEVICE_LOCATION;
+    doc["firmware_version"] = FIRMWARE_VERSION;
     doc["uptime"] = millis() / 1000;
     doc["free_heap"] = ESP.getFreeHeap();
     doc["wifi_rssi"] = WiFi.RSSI();
@@ -332,7 +433,7 @@ void parseServerResponse(const String& response) {
     // Check for OTA update request
     if (doc.containsKey("ota_update")) {
         JsonObject otaInfo = doc["ota_update"];
-        if (config.ota_enabled && otaInfo["version"] != "2.0.0") {
+        if (config.ota_enabled && otaInfo["version"] != FIRMWARE_VERSION) {
             performOTAUpdate(otaInfo["url"].as<String>(), otaInfo["checksum"].as<String>());
         }
     }
@@ -500,7 +601,7 @@ void checkForFirmwareUpdate() {
     http.addHeader("Content-Type", "application/json");
 
     StaticJsonDocument<256> doc;
-    doc["current_version"] = "2.0.0";
+    doc["current_version"] = FIRMWARE_VERSION;
     doc["device_type"] = "esp8266";
 
     String payload;

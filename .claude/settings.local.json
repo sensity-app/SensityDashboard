@@ -4,7 +4,9 @@
       "Bash(mkdir:*)",
       "Bash(tree:*)",
       "Bash(node:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(chmod:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

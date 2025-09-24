@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import DeviceDetail from './pages/DeviceDetail';
 import DeviceManagement from './pages/DeviceManagement';
 import UserManagement from './pages/UserManagement';
+import FirmwareBuilder from './pages/FirmwareBuilder';
 
 import LanguageSelector from './components/LanguageSelector';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
@@ -144,6 +145,7 @@ function AuthenticatedApp({ user, onLogout }) {
         { path: '/device-tags', label: t('nav.deviceTags', 'Device Tags'), icon: '🏷️' },
         { path: '/device-health', label: t('nav.deviceHealth', 'Device Health'), icon: '🏥' },
         { path: '/alert-rules', label: t('nav.alertRules', 'Alert Rules'), icon: '⚙️' },
+        { path: '/firmware-builder', label: t('nav.firmwareBuilder', 'Firmware Builder'), icon: '🔧' },
         ...(user.role === 'admin' ? [
             { path: '/users', label: t('nav.userManagement', 'User Management'), icon: '👥' }
         ] : [])
@@ -218,6 +220,7 @@ function AuthenticatedApp({ user, onLogout }) {
                     <Route path="/device-tags" element={<DeviceTagsManager />} />
                     <Route path="/device-health" element={<DeviceHealthDashboard />} />
                     <Route path="/alert-rules" element={<AlertRulesManager />} />
+                    <Route path="/firmware-builder" element={<FirmwareBuilder />} />
                     {user.role === 'admin' && (
                         <Route path="/users" element={<UserManagement />} />
                     )}

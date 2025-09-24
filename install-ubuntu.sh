@@ -37,6 +37,7 @@ DOMAIN=""
 EMAIL=""
 DB_PASSWORD=""
 JWT_SECRET=""
+DEVELOPMENT_MODE=""
 APP_USER="esp8266app"
 APP_DIR="/opt/esp8266-platform"
 NODE_VERSION="18"
@@ -106,9 +107,31 @@ detect_ubuntu() {
 
 # Function to check for environment variables
 check_env_vars() {
-    # Check if all required environment variables are set
+    # Check for development mode
+    if [[ "${DEVELOPMENT_MODE}" == "true" ]]; then
+        print_status "Using development mode - no DNS or SSL required"
+
+        # Only DB_PASSWORD is required in development mode
+        if [[ -z "$DB_PASSWORD" ]]; then
+            print_error "DB_PASSWORD environment variable is required even in development mode"
+            exit 1
+        fi
+
+        # Check password length
+        if [[ ${#DB_PASSWORD} -lt 8 ]]; then
+            print_error "DB_PASSWORD must be at least 8 characters long"
+            exit 1
+        fi
+
+        # Generate JWT secret
+        JWT_SECRET=$(openssl rand -base64 64 | tr -d '\n')
+        print_success "Development mode configuration validated successfully"
+        return 0
+    fi
+
+    # Check if all required environment variables are set for production mode
     if [[ -n "$DOMAIN" && -n "$EMAIL" && -n "$DB_PASSWORD" ]]; then
-        print_status "Using environment variables for configuration"
+        print_status "Using environment variables for production configuration"
 
         # Validate domain format
         if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
@@ -130,7 +153,7 @@ check_env_vars() {
 
         # Generate JWT secret
         JWT_SECRET=$(openssl rand -base64 64 | tr -d '\n')
-        print_success "Configuration validated successfully"
+        print_success "Production configuration validated successfully"
         return 0
     fi
     return 1
@@ -156,34 +179,69 @@ gather_input() {
         echo "  sudo ./install-ubuntu.sh"
         echo
         print_status "Or set environment variables and run non-interactively:"
+        echo
+        echo "  For production (with SSL):"
         echo "  export DOMAIN=your-domain.com"
         echo "  export EMAIL=your-email@example.com"
+        echo "  export DB_PASSWORD=your-secure-password"
+        echo "  curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash"
+        echo
+        echo "  For development (no SSL, IP access only):"
+        echo "  export DEVELOPMENT_MODE=true"
         echo "  export DB_PASSWORD=your-secure-password"
         echo "  curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash"
         echo
         exit 1
     fi
 
-    echo "Please provide the following information:"
+    echo "Please choose your installation type:"
+    echo
+    echo "1) Production (with domain name and SSL certificates)"
+    echo "2) Development (no SSL, access via IP address only)"
     echo
 
-    # Domain name
-    while [[ -z "$DOMAIN" ]]; do
-        read -p "Enter your domain name (e.g., iot.example.com): " DOMAIN < /dev/tty
-        if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
-            print_error "Invalid domain name format"
-            DOMAIN=""
-        fi
+    while [[ -z "$DEVELOPMENT_MODE" ]]; do
+        read -p "Select installation type (1 or 2): " INSTALL_TYPE < /dev/tty
+        case $INSTALL_TYPE in
+            1)
+                DEVELOPMENT_MODE="false"
+                print_status "Selected: Production installation with SSL"
+                ;;
+            2)
+                DEVELOPMENT_MODE="true"
+                print_status "Selected: Development installation without SSL"
+                ;;
+            *)
+                print_error "Please enter 1 or 2"
+                ;;
+        esac
     done
 
-    # Email for SSL certificates
-    while [[ -z "$EMAIL" ]]; do
-        read -p "Enter your email for SSL certificates: " EMAIL < /dev/tty
-        if [[ ! "$EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-            print_error "Invalid email format"
-            EMAIL=""
-        fi
-    done
+    echo
+
+    if [[ "$DEVELOPMENT_MODE" == "false" ]]; then
+        # Domain name
+        while [[ -z "$DOMAIN" ]]; do
+            read -p "Enter your domain name (e.g., iot.example.com): " DOMAIN < /dev/tty
+            if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
+                print_error "Invalid domain name format"
+                DOMAIN=""
+            fi
+        done
+
+        # Email for SSL certificates
+        while [[ -z "$EMAIL" ]]; do
+            read -p "Enter your email for SSL certificates: " EMAIL < /dev/tty
+            if [[ ! "$EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+                print_error "Invalid email format"
+                EMAIL=""
+            fi
+        done
+    else
+        print_status "Development mode: Skipping domain and email configuration"
+        DOMAIN="localhost"
+        EMAIL="dev@localhost"
+    fi
 
     # Database password
     while [[ -z "$DB_PASSWORD" ]]; do
@@ -460,8 +518,87 @@ install_nginx() {
 
     apt-get install -y nginx
 
-    # Create Nginx configuration
-    cat > "/etc/nginx/sites-available/$DOMAIN" << EOF
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        # Development configuration (HTTP only, no SSL)
+        cat > "/etc/nginx/sites-available/esp8266-platform" << EOF
+# Development HTTP server (no SSL)
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    # Allow access from any IP
+    server_name _;
+
+    # Root directory for static files
+    root $APP_DIR/frontend/build;
+    index index.html;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    # API routes
+    location /api/ {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+
+    # WebSocket support
+    location /socket.io/ {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Static files
+    location / {
+        try_files \$uri \$uri/ /index.html;
+        expires 1h;
+        add_header Cache-Control "public";
+    }
+
+    # Firmware files (if serving them statically)
+    location /firmware/ {
+        alias $APP_DIR/firmware/;
+        expires 1h;
+        add_header Cache-Control "public";
+    }
+
+    # Disable access to sensitive files
+    location ~ /\. {
+        deny all;
+    }
+
+    location ~ \.(env|log|md)$ {
+        deny all;
+    }
+}
+EOF
+
+        # Enable site
+        ln -sf "/etc/nginx/sites-available/esp8266-platform" "/etc/nginx/sites-enabled/"
+        print_status "Development mode: HTTP-only configuration created"
+
+    else
+        # Production configuration (HTTPS with SSL)
+        cat > "/etc/nginx/sites-available/$DOMAIN" << EOF
 # HTTP redirect to HTTPS
 server {
     listen 80;
@@ -560,8 +697,11 @@ server {
 }
 EOF
 
-    # Enable site
-    ln -sf "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/"
+        # Enable site
+        ln -sf "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/"
+        print_status "Production mode: HTTPS configuration created"
+    fi
+
     rm -f /etc/nginx/sites-enabled/default
 
     # Test Nginx configuration
@@ -572,6 +712,11 @@ EOF
 
 # Function to install Certbot and get SSL certificates
 setup_ssl() {
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        print_status "Development mode: Skipping SSL certificate setup"
+        return 0
+    fi
+
     print_status "Installing Certbot and obtaining SSL certificates..."
 
     apt-get install -y certbot python3-certbot-nginx
@@ -598,7 +743,15 @@ setup_firewall() {
     ufw default deny incoming
     ufw default allow outgoing
     ufw allow ssh
-    ufw allow 'Nginx Full'
+
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        ufw allow 'Nginx HTTP'
+        print_status "Development mode: HTTP access allowed"
+    else
+        ufw allow 'Nginx Full'
+        print_status "Production mode: HTTPS access configured"
+    fi
+
     ufw --force enable
 
     print_success "Firewall configured"
@@ -624,11 +777,21 @@ start_services() {
 create_setup_completion() {
     print_status "Finalizing installation..."
 
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        SERVER_IP=$(hostname -I | awk '{print $1}')
+        ACCESS_URL="http://$SERVER_IP"
+        WEB_SERVER_INFO="Nginx (HTTP only, development mode)"
+    else
+        ACCESS_URL="https://$DOMAIN"
+        WEB_SERVER_INFO="Nginx with SSL/TLS"
+    fi
+
     cat > "$APP_DIR/INSTALLATION_INFO.md" << EOF
 # ESP8266 IoT Platform - Installation Complete
 
 ## Server Information
-- **Domain**: https://$DOMAIN
+- **Access URL**: $ACCESS_URL
+- **Installation Mode**: $([ "$DEVELOPMENT_MODE" == "true" ] && echo "Development (HTTP)" || echo "Production (HTTPS)")
 - **Installation Date**: $(date)
 - **Application Directory**: $APP_DIR
 - **Application User**: $APP_USER
@@ -638,7 +801,7 @@ create_setup_completion() {
 - **Frontend**: Static files served by Nginx
 - **Database**: PostgreSQL on localhost:5432
 - **Cache**: Redis on localhost:6379
-- **Web Server**: Nginx with SSL/TLS
+- **Web Server**: $WEB_SERVER_INFO
 
 ## Important Files
 - **Backend Config**: $APP_DIR/backend/.env
@@ -711,20 +874,32 @@ EOF
 show_completion_message() {
     print_header
 
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        SERVER_IP=$(hostname -I | awk '{print $1}')
+        ACCESS_URL="http://$SERVER_IP"
+        MODE_TEXT="Development Mode (HTTP Only)"
+        SECURITY_TEXT="Basic security - HTTP only, suitable for development"
+    else
+        ACCESS_URL="https://$DOMAIN"
+        MODE_TEXT="Production Mode (HTTPS)"
+        SECURITY_TEXT="SSL/TLS certificates are active and auto-renewing"
+    fi
+
     echo -e "${GREEN}
 ╔══════════════════════════════════════════════════════════════╗
 ║                   🎉 INSTALLATION COMPLETE! 🎉               ║
 ╚══════════════════════════════════════════════════════════════╝${NC}
 
 ${CYAN}Your ESP8266 IoT Platform is now installed and running!${NC}
+${CYAN}Installation Mode: ${MODE_TEXT}${NC}
 
 ${YELLOW}📍 Access your platform:${NC}
-   🌐 Web Interface: ${BLUE}https://$DOMAIN${NC}
-   📊 Admin Dashboard: ${BLUE}https://$DOMAIN/dashboard${NC}
-   🔧 Firmware Builder: ${BLUE}https://$DOMAIN/firmware-builder${NC}
+   🌐 Web Interface: ${BLUE}${ACCESS_URL}${NC}
+   📊 Admin Dashboard: ${BLUE}${ACCESS_URL}/dashboard${NC}
+   🔧 Firmware Builder: ${BLUE}${ACCESS_URL}/firmware-builder${NC}
 
 ${YELLOW}🔑 Next Steps:${NC}
-   1. Visit ${BLUE}https://$DOMAIN${NC} to register your first admin user
+   1. Visit ${BLUE}${ACCESS_URL}${NC} to register your first admin user
    2. Configure email/SMS settings for alerts (optional)
    3. Start creating and managing your ESP8266 devices
    4. Use the firmware builder to generate custom firmware
@@ -735,7 +910,7 @@ ${YELLOW}📋 Important Information:${NC}
    • Configuration files in: ${BLUE}$APP_DIR/backend/.env${NC}
 
 ${YELLOW}🛡️ Security:${NC}
-   • SSL/TLS certificates are active and auto-renewing
+   • ${SECURITY_TEXT}
    • Firewall is configured (SSH + HTTP/HTTPS only)
    • Database is password protected
 

@@ -77,7 +77,14 @@ chmod +x install-ubuntu.sh
 sudo ./install-ubuntu.sh
 ```
 
-**Non-interactive Installation (with environment variables):**
+**Development Mode (HTTP, no domain required):**
+```bash
+export DEVELOPMENT_MODE=true
+export DB_PASSWORD=your-secure-password
+curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash
+```
+
+**Production Mode (HTTPS with domain):**
 ```bash
 export DOMAIN=your-domain.com
 export EMAIL=your-email@example.com
@@ -87,10 +94,16 @@ curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platfor
 
 This will:
 - ✅ Install all dependencies (Node.js, PostgreSQL, Redis, Nginx)
-- ✅ Configure SSL certificates with Let's Encrypt
+- ✅ Configure SSL certificates with Let's Encrypt *(Production mode only)*
 - ✅ Set up firewall and security
 - ✅ Deploy the application with PM2
-- ✅ Make it accessible from the internet
+- ✅ Make it accessible (via IP in development, domain in production)
+
+**Development Mode Benefits:**
+- 🚀 Quick setup without domain requirements
+- 💻 Perfect for testing and development
+- 🔗 Access via server IP address (e.g., `http://192.168.1.100`)
+- 🔧 Easy transition to production mode later
 
 ### Option 2: Docker Deployment
 
@@ -322,7 +335,13 @@ chmod +x install-ubuntu.sh
 sudo ./install-ubuntu.sh
 ```
 
-**Or with environment variables:**
+**Development Mode (HTTP only):**
+```bash
+export DEVELOPMENT_MODE=true DB_PASSWORD=your-password
+curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash
+```
+
+**Production Mode (HTTPS):**
 ```bash
 export DOMAIN=your-domain.com EMAIL=your-email@example.com DB_PASSWORD=your-password
 curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash

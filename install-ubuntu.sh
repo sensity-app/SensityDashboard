@@ -528,7 +528,10 @@ EOF
 create_env_files() {
     print_status "Creating environment configuration..."
 
-    # Backend environment
+    # Note: PM2 ecosystem.config.js now contains all environment variables
+    # The .env file is created as a backup but PM2 uses the ecosystem config
+
+    # Backend environment (backup - PM2 uses ecosystem.config.js)
     cat > "$APP_DIR/backend/.env" << EOF
 # Database Configuration
 DB_HOST=localhost
@@ -602,7 +605,7 @@ install_pm2() {
 
     npm install -g pm2
 
-    # Create PM2 ecosystem file
+    # Create PM2 ecosystem file with environment variables
     cat > "$APP_DIR/ecosystem.config.js" << EOF
 module.exports = {
   apps: [{
@@ -613,7 +616,24 @@ module.exports = {
     exec_mode: 'cluster',
     env: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 3000,
+      // Database Configuration
+      DB_HOST: 'localhost',
+      DB_PORT: 5432,
+      DB_NAME: 'esp8266_platform',
+      DB_USER: 'esp8266app',
+      DB_PASSWORD: '$DB_PASSWORD',
+      // Redis Configuration
+      REDIS_HOST: 'localhost',
+      REDIS_PORT: 6379,
+      REDIS_PASSWORD: '',
+      // JWT Configuration
+      JWT_SECRET: '$JWT_SECRET',
+      JWT_EXPIRES_IN: '7d',
+      // Additional Configuration
+      FRONTEND_URL: '$([ "$DEVELOPMENT_MODE" == "true" ] && echo "http://localhost" || echo "https://$DOMAIN")',
+      MAX_FILE_SIZE: '50mb',
+      LOG_LEVEL: 'info'
     },
     error_file: '/var/log/esp8266-platform/pm2-error.log',
     out_file: '/var/log/esp8266-platform/pm2-out.log',

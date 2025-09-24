@@ -161,29 +161,46 @@ create_test_admin() {
         return 1
     fi
 
-    # Insert test user into database
-    sudo -u postgres psql -d esp8266_platform << EOF
+    # Get database password from ecosystem config or .env
+    DB_PASSWORD=$(grep "DB_PASSWORD:" /opt/esp8266-platform/ecosystem.config.js | cut -d"'" -f2 2>/dev/null || grep "^DB_PASSWORD=" /opt/esp8266-platform/backend/.env | cut -d'=' -f2 2>/dev/null || echo "")
+
+    if [[ -z "$DB_PASSWORD" ]]; then
+        print_error "Could not find database password"
+        return 1
+    fi
+
+    # Insert test user into database using correct schema
+    PGPASSWORD="$DB_PASSWORD" psql -h localhost -U esp8266app -d esp8266_platform << EOF
 -- Remove existing test user if it exists
 DELETE FROM users WHERE email = 'admin@changeme.com';
 
--- Insert new test admin user
+-- Insert new test admin user with correct schema
 INSERT INTO users (
     email,
-    full_name,
     password_hash,
     role,
-    active,
+    full_name,
+    phone,
+    notification_email,
+    notification_sms,
+    notification_push,
     created_at,
     updated_at
 ) VALUES (
     'admin@changeme.com',
-    'Test Administrator',
     '$password_hash',
     'admin',
+    'Test Administrator',
+    NULL,
+    true,
+    false,
     true,
     NOW(),
     NOW()
 );
+
+-- Verify user was created
+SELECT id, email, full_name, role FROM users WHERE email = 'admin@changeme.com';
 EOF
 
     print_success "✅ Test admin user created!"

@@ -584,8 +584,8 @@ EOF
     mkdir -p /var/log/esp8266-platform
     chown "$APP_USER:$APP_USER" /var/log/esp8266-platform
 
-    # Setup PM2 startup script
-    sudo -u "$APP_USER" pm2 startup systemd -u "$APP_USER" --hp "/home/$APP_USER"
+    # Setup PM2 startup script (run as root to configure systemd)
+    sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u "$APP_USER" --hp "/home/$APP_USER" --silent
 
     print_success "PM2 installed and configured"
 }
@@ -846,11 +846,8 @@ start_services() {
     # Start application with PM2
     cd "$APP_DIR"
     sudo -u "$APP_USER" pm2 start ecosystem.config.js
-    sudo -u "$APP_USER" pm2 save
 
-    # Configure PM2 to start on boot automatically
-    print_status "Configuring PM2 auto-startup..."
-    sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u esp8266app --hp /home/esp8266app --silent
+    # Save PM2 configuration for auto-startup
     sudo -u "$APP_USER" pm2 save
 
     print_success "All services started and configured for auto-startup"

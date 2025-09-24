@@ -132,6 +132,7 @@ export const apiService = {
     getUsers: () => apiClient.get('/users'),
     getUser: (userId) => apiClient.get(`/users/${userId}`),
     updateUser: (userId, userData) => apiClient.put(`/users/${userId}`, userData),
+    deleteUser: (userId) => apiClient.delete(`/users/${userId}`),
     changePassword: (currentPassword, newPassword) =>
         apiClient.post('/auth/change-password', { currentPassword, newPassword }),
 
@@ -164,7 +165,7 @@ export const apiService = {
     deleteDeviceTag: (tagId) => apiClient.delete(`/device-tags/${tagId}`),
     assignTagToDevice: (tagId, deviceId) => apiClient.post(`/device-tags/${tagId}/assign-device`, { deviceId }),
     unassignTagFromDevice: (tagId, deviceId) => apiClient.delete(`/device-tags/${tagId}/unassign-device/${deviceId}`),
-    getDeviceTags: (deviceId) => apiClient.get(`/device-tags/device/${deviceId}`),
+    getDeviceTagsForDevice: (deviceId) => apiClient.get(`/device-tags/device/${deviceId}`),
 
     // Device Health
     getDeviceHealth: (deviceId) => apiClient.get(`/devices/${deviceId}/health`),

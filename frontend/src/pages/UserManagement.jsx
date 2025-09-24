@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, Mail, Trash2, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { UserPlus, Mail, Trash2, Clock, CheckCircle, XCircle, AlertTriangle, Edit3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { apiService } from '../services/api';
@@ -10,6 +10,7 @@ function UserManagement() {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const [showInviteForm, setShowInviteForm] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
 
     // Query users
     const { data: users = [], isLoading: usersLoading } = useQuery(
@@ -17,6 +18,33 @@ function UserManagement() {
         () => apiService.getUsers(),
         { refetchInterval: 30000 }
     );
+
+    // Delete user mutation
+    const deleteUserMutation = useMutation(
+        apiService.deleteUser,
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries('users');
+                toast.success(t('users.deleteSuccess', 'User deleted successfully'));
+            },
+            onError: (error) => {
+                console.error('Delete user error:', error);
+                const message = error.response?.data?.error || t('users.deleteError', 'Failed to delete user');
+                toast.error(message);
+            }
+        }
+    );
+
+    const handleDeleteUser = (user) => {
+        if (window.confirm(t('users.deleteConfirm', 'Are you sure you want to delete this user? This action cannot be undone.'))) {
+            deleteUserMutation.mutate(user.id);
+        }
+    };
+
+    const handleEditUser = (user) => {
+        setEditingUser(user);
+        setShowInviteForm(true);
+    };
 
     // Query invitations
     const { data: invitations = [], isLoading: invitationsLoading } = useQuery(
@@ -32,7 +60,10 @@ function UserManagement() {
                     {t('users.title', 'User Management')}
                 </h1>
                 <button
-                    onClick={() => setShowInviteForm(true)}
+                    onClick={() => {
+                        setEditingUser(null);
+                        setShowInviteForm(true);
+                    }}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
                     <UserPlus className="h-4 w-4 mr-2" />
@@ -83,16 +114,34 @@ function UserManagement() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center space-x-2">
-                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                            user.role === 'admin' ? 'bg-red-100 text-red-800' :
-                                            user.role === 'operator' ? 'bg-yellow-100 text-yellow-800' :
-                                            'bg-gray-100 text-gray-800'
-                                        }`}>
-                                            {t(`roles.${user.role}`, user.role)}
-                                        </span>
-                                        <div className="text-xs text-gray-500">
-                                            {new Date(user.created_at).toLocaleDateString()}
+                                    <div className="flex items-center space-x-4">
+                                        <div className="text-right">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                                                user.role === 'operator' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {t(`roles.${user.role}`, user.role)}
+                                            </span>
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                {new Date(user.created_at).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => handleEditUser(user)}
+                                                className="text-blue-600 hover:text-blue-800"
+                                                title={t('common.edit')}
+                                            >
+                                                <Edit3 className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteUser(user)}
+                                                className="text-red-600 hover:text-red-800"
+                                                title={t('common.delete')}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -139,10 +188,14 @@ function UserManagement() {
                 )}
             </div>
 
-            {/* Invite Form Modal */}
+            {/* Invite/Edit Form Modal */}
             {showInviteForm && (
                 <InviteUserModal
-                    onClose={() => setShowInviteForm(false)}
+                    user={editingUser}
+                    onClose={() => {
+                        setShowInviteForm(false);
+                        setEditingUser(null);
+                    }}
                 />
             )}
         </div>
@@ -233,13 +286,14 @@ function InvitationsList({ invitations }) {
     );
 }
 
-function InviteUserModal({ onClose }) {
+function InviteUserModal({ user, onClose }) {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
+    const isEditing = !!user;
     const [formData, setFormData] = useState({
-        email: '',
-        fullName: '',
-        role: 'viewer'
+        email: user?.email || '',
+        fullName: user?.full_name || '',
+        role: user?.role || 'viewer'
     });
 
     const inviteMutation = useMutation(
@@ -257,9 +311,35 @@ function InviteUserModal({ onClose }) {
         }
     );
 
+    const updateUserMutation = useMutation(
+        ({ userId, userData }) => apiService.updateUser(userId, userData),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries('users');
+                toast.success(t('users.updateSuccess', 'User updated successfully'));
+                onClose();
+            },
+            onError: (error) => {
+                const message = error.response?.data?.error || t('users.updateError', 'Failed to update user');
+                toast.error(message);
+            }
+        }
+    );
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        inviteMutation.mutate(formData);
+
+        if (isEditing) {
+            updateUserMutation.mutate({
+                userId: user.id,
+                userData: {
+                    full_name: formData.fullName,
+                    role: formData.role
+                }
+            });
+        } else {
+            inviteMutation.mutate(formData);
+        }
     };
 
     const handleChange = (e) => {
@@ -281,7 +361,7 @@ function InviteUserModal({ onClose }) {
                         </div>
                         <div className="mt-3 text-center sm:mt-5">
                             <h3 className="text-lg leading-6 font-medium text-gray-900">
-                                {t('users.inviteNewUser', 'Invite New User')}
+                                {isEditing ? t('users.editUser', 'Edit User') : t('users.inviteNewUser', 'Invite New User')}
                             </h3>
                         </div>
                     </div>
@@ -308,8 +388,9 @@ function InviteUserModal({ onClose }) {
                             <input
                                 type="email"
                                 name="email"
-                                required
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                required={!isEditing}
+                                disabled={isEditing}
+                                className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isEditing ? 'bg-gray-100' : ''}`}
                                 value={formData.email}
                                 onChange={handleChange}
                             />
@@ -341,11 +422,13 @@ function InviteUserModal({ onClose }) {
                             </button>
                             <button
                                 type="submit"
-                                disabled={inviteMutation.isLoading}
+                                disabled={inviteMutation.isLoading || updateUserMutation.isLoading}
                                 className="flex-1 bg-blue-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                             >
-                                {inviteMutation.isLoading ? (
+                                {(inviteMutation.isLoading || updateUserMutation.isLoading) ? (
                                     t('common.sending', 'Sending...')
+                                ) : isEditing ? (
+                                    t('common.update', 'Update')
                                 ) : (
                                     t('users.sendInvitation', 'Send Invitation')
                                 )}

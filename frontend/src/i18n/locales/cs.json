@@ -47,6 +47,7 @@
   },
   "nav": {
     "dashboard": "Přehled",
+    "devices": "Správa zařízení",
     "analytics": "Analytika",
     "deviceGroups": "Skupiny zařízení",
     "deviceTags": "Štítky zařízení",

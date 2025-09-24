@@ -9,6 +9,7 @@ import Register from './pages/Register';
 import InitialSetup from './pages/InitialSetup';
 import Dashboard from './pages/Dashboard';
 import DeviceDetail from './pages/DeviceDetail';
+import DeviceManagement from './pages/DeviceManagement';
 import UserManagement from './pages/UserManagement';
 
 import LanguageSelector from './components/LanguageSelector';
@@ -137,6 +138,7 @@ function AuthenticatedApp({ user, onLogout }) {
 
     const navigationItems = [
         { path: '/', label: t('nav.dashboard', 'Dashboard'), icon: '📊' },
+        { path: '/devices', label: t('nav.devices', 'Device Management'), icon: '🔧' },
         { path: '/analytics', label: t('nav.analytics', 'Analytics'), icon: '🧠' },
         { path: '/device-groups', label: t('nav.deviceGroups', 'Device Groups'), icon: '🏷️' },
         { path: '/device-tags', label: t('nav.deviceTags', 'Device Tags'), icon: '🏷️' },
@@ -209,6 +211,7 @@ function AuthenticatedApp({ user, onLogout }) {
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <Routes>
                     <Route path="/" element={<Dashboard />} />
+                    <Route path="/devices" element={<DeviceManagement />} />
                     <Route path="/devices/:id" element={<DeviceDetail />} />
                     <Route path="/analytics" element={<AnalyticsDashboard />} />
                     <Route path="/device-groups" element={<DeviceGroupsManager />} />

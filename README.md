@@ -181,6 +181,204 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed manual installation instructions
 - **Network**: 1 Gbps connection
 - **SSL**: Let's Encrypt or commercial certificate
 
+## 🔄 System Updates & Maintenance
+
+### Automatic Updates
+
+The platform includes an easy-to-use update system that pulls the latest changes from GitHub:
+
+**Download and run the update script:**
+```bash
+wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/update-system.sh
+chmod +x update-system.sh
+sudo ./update-system.sh
+```
+
+**Or use curl:**
+```bash
+curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/update-system.sh | sudo bash
+```
+
+### Update Process
+The update script automatically:
+- ✅ **Backs up** your current installation
+- ✅ **Stops services** safely (PM2, Nginx)
+- ✅ **Fetches latest code** from GitHub
+- ✅ **Updates dependencies** (npm packages)
+- ✅ **Rebuilds frontend** with latest changes
+- ✅ **Restarts services** and verifies functionality
+- ✅ **Preserves your data** (database, configuration)
+
+### Update Commands
+
+```bash
+# Standard system update
+sudo ./update-system.sh
+
+# Reset database for first user (development only)
+sudo ./update-system.sh reset-first-user
+
+# Show help and available options
+./update-system.sh --help
+```
+
+### Manual Update Process
+
+If you prefer manual updates:
+
+```bash
+# 1. Stop services
+sudo -u esp8266app pm2 stop all
+
+# 2. Backup current installation
+sudo cp -r /opt/esp8266-platform /opt/esp8266-platform.backup.$(date +%Y%m%d-%H%M%S)
+
+# 3. Update from Git
+cd /opt/esp8266-platform
+sudo -u esp8266app git pull origin main
+
+# 4. Update dependencies
+cd backend && sudo -u esp8266app npm install --production
+cd ../frontend && sudo -u esp8266app npm install && sudo -u esp8266app npm run build
+
+# 5. Restart services
+sudo -u esp8266app pm2 restart all
+```
+
+### Development Mode - First User Reset
+
+If you need to reset the system to allow first-user registration again (useful in development):
+
+```bash
+sudo ./update-system.sh reset-first-user
+```
+
+This removes all users from the database, allowing the **Initial Setup** page to appear again.
+
+### Backup & Restore
+
+**Create a backup:**
+```bash
+# Application files
+sudo tar -czf esp8266-backup-$(date +%Y%m%d).tar.gz /opt/esp8266-platform
+
+# Database backup
+sudo -u postgres pg_dump esp8266_platform > esp8266-database-$(date +%Y%m%d).sql
+```
+
+**Restore from backup:**
+```bash
+# Restore application files
+sudo tar -xzf esp8266-backup-YYYYMMDD.tar.gz -C /
+
+# Restore database
+sudo -u postgres psql -d esp8266_platform < esp8266-database-YYYYMMDD.sql
+sudo -u esp8266app pm2 restart all
+```
+
+### Version Management
+
+Check your current version:
+```bash
+cd /opt/esp8266-platform
+git log --oneline -1  # Latest commit
+git tag --list         # Available tags
+```
+
+Update to a specific version:
+```bash
+cd /opt/esp8266-platform
+sudo -u esp8266app git checkout v2.1.0  # Replace with desired version
+sudo ./update-system.sh
+```
+
+### Monitoring & Health Checks
+
+**Check system status:**
+```bash
+# PM2 processes
+sudo -u esp8266app pm2 status
+sudo -u esp8266app pm2 logs --lines 50
+
+# Service status
+sudo systemctl status nginx postgresql redis-server
+
+# Disk space and system resources
+df -h
+free -h
+
+# Check platform health
+curl -s http://localhost:3000/api/health || echo "Backend not responding"
+curl -s http://your-domain.com/ || echo "Frontend not accessible"
+```
+
+**Performance monitoring:**
+```bash
+# Monitor PM2 processes
+sudo -u esp8266app pm2 monit
+
+# Database performance
+sudo -u postgres psql -d esp8266_platform -c "SELECT * FROM pg_stat_activity;"
+
+# Server resources
+top
+htop
+```
+
+### Troubleshooting Updates
+
+**Common issues and solutions:**
+
+1. **Update fails due to local changes:**
+   ```bash
+   cd /opt/esp8266-platform
+   sudo -u esp8266app git stash  # Save local changes
+   sudo ./update-system.sh
+   sudo -u esp8266app git stash pop  # Restore local changes if needed
+   ```
+
+2. **Services won't start after update:**
+   ```bash
+   sudo -u esp8266app pm2 logs  # Check error logs
+   sudo systemctl restart nginx
+   sudo systemctl status postgresql
+   ```
+
+3. **Database migration needed:**
+   ```bash
+   # Check if new migrations exist
+   ls /opt/esp8266-platform/database/migrations/
+   # Run migrations if needed
+   sudo -u esp8266app npm run migrate
+   ```
+
+4. **Frontend build issues:**
+   ```bash
+   cd /opt/esp8266-platform/frontend
+   sudo -u esp8266app rm -rf node_modules package-lock.json
+   sudo -u esp8266app npm install
+   sudo -u esp8266app npm run build
+   ```
+
+### Rollback Process
+
+If an update causes issues, you can rollback:
+
+```bash
+# 1. Stop current services
+sudo -u esp8266app pm2 stop all
+
+# 2. Restore from backup
+sudo rm -rf /opt/esp8266-platform
+sudo tar -xzf /path/to/esp8266-backup-YYYYMMDD.tar.gz -C /
+
+# 3. Restore database if needed
+sudo -u postgres psql -d esp8266_platform < esp8266-database-YYYYMMDD.sql
+
+# 4. Restart services
+sudo -u esp8266app pm2 restart all
+```
+
 ## 🔧 Supported Sensors
 
 | Sensor Type | Part Number | Pin(s) | Description |
@@ -307,10 +505,12 @@ psql -d esp8266_platform -f database/schema.sql
 - 💬 **Discussions**: Use GitHub Discussions for questions
 
 ### Troubleshooting
-1. **Check logs**: `pm2 logs esp8266-platform`
-2. **Verify installation**: `./verify-installation.sh your-domain.com`
-3. **Review documentation**: See [DEPLOYMENT.md](DEPLOYMENT.md)
-4. **Community support**: GitHub Issues and Discussions
+1. **Check logs**: `sudo -u esp8266app pm2 logs`
+2. **Update system**: `sudo ./update-system.sh` (fixes most issues)
+3. **Reset first user**: `sudo ./update-system.sh reset-first-user` (if login issues)
+4. **Check services**: `sudo systemctl status nginx postgresql redis-server`
+5. **Review documentation**: See [DEPLOYMENT.md](DEPLOYMENT.md)
+6. **Community support**: GitHub Issues and Discussions
 
 ### Failed Installation Recovery
 If your installation fails or you need to start over:

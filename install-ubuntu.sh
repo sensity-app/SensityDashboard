@@ -785,7 +785,11 @@ EOF
     # Test Nginx configuration
     nginx -t
 
-    print_success "Nginx configured"
+    # Restart Nginx to apply changes
+    systemctl restart nginx
+    systemctl enable nginx
+
+    print_success "Nginx configured and restarted"
 }
 
 # Function to install Certbot and get SSL certificates
@@ -839,9 +843,7 @@ setup_firewall() {
 start_services() {
     print_status "Starting all services..."
 
-    # Start and enable services
-    systemctl start nginx
-    systemctl enable nginx
+    # Nginx is already started and enabled in install_nginx function
 
     # Start application with PM2
     cd "$APP_DIR"

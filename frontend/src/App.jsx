@@ -12,6 +12,11 @@ import DeviceDetail from './pages/DeviceDetail';
 import UserManagement from './pages/UserManagement';
 
 import LanguageSelector from './components/LanguageSelector';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import DeviceGroupsManager from './components/DeviceGroupsManager';
+import DeviceTagsManager from './components/DeviceTagsManager';
+import DeviceHealthDashboard from './components/DeviceHealthDashboard';
+import AlertRulesManager from './components/AlertRulesManager';
 import { apiService } from './services/api';
 
 const queryClient = new QueryClient({
@@ -119,6 +124,28 @@ function App() {
 
 function AuthenticatedApp({ user, onLogout }) {
     const { t } = useTranslation();
+    const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+    useEffect(() => {
+        const handleLocationChange = () => {
+            setCurrentPath(window.location.pathname);
+        };
+
+        window.addEventListener('popstate', handleLocationChange);
+        return () => window.removeEventListener('popstate', handleLocationChange);
+    }, []);
+
+    const navigationItems = [
+        { path: '/', label: t('nav.dashboard', 'Dashboard'), icon: '📊' },
+        { path: '/analytics', label: t('nav.analytics', 'Analytics'), icon: '🧠' },
+        { path: '/device-groups', label: t('nav.deviceGroups', 'Device Groups'), icon: '🏷️' },
+        { path: '/device-tags', label: t('nav.deviceTags', 'Device Tags'), icon: '🏷️' },
+        { path: '/device-health', label: t('nav.deviceHealth', 'Device Health'), icon: '🏥' },
+        { path: '/alert-rules', label: t('nav.alertRules', 'Alert Rules'), icon: '⚙️' },
+        ...(user.role === 'admin' ? [
+            { path: '/users', label: t('nav.userManagement', 'User Management'), icon: '👥' }
+        ] : [])
+    ];
 
     return (
         <div className="min-h-screen">
@@ -150,11 +177,44 @@ function AuthenticatedApp({ user, onLogout }) {
                 </div>
             </header>
 
+            {/* Navigation */}
+            <nav className="bg-gray-800">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex space-x-8">
+                        {navigationItems.map((item) => (
+                            <a
+                                key={item.path}
+                                href={item.path}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    window.history.pushState(null, '', item.path);
+                                    setCurrentPath(item.path);
+                                    window.dispatchEvent(new PopStateEvent('popstate'));
+                                }}
+                                className={`flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors ${
+                                    currentPath === item.path
+                                        ? 'text-white border-b-2 border-blue-400'
+                                        : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                                }`}
+                            >
+                                <span>{item.icon}</span>
+                                <span>{item.label}</span>
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            </nav>
+
             {/* Main Content */}
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/devices/:id" element={<DeviceDetail />} />
+                    <Route path="/analytics" element={<AnalyticsDashboard />} />
+                    <Route path="/device-groups" element={<DeviceGroupsManager />} />
+                    <Route path="/device-tags" element={<DeviceTagsManager />} />
+                    <Route path="/device-health" element={<DeviceHealthDashboard />} />
+                    <Route path="/alert-rules" element={<AlertRulesManager />} />
                     {user.role === 'admin' && (
                         <Route path="/users" element={<UserManagement />} />
                     )}

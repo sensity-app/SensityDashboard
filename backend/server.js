@@ -18,6 +18,10 @@ const userRoutes = require('./src/routes/users');
 const firmwareRoutes = require('./src/routes/firmware');
 const telemetryRoutes = require('./src/routes/telemetry');
 const escalationRoutes = require('./src/routes/escalation');
+const analyticsRoutes = require('./src/routes/analytics');
+const deviceGroupRoutes = require('./src/routes/deviceGroups');
+const deviceTagRoutes = require('./src/routes/deviceTags');
+const alertRuleRoutes = require('./src/routes/alertRules');
 
 const WebSocketService = require('./src/services/websocketService');
 const AlertEscalationService = require('./src/services/alertEscalationService');
@@ -73,6 +77,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/firmware', firmwareRoutes);
 app.use('/api/telemetry', telemetryRoutes);
 app.use('/api/escalation', escalationRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/device-groups', deviceGroupRoutes);
+app.use('/api/device-tags', deviceTagRoutes);
+app.use('/api/alert-rules', alertRuleRoutes);
 
 // WebSocket authentication middleware
 io.use(websocketService.authenticateSocket);

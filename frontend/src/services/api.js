@@ -2,6 +2,8 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
+let authToken = null;
+
 // Create axios instance with default config
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -14,7 +16,7 @@ const apiClient = axios.create({
 // Add request interceptor for authentication
 apiClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('auth_token');
+        const token = authToken || localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -30,18 +32,39 @@ apiClient.interceptors.response.use(
     (response) => response.data,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('auth_token');
-            window.location.href = '/login';
+            localStorage.removeItem('token');
+            authToken = null;
+            if (window.location.pathname !== '/login' &&
+                window.location.pathname !== '/register' &&
+                !window.location.pathname.startsWith('/register?')) {
+                window.location.href = '/login';
+            }
         }
-        return Promise.reject(error.response?.data || error.message);
+        return Promise.reject(error);
     }
 );
 
 export const apiService = {
+    // Set auth token
+    setAuthToken: (token) => {
+        authToken = token;
+    },
+
     // Authentication
     login: (credentials) => apiClient.post('/auth/login', credentials),
     logout: () => apiClient.post('/auth/logout'),
     register: (userData) => apiClient.post('/auth/register', userData),
+
+    // Setup and invitations
+    checkSetup: () => apiClient.get('/auth/setup-check'),
+    initialSetup: (userData) => apiClient.post('/auth/initial-setup', userData),
+    verifyInvitation: (token) => apiClient.get(`/auth/invite/${token}`),
+    inviteUser: (userData) => apiClient.post('/auth/invite', userData),
+    getInvitations: () => apiClient.get('/auth/invitations'),
+    cancelInvitation: (invitationId) => apiClient.delete(`/auth/invitations/${invitationId}`),
+
+    // User profile
+    getCurrentUser: () => apiClient.get('/auth/me'),
 
     // Devices
     getDevices: () => apiClient.get('/devices'),
@@ -109,8 +132,57 @@ export const apiService = {
     getUsers: () => apiClient.get('/users'),
     getUser: (userId) => apiClient.get(`/users/${userId}`),
     updateUser: (userId, userData) => apiClient.put(`/users/${userId}`, userData),
-    changePassword: (oldPassword, newPassword) =>
-        apiClient.put('/auth/change-password', { old_password: oldPassword, new_password: newPassword }),
+    changePassword: (currentPassword, newPassword) =>
+        apiClient.post('/auth/change-password', { currentPassword, newPassword }),
+
+    // Alerts (for dashboard)
+    getRecentAlerts: (limit = 10) => apiClient.get('/alerts', { params: { limit, status: 'OPEN' } }),
+
+    // Analytics
+    getSensorRecommendations: (deviceId, sensorPin, timeRange = '30d') =>
+        apiClient.get(`/analytics/sensor-recommendations/${deviceId}/${sensorPin}`, { params: { timeRange } }),
+    getAnomalies: (deviceId, sensorPin, timeRange = '24h') =>
+        apiClient.get(`/analytics/anomalies/${deviceId}/${sensorPin}`, { params: { timeRange } }),
+    getDeviceAnalyticsSummary: (deviceId, timeRange = '24h') =>
+        apiClient.get(`/analytics/device-summary/${deviceId}`, { params: { timeRange } }),
+    clearAnalyticsCache: () => apiClient.post('/analytics/clear-cache'),
+
+    // Device Groups
+    getDeviceGroups: () => apiClient.get('/device-groups'),
+    getDeviceGroup: (groupId) => apiClient.get(`/device-groups/${groupId}`),
+    createDeviceGroup: (groupData) => apiClient.post('/device-groups', groupData),
+    updateDeviceGroup: (groupId, groupData) => apiClient.put(`/device-groups/${groupId}`, groupData),
+    deleteDeviceGroup: (groupId) => apiClient.delete(`/device-groups/${groupId}`),
+    addDeviceToGroup: (groupId, deviceId) => apiClient.post(`/device-groups/${groupId}/add-device`, { deviceId }),
+    removeDeviceFromGroup: (groupId, deviceId) => apiClient.delete(`/device-groups/${groupId}/remove-device/${deviceId}`),
+
+    // Device Tags
+    getDeviceTags: () => apiClient.get('/device-tags'),
+    getDeviceTag: (tagId) => apiClient.get(`/device-tags/${tagId}`),
+    createDeviceTag: (tagData) => apiClient.post('/device-tags', tagData),
+    updateDeviceTag: (tagId, tagData) => apiClient.put(`/device-tags/${tagId}`, tagData),
+    deleteDeviceTag: (tagId) => apiClient.delete(`/device-tags/${tagId}`),
+    assignTagToDevice: (tagId, deviceId) => apiClient.post(`/device-tags/${tagId}/assign-device`, { deviceId }),
+    unassignTagFromDevice: (tagId, deviceId) => apiClient.delete(`/device-tags/${tagId}/unassign-device/${deviceId}`),
+    getDeviceTags: (deviceId) => apiClient.get(`/device-tags/device/${deviceId}`),
+
+    // Device Health
+    getDeviceHealth: (deviceId) => apiClient.get(`/devices/${deviceId}/health`),
+    getDeviceHealthHistory: (deviceId, timeRange = '24h', metrics) =>
+        apiClient.get(`/devices/${deviceId}/health/history`, { params: { timeRange, metrics } }),
+    updateDeviceHealth: (deviceId, healthData) => apiClient.post(`/devices/${deviceId}/health`, healthData),
+
+    // Alert Rules
+    getAlertRuleTemplates: (sensorType, includeUser = false) =>
+        apiClient.get('/alert-rules/templates', { params: { sensorType, includeUser } }),
+    getAlertRuleTemplate: (templateId) => apiClient.get(`/alert-rules/templates/${templateId}`),
+    createAlertRuleTemplate: (templateData) => apiClient.post('/alert-rules/templates', templateData),
+    updateAlertRuleTemplate: (templateId, templateData) => apiClient.put(`/alert-rules/templates/${templateId}`, templateData),
+    deleteAlertRuleTemplate: (templateId, force = false) => apiClient.delete(`/alert-rules/templates/${templateId}`, { params: { force } }),
+    applyRuleTemplate: (templateId, deviceSensorId, customizations = {}) =>
+        apiClient.post(`/alert-rules/apply-template/${templateId}`, { deviceSensorId, customizations }),
+    evaluateAlertRule: (ruleId, testValue) =>
+        apiClient.get(`/alert-rules/evaluate/${ruleId}`, { params: { testValue } }),
 
     // System
     getSystemInfo: () => apiClient.get('/system/info'),

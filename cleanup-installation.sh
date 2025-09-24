@@ -91,9 +91,9 @@ cleanup_installation() {
             print_success "Database removed"
         fi
 
-        if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266user; then
-            print_status "Removing database user (esp8266user)..."
-            sudo -u postgres dropuser esp8266user 2>/dev/null || true
+        if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266app; then
+            print_status "Removing database user (esp8266app)..."
+            sudo -u postgres dropuser esp8266app 2>/dev/null || true
             print_success "Database user removed"
         fi
     fi

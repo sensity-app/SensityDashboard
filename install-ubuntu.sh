@@ -999,9 +999,9 @@ cleanup_failed_installation() {
         sudo -u postgres dropdb esp8266_platform 2>/dev/null || true
     fi
 
-    if sudo -u postgres psql -t -c '\du' | cut -d \| -f 1 | grep -qw esp8266user; then
+    if sudo -u postgres psql -t -c '\du' | cut -d \| -f 1 | grep -qw esp8266app; then
         print_status "Removing database user..."
-        sudo -u postgres dropuser esp8266user 2>/dev/null || true
+        sudo -u postgres dropuser esp8266app 2>/dev/null || true
     fi
 
     # Remove nginx configuration
@@ -1042,6 +1042,11 @@ detect_existing_installation() {
     # Check for database
     if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266_platform; then
         found_components+=("Database (esp8266_platform)")
+    fi
+
+    # Check for database user
+    if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266app; then
+        found_components+=("Database user (esp8266app)")
     fi
 
     # Check for nginx config
@@ -1094,7 +1099,7 @@ detect_existing_installation() {
                         echo "  sudo rm -rf $APP_DIR"
                         echo "  sudo userdel -r $APP_USER"
                         echo "  sudo -u postgres dropdb esp8266_platform"
-                        echo "  sudo -u postgres dropuser esp8266user"
+                        echo "  sudo -u postgres dropuser esp8266app"
                         echo "  sudo rm -f /etc/nginx/sites-*/*esp8266* /etc/nginx/sites-*/*$DOMAIN*"
                         echo
                         exit 0

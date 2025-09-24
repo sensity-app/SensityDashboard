@@ -340,7 +340,7 @@ sudo -u esp8266app pm2 delete all && sudo -u esp8266app pm2 kill
 sudo rm -rf /opt/esp8266-platform
 sudo userdel -r esp8266app
 sudo -u postgres dropdb esp8266_platform
-sudo -u postgres dropuser esp8266user
+sudo -u postgres dropuser esp8266app
 
 # Clean nginx config
 sudo rm -f /etc/nginx/sites-*/esp8266-platform

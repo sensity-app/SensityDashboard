@@ -10,7 +10,8 @@
       "Bash(npm install)",
       "Bash(curl:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []

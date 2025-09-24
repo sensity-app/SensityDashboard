@@ -70,6 +70,47 @@ print_header() {
 "
 }
 
+# Function to check system requirements
+check_requirements() {
+    print_status "Checking system requirements..."
+
+    check_root
+    detect_ubuntu
+
+    # Check available disk space (at least 2GB)
+    AVAILABLE_SPACE=$(df / | awk 'NR==2{printf "%.0f", $4/1024/1024}')
+    if [[ $AVAILABLE_SPACE -lt 2 ]]; then
+        print_error "At least 2GB of free disk space is required"
+        exit 1
+    fi
+
+    # Check available memory (at least 1GB)
+    AVAILABLE_MEM=$(free -m | awk 'NR==2{printf "%.0f", $7}')
+    if [[ $AVAILABLE_MEM -lt 1024 ]]; then
+        print_warning "Low available memory (${AVAILABLE_MEM}MB). Installation may be slow."
+    fi
+
+    print_success "System requirements check passed"
+}
+
+# Function to get user input for configuration
+get_user_input() {
+    print_status "Configuration setup..."
+
+    check_env_vars
+
+    if [[ -z "$DOMAIN" || -z "$EMAIL" || -z "$DB_PASSWORD" || -z "$JWT_SECRET" ]]; then
+        gather_input
+    fi
+
+    print_status "Configuration completed"
+}
+
+# Function to check for existing installation
+check_existing_installation() {
+    detect_existing_installation
+}
+
 # Function to check if script is run as root
 check_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -963,42 +1004,6 @@ ${GREEN}Happy monitoring with your ESP8266 devices! 🚀${NC}
 }
 
 # Main installation function
-main() {
-    print_header
-
-    # Pre-installation checks
-    check_root
-    detect_ubuntu
-    gather_input
-
-    # Check for existing installation
-    detect_existing_installation
-
-    print_status "Starting installation process..."
-
-    # Installation steps
-    update_system
-    install_nodejs
-    install_postgresql
-    install_redis
-    create_app_user
-    setup_application
-    install_app_dependencies
-    setup_database
-    create_env_files
-    install_pm2
-    install_nginx
-    setup_ssl
-    setup_firewall
-    start_services
-    create_setup_completion
-
-    # Show completion message
-    show_completion_message
-
-    print_success "Installation completed successfully!"
-    print_warning "Remember to copy your application files to $APP_DIR if you haven't done so already."
-}
 
 # Function to clean up failed installation
 cleanup_failed_installation() {
@@ -1174,7 +1179,9 @@ main() {
     setup_application
     install_app_dependencies
     setup_database
-    configure_nginx
+    create_env_files
+    install_pm2
+    install_nginx
 
     if [[ "$DEVELOPMENT_MODE" != "true" ]]; then
         setup_ssl

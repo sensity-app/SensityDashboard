@@ -144,21 +144,73 @@ EOF
     print_success "Database permissions fixed"
 }
 
+create_test_admin() {
+    print_status "🧪 Creating test admin user..."
+
+    # Generate bcrypt hash for "password"
+    local password_hash
+    cd /opt/esp8266-platform/backend
+    password_hash=$(node -e "
+        const bcrypt = require('bcrypt');
+        const hash = bcrypt.hashSync('password', 10);
+        console.log(hash);
+    " 2>/dev/null || echo "")
+
+    if [[ -z "$password_hash" ]]; then
+        print_error "Could not generate password hash"
+        return 1
+    fi
+
+    # Insert test user into database
+    sudo -u postgres psql -d esp8266_platform << EOF
+-- Remove existing test user if it exists
+DELETE FROM users WHERE email = 'admin@changeme.com';
+
+-- Insert new test admin user
+INSERT INTO users (
+    email,
+    full_name,
+    password_hash,
+    role,
+    active,
+    created_at,
+    updated_at
+) VALUES (
+    'admin@changeme.com',
+    'Test Administrator',
+    '$password_hash',
+    'admin',
+    true,
+    NOW(),
+    NOW()
+);
+EOF
+
+    print_success "✅ Test admin user created!"
+    print_status "📧 Email: admin@changeme.com"
+    print_status "🔑 Password: password"
+    print_warning "⚠️  Remember to change this password after logging in!"
+}
+
 # Main script logic
 main() {
     check_root
 
     if [[ "$1" == "reset-first-user" ]]; then
         reset_first_user
+    elif [[ "$1" == "create-test-admin" ]]; then
+        create_test_admin
+        sudo -u esp8266app pm2 restart all
     elif [[ "$1" == "update" ]] || [[ "$1" == "" ]]; then
         update_system
     else
         echo "ESP8266 IoT Platform Update Script"
         echo
         echo "Usage:"
-        echo "  sudo $0                    # Update system from GitHub"
-        echo "  sudo $0 update             # Update system from GitHub"
-        echo "  sudo $0 reset-first-user   # Reset database to allow first user registration"
+        echo "  sudo $0                      # Update system from GitHub"
+        echo "  sudo $0 update               # Update system from GitHub"
+        echo "  sudo $0 reset-first-user     # Reset database to allow first user registration"
+        echo "  sudo $0 create-test-admin    # Create test admin user (admin@changeme.com / password)"
         echo
     fi
 }

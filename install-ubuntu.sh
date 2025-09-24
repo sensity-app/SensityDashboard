@@ -97,11 +97,14 @@ check_requirements() {
 get_user_input() {
     print_status "Configuration setup..."
 
-    check_env_vars
-
-    if [[ -z "$DOMAIN" || -z "$EMAIL" || -z "$DB_PASSWORD" || -z "$JWT_SECRET" ]]; then
-        gather_input
+    # Check if environment variables are set and valid
+    if check_env_vars; then
+        print_status "Configuration completed"
+        return 0
     fi
+
+    # If no valid environment variables, gather input interactively
+    gather_input
 
     print_status "Configuration completed"
 }
@@ -154,14 +157,12 @@ check_env_vars() {
 
         # Only DB_PASSWORD is required in development mode
         if [[ -z "$DB_PASSWORD" ]]; then
-            print_error "DB_PASSWORD environment variable is required even in development mode"
-            exit 1
+            return 1  # Let gather_input handle this
         fi
 
         # Check password length
         if [[ ${#DB_PASSWORD} -lt 8 ]]; then
-            print_error "DB_PASSWORD must be at least 8 characters long"
-            exit 1
+            return 1  # Let gather_input handle this
         fi
 
         # Generate JWT secret
@@ -176,20 +177,17 @@ check_env_vars() {
 
         # Validate domain format
         if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
-            print_error "Invalid DOMAIN environment variable format"
-            exit 1
+            return 1  # Let gather_input handle this
         fi
 
         # Validate email format
         if [[ ! "$EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
-            print_error "Invalid EMAIL environment variable format"
-            exit 1
+            return 1  # Let gather_input handle this
         fi
 
         # Check password length
         if [[ ${#DB_PASSWORD} -lt 8 ]]; then
-            print_error "DB_PASSWORD must be at least 8 characters long"
-            exit 1
+            return 1  # Let gather_input handle this
         fi
 
         # Generate JWT secret

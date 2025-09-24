@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Cpu, Wifi, Settings, Zap, AlertTriangle, CheckCircle, Info, Sparkles, Grid3X3, Flash } from 'lucide-react';
+import { Download, Cpu, Wifi, Settings, Zap, AlertTriangle, CheckCircle, Info, Sparkles, Grid3X3 } from 'lucide-react';
 import WebFlasher from '../components/WebFlasher';
 
 const FirmwareBuilder = () => {
@@ -748,7 +748,7 @@ const FirmwareBuilder = () => {
                                     : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
                             }`}
                         >
-                            <Flash className="w-5 h-5" />
+                            <Zap className="w-5 h-5" />
                             <span>Flash to Device</span>
                         </button>
                         <button

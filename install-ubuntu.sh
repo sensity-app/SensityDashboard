@@ -474,6 +474,54 @@ setup_database() {
     else
         print_warning "Database schema file not found - you'll need to run migrations manually"
     fi
+
+    # Fix database permissions after schema creation
+    fix_database_permissions
+}
+
+# Function to fix database permissions
+fix_database_permissions() {
+    print_status "Configuring database permissions..."
+
+    sudo -u postgres psql -d esp8266_platform << 'EOF'
+-- Grant all privileges on schema
+GRANT ALL PRIVILEGES ON SCHEMA public TO esp8266app;
+
+-- Grant all privileges on all existing tables
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO esp8266app;
+
+-- Grant all privileges on all sequences (for auto-increment)
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO esp8266app;
+
+-- Set default privileges for future objects
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO esp8266app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO esp8266app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO esp8266app;
+
+-- Ensure ownership of all existing tables
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+    LOOP
+        EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' OWNER TO esp8266app';
+    END LOOP;
+END $$;
+
+-- Ensure ownership of all existing sequences
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public'
+    LOOP
+        EXECUTE 'ALTER SEQUENCE ' || quote_ident(r.sequencename) || ' OWNER TO esp8266app';
+    END LOOP;
+END $$;
+EOF
+
+    print_success "Database permissions configured"
 }
 
 # Function to create environment files

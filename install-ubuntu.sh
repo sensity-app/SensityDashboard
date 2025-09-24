@@ -384,7 +384,11 @@ install_app_dependencies() {
     if [[ -f "$APP_DIR/frontend/package.json" ]]; then
         cd "$APP_DIR/frontend"
         if [[ -f "package-lock.json" ]]; then
-            sudo -u "$APP_USER" npm ci
+            # Try npm ci first, fall back to npm install if there are sync issues
+            if ! sudo -u "$APP_USER" npm ci 2>/dev/null; then
+                print_warning "package-lock.json out of sync, regenerating with npm install"
+                sudo -u "$APP_USER" npm install
+            fi
         else
             print_warning "package-lock.json not found, using npm install"
             sudo -u "$APP_USER" npm install
@@ -993,15 +997,20 @@ cleanup_failed_installation() {
         userdel -r "$APP_USER" 2>/dev/null || true
     fi
 
-    # Remove database and user
-    if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw esp8266_platform; then
-        print_status "Removing database..."
+    # Remove database and user (database must be dropped before user due to ownership)
+    if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266_platform; then
+        print_status "Removing database (esp8266_platform)..."
+        # Terminate any active connections to the database
+        sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'esp8266_platform' AND pid <> pg_backend_pid();" 2>/dev/null || true
+        # Drop the database
         sudo -u postgres dropdb esp8266_platform 2>/dev/null || true
+        print_status "Database removed"
     fi
 
-    if sudo -u postgres psql -t -c '\du' | cut -d \| -f 1 | grep -qw esp8266app; then
-        print_status "Removing database user..."
+    if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266app; then
+        print_status "Removing database user (esp8266app)..."
         sudo -u postgres dropuser esp8266app 2>/dev/null || true
+        print_status "Database user removed"
     fi
 
     # Remove nginx configuration

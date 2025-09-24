@@ -83,10 +83,13 @@ cleanup_installation() {
         print_success "Application user removed"
     fi
 
-    # Remove database and user
+    # Remove database and user (database must be dropped before user due to ownership)
     if command -v psql >/dev/null 2>&1; then
         if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266_platform; then
             print_status "Removing database (esp8266_platform)..."
+            # Terminate any active connections to the database
+            sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'esp8266_platform' AND pid <> pg_backend_pid();" 2>/dev/null || true
+            # Drop the database
             sudo -u postgres dropdb esp8266_platform 2>/dev/null || true
             print_success "Database removed"
         fi

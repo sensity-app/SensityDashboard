@@ -298,8 +298,24 @@ install_postgresql() {
     systemctl enable postgresql
 
     # Create database and user
-    sudo -u postgres psql -c "CREATE USER esp8266app WITH PASSWORD '$DB_PASSWORD';"
-    sudo -u postgres psql -c "CREATE DATABASE esp8266_platform OWNER esp8266app;"
+    print_status "Creating database user..."
+    if ! sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266app; then
+        sudo -u postgres psql -c "CREATE USER esp8266app WITH PASSWORD '$DB_PASSWORD';"
+        print_success "Database user created"
+    else
+        print_status "Database user already exists, updating password..."
+        sudo -u postgres psql -c "ALTER USER esp8266app PASSWORD '$DB_PASSWORD';"
+    fi
+
+    print_status "Creating database..."
+    if ! sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266_platform; then
+        sudo -u postgres psql -c "CREATE DATABASE esp8266_platform OWNER esp8266app;"
+        print_success "Database created"
+    else
+        print_status "Database already exists, ensuring correct ownership..."
+        sudo -u postgres psql -c "ALTER DATABASE esp8266_platform OWNER TO esp8266app;"
+    fi
+
     sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE esp8266_platform TO esp8266app;"
 
     print_success "PostgreSQL installed and configured"

@@ -8,7 +8,9 @@
       "Bash(chmod:*)",
       "Bash(find:*)",
       "Bash(npm install)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

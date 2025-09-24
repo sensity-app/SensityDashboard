@@ -106,3 +106,4 @@ backup_*.sql
 
 # Installation files
 INSTALLATION_INFO.md
+/.claude

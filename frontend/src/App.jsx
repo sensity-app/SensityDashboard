@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import DeviceDetail from './pages/DeviceDetail';
 import DeviceManagement from './pages/DeviceManagement';
 import UserManagement from './pages/UserManagement';
+import Settings from './pages/Settings';
 import FirmwareBuilder from './pages/FirmwareBuilder';
 
 import LanguageSelector from './components/LanguageSelector';
@@ -57,8 +58,8 @@ function App() {
             const token = localStorage.getItem('token');
             if (token) {
                 apiService.setAuthToken(token);
-                const userData = await apiService.getCurrentUser();
-                setUser(userData);
+                const response = await apiService.getCurrentUser();
+                setUser(response.user);
             }
         } catch (error) {
             // If token is invalid, remove it
@@ -130,16 +131,9 @@ function App() {
 
 function AuthenticatedApp({ user, onLogout }) {
     const { t } = useTranslation();
-    const [currentPath, setCurrentPath] = useState(window.location.pathname);
-
-    useEffect(() => {
-        const handleLocationChange = () => {
-            setCurrentPath(window.location.pathname);
-        };
-
-        window.addEventListener('popstate', handleLocationChange);
-        return () => window.removeEventListener('popstate', handleLocationChange);
-    }, []);
+    const navigate = useNavigate();
+    const location = useLocation();
+    const currentPath = location.pathname;
 
     const navigationItems = [
         { path: '/', label: t('nav.dashboard', 'Dashboard'), icon: '📊' },
@@ -151,7 +145,8 @@ function AuthenticatedApp({ user, onLogout }) {
         { path: '/alert-rules', label: t('nav.alertRules', 'Alert Rules'), icon: '⚙️' },
         { path: '/firmware-builder', label: t('nav.firmwareBuilder', 'Firmware Builder'), icon: '🔧' },
         ...(user.role === 'admin' ? [
-            { path: '/users', label: t('nav.userManagement', 'User Management'), icon: '👥' }
+            { path: '/users', label: t('nav.userManagement', 'User Management'), icon: '👥' },
+            { path: '/settings', label: t('nav.settings', 'Settings'), icon: '⚙️' }
         ] : [])
     ];
 
@@ -190,15 +185,9 @@ function AuthenticatedApp({ user, onLogout }) {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex space-x-8">
                         {navigationItems.map((item) => (
-                            <a
+                            <button
                                 key={item.path}
-                                href={item.path}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    window.history.pushState(null, '', item.path);
-                                    setCurrentPath(item.path);
-                                    window.dispatchEvent(new PopStateEvent('popstate'));
-                                }}
+                                onClick={() => navigate(item.path)}
                                 className={`flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors ${
                                     currentPath === item.path
                                         ? 'text-white border-b-2 border-blue-400'
@@ -207,7 +196,7 @@ function AuthenticatedApp({ user, onLogout }) {
                             >
                                 <span>{item.icon}</span>
                                 <span>{item.label}</span>
-                            </a>
+                            </button>
                         ))}
                     </div>
                 </div>
@@ -226,7 +215,10 @@ function AuthenticatedApp({ user, onLogout }) {
                     <Route path="/alert-rules" element={<AlertRulesManager />} />
                     <Route path="/firmware-builder" element={<FirmwareBuilder />} />
                     {user.role === 'admin' && (
-                        <Route path="/users" element={<UserManagement />} />
+                        <>
+                            <Route path="/users" element={<UserManagement />} />
+                            <Route path="/settings" element={<Settings />} />
+                        </>
                     )}
                     <Route path="*" element={<Navigate to="/" />} />
                 </Routes>

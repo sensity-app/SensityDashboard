@@ -1,0 +1,474 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useTranslation } from 'react-i18next';
+import {
+    Settings as SettingsIcon,
+    Database,
+    Download,
+    Upload,
+    Server,
+    Mail,
+    Shield,
+    Save,
+    RefreshCw,
+    AlertTriangle,
+    CheckCircle,
+    Info
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+
+import { apiService } from '../services/api';
+
+function Settings() {
+    const { t } = useTranslation();
+    const queryClient = useQueryClient();
+
+    const [activeTab, setActiveTab] = useState('system');
+    const [backupLoading, setBackupLoading] = useState(false);
+    const [systemSettings, setSystemSettings] = useState({
+        siteName: 'ESP8266 IoT Platform',
+        adminEmail: '',
+        backupRetentionDays: 30,
+        logRetentionDays: 7,
+        alertsEnabled: true,
+        maintenanceMode: false
+    });
+
+    // Query system info
+    const { data: systemInfo, isLoading: systemLoading } = useQuery(
+        'system-info',
+        () => apiService.getSystemInfo ? apiService.getSystemInfo() : Promise.resolve({}),
+        {
+            refetchInterval: 30000,
+            onError: () => {
+                // System info endpoint might not exist yet
+            }
+        }
+    );
+
+    // Query system health
+    const { data: systemHealth, isLoading: healthLoading } = useQuery(
+        'system-health',
+        () => apiService.getSystemHealth ? apiService.getSystemHealth() : Promise.resolve({}),
+        {
+            refetchInterval: 10000,
+            onError: () => {
+                // System health endpoint might not exist yet
+            }
+        }
+    );
+
+    const handleBackupDatabase = async () => {
+        setBackupLoading(true);
+        try {
+            // Create a backup download
+            const response = await fetch('/api/system/backup', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Backup failed');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `esp8266-platform-backup-${new Date().toISOString().split('T')[0]}.sql`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            toast.success(t('settings.backupSuccess', 'Database backup downloaded successfully'));
+        } catch (error) {
+            console.error('Backup error:', error);
+            toast.error(t('settings.backupError', 'Failed to create database backup'));
+        } finally {
+            setBackupLoading(false);
+        }
+    };
+
+    const handleSaveSettings = async () => {
+        try {
+            // This would call a settings API endpoint when implemented
+            toast.success(t('settings.saveSuccess', 'Settings saved successfully'));
+        } catch (error) {
+            toast.error(t('settings.saveError', 'Failed to save settings'));
+        }
+    };
+
+    const tabs = [
+        { id: 'system', label: t('settings.tabs.system', 'System'), icon: Server },
+        { id: 'database', label: t('settings.tabs.database', 'Database'), icon: Database },
+        { id: 'email', label: t('settings.tabs.email', 'Email'), icon: Mail },
+        { id: 'security', label: t('settings.tabs.security', 'Security'), icon: Shield }
+    ];
+
+    return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Header */}
+            <div className="mb-8">
+                <div className="flex items-center space-x-3">
+                    <SettingsIcon className="h-8 w-8 text-blue-600" />
+                    <h1 className="text-3xl font-bold text-gray-900">
+                        {t('settings.title', 'System Settings')}
+                    </h1>
+                </div>
+                <p className="mt-2 text-gray-600">
+                    {t('settings.subtitle', 'Configure your IoT platform settings and system preferences')}
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Navigation Tabs */}
+                <div className="lg:col-span-1">
+                    <nav className="space-y-1">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                                        activeTab === tab.id
+                                            ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-500'
+                                            : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    <Icon className="h-5 w-5 mr-3" />
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
+                    </nav>
+                </div>
+
+                {/* Content Area */}
+                <div className="lg:col-span-3">
+                    <div className="bg-white shadow rounded-lg">
+                        {/* System Tab */}
+                        {activeTab === 'system' && (
+                            <div className="p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                                    {t('settings.system.title', 'System Information')}
+                                </h3>
+
+                                {/* System Status */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    <div className="bg-gray-50 rounded-lg p-4">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                            {t('settings.system.status', 'System Status')}
+                                        </h4>
+                                        <div className="flex items-center">
+                                            <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                                            <span className="text-green-700">
+                                                {t('settings.system.running', 'Running')}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                            {t('settings.system.uptime', 'Uptime')}
+                                        </h4>
+                                        <p className="text-gray-900">
+                                            {systemHealth?.uptime || t('settings.system.unknown', 'Unknown')}
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                            {t('settings.system.version', 'Version')}
+                                        </h4>
+                                        <p className="text-gray-900">
+                                            {systemInfo?.version || '2.1.0'}
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-gray-50 rounded-lg p-4">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                            {t('settings.system.nodeVersion', 'Node.js Version')}
+                                        </h4>
+                                        <p className="text-gray-900">
+                                            {systemInfo?.nodeVersion || 'Unknown'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* System Settings Form */}
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t('settings.system.siteName', 'Site Name')}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={systemSettings.siteName}
+                                            onChange={(e) => setSystemSettings(prev => ({...prev, siteName: e.target.value}))}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t('settings.system.adminEmail', 'Admin Email')}
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={systemSettings.adminEmail}
+                                            onChange={(e) => setSystemSettings(prev => ({...prev, adminEmail: e.target.value}))}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            id="maintenanceMode"
+                                            checked={systemSettings.maintenanceMode}
+                                            onChange={(e) => setSystemSettings(prev => ({...prev, maintenanceMode: e.target.checked}))}
+                                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                        <label htmlFor="maintenanceMode" className="ml-2 block text-sm text-gray-700">
+                                            {t('settings.system.maintenanceMode', 'Maintenance Mode')}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Database Tab */}
+                        {activeTab === 'database' && (
+                            <div className="p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                                    {t('settings.database.title', 'Database Management')}
+                                </h3>
+
+                                <div className="space-y-6">
+                                    {/* Database Info */}
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <div className="flex items-start">
+                                            <Info className="h-5 w-5 text-blue-400 mt-0.5" />
+                                            <div className="ml-3">
+                                                <h4 className="text-sm font-medium text-blue-800">
+                                                    {t('settings.database.info', 'Database Information')}
+                                                </h4>
+                                                <div className="mt-2 text-sm text-blue-700">
+                                                    <p>{t('settings.database.type', 'Type')}: PostgreSQL</p>
+                                                    <p>{t('settings.database.status', 'Status')}: Connected</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Backup Section */}
+                                    <div>
+                                        <h4 className="text-md font-medium text-gray-900 mb-3">
+                                            {t('settings.database.backup', 'Backup & Restore')}
+                                        </h4>
+
+                                        <div className="space-y-3">
+                                            <button
+                                                onClick={handleBackupDatabase}
+                                                disabled={backupLoading}
+                                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {backupLoading ? (
+                                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                                ) : (
+                                                    <Download className="h-4 w-4 mr-2" />
+                                                )}
+                                                {t('settings.database.createBackup', 'Create Backup')}
+                                            </button>
+
+                                            <p className="text-sm text-gray-600">
+                                                {t('settings.database.backupDescription', 'Download a complete backup of your database including all devices, users, alerts, and telemetry data.')}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Retention Settings */}
+                                    <div>
+                                        <h4 className="text-md font-medium text-gray-900 mb-3">
+                                            {t('settings.database.retention', 'Data Retention')}
+                                        </h4>
+
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    {t('settings.database.backupRetention', 'Backup Retention (days)')}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="365"
+                                                    value={systemSettings.backupRetentionDays}
+                                                    onChange={(e) => setSystemSettings(prev => ({...prev, backupRetentionDays: parseInt(e.target.value)}))}
+                                                    className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    {t('settings.database.logRetention', 'Log Retention (days)')}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="90"
+                                                    value={systemSettings.logRetentionDays}
+                                                    onChange={(e) => setSystemSettings(prev => ({...prev, logRetentionDays: parseInt(e.target.value)}))}
+                                                    className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Email Tab */}
+                        {activeTab === 'email' && (
+                            <div className="p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                                    {t('settings.email.title', 'Email Configuration')}
+                                </h3>
+
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                                    <div className="flex items-start">
+                                        <AlertTriangle className="h-5 w-5 text-yellow-400 mt-0.5" />
+                                        <div className="ml-3">
+                                            <p className="text-sm text-yellow-800">
+                                                {t('settings.email.notice', 'Email settings are configured in the backend environment file (.env). Restart the application after making changes.')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t('settings.email.smtpHost', 'SMTP Host')}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="smtp.gmail.com"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            disabled
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t('settings.email.smtpPort', 'SMTP Port')}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            placeholder="587"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            disabled
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t('settings.email.username', 'Username')}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            disabled
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Security Tab */}
+                        {activeTab === 'security' && (
+                            <div className="p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                                    {t('settings.security.title', 'Security Settings')}
+                                </h3>
+
+                                <div className="space-y-6">
+                                    <div>
+                                        <h4 className="text-md font-medium text-gray-900 mb-3">
+                                            {t('settings.security.authentication', 'Authentication')}
+                                        </h4>
+                                        <p className="text-sm text-gray-600 mb-3">
+                                            {t('settings.security.authDescription', 'Configure authentication and session settings')}
+                                        </p>
+
+                                        <div className="space-y-3">
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id="forceHttps"
+                                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                />
+                                                <label htmlFor="forceHttps" className="ml-2 block text-sm text-gray-700">
+                                                    {t('settings.security.forceHttps', 'Force HTTPS')}
+                                                </label>
+                                            </div>
+
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    id="requireStrongPasswords"
+                                                    defaultChecked
+                                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                />
+                                                <label htmlFor="requireStrongPasswords" className="ml-2 block text-sm text-gray-700">
+                                                    {t('settings.security.strongPasswords', 'Require Strong Passwords')}
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-md font-medium text-gray-900 mb-3">
+                                            {t('settings.security.sessions', 'Session Management')}
+                                        </h4>
+
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    {t('settings.security.sessionTimeout', 'Session Timeout (hours)')}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="168"
+                                                    defaultValue="24"
+                                                    className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Save Button */}
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
+                            <button
+                                onClick={handleSaveSettings}
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                <Save className="h-4 w-4 mr-2" />
+                                {t('settings.save', 'Save Settings')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default Settings;

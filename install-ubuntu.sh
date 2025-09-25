@@ -585,15 +585,34 @@ SSL_KEY_PATH=/etc/letsencrypt/live/$DOMAIN/privkey.pem
 EOF
 
     # Frontend environment
-    cat > "$APP_DIR/frontend/.env.production" << EOF
-REACT_APP_API_URL=https://$DOMAIN
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        SERVER_IP=$(hostname -I | awk '{print $1}')
+        cat > "$APP_DIR/frontend/.env" << EOF
+REACT_APP_API_URL=http://$SERVER_IP/api
+REACT_APP_WS_URL=ws://$SERVER_IP
+REACT_APP_ENVIRONMENT=development
+REACT_APP_VERSION=2.1.0
+EOF
+        cat > "$APP_DIR/frontend/.env.production" << EOF
+REACT_APP_API_URL=http://$SERVER_IP/api
+REACT_APP_WS_URL=ws://$SERVER_IP
+REACT_APP_ENVIRONMENT=production
+REACT_APP_VERSION=2.1.0
+EOF
+    else
+        cat > "$APP_DIR/frontend/.env.production" << EOF
+REACT_APP_API_URL=https://$DOMAIN/api
 REACT_APP_WS_URL=wss://$DOMAIN
 REACT_APP_ENVIRONMENT=production
 REACT_APP_VERSION=2.1.0
 EOF
+    fi
 
     chown "$APP_USER:$APP_USER" "$APP_DIR/backend/.env"
     chown "$APP_USER:$APP_USER" "$APP_DIR/frontend/.env.production"
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        chown "$APP_USER:$APP_USER" "$APP_DIR/frontend/.env"
+    fi
     chmod 600 "$APP_DIR/backend/.env"
 
     print_success "Environment files created"

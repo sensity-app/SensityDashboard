@@ -47,13 +47,16 @@
   },
   "nav": {
     "dashboard": "Dashboard",
-    "devices": "Device Management",
+    "devices": "Devices",
+    "monitoring": "Monitoring",
+    "organization": "Organization",
+    "administration": "Administration",
     "analytics": "Analytics",
     "deviceGroups": "Device Groups",
     "deviceTags": "Device Tags",
     "deviceHealth": "Device Health",
     "alertRules": "Alert Rules",
-    "userManagement": "User Management",
+    "userManagement": "Users",
     "settings": "Settings",
     "firmwareBuilder": "Firmware Builder"
   },
@@ -575,6 +578,7 @@
     "backupError": "Failed to create database backup",
     "tabs": {
       "system": "System",
+      "branding": "Branding",
       "database": "Database",
       "email": "Email",
       "security": "Security"
@@ -590,6 +594,18 @@
       "siteName": "Site Name",
       "adminEmail": "Admin Email",
       "maintenanceMode": "Maintenance Mode"
+    },
+    "branding": {
+      "title": "Brand Customization",
+      "companyInfo": "Company Information",
+      "companyName": "Company Name",
+      "logoManagement": "Logo Management",
+      "companyLogo": "Company Logo",
+      "favicon": "Favicon",
+      "colorScheme": "Color Scheme",
+      "primaryColor": "Primary Color",
+      "accentColor": "Accent Color",
+      "preview": "Preview"
     },
     "database": {
       "title": "Database Management",

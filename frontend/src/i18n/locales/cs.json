@@ -47,14 +47,17 @@
   },
   "nav": {
     "dashboard": "Přehled",
-    "devices": "Správa zařízení",
+    "devices": "Zařízení",
+    "monitoring": "Monitorování",
+    "organization": "Organizace",
+    "administration": "Administrace",
     "analytics": "Analytika",
     "deviceGroups": "Skupiny zařízení",
     "deviceTags": "Štítky zařízení",
     "deviceHealth": "Zdraví zařízení",
     "alertRules": "Pravidla upozornění",
     "firmwareBuilder": "Stavitel firmwaru",
-    "userManagement": "Správa uživatelů",
+    "userManagement": "Uživatelé",
     "settings": "Nastavení"
   },
   "navigation": {

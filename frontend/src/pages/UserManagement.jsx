@@ -227,7 +227,7 @@ function InvitationsList({ invitations }) {
 
     return (
         <div className="divide-y divide-gray-200">
-            {invitations.map((invitation) => (
+            {(invitations || []).map((invitation) => (
                 <div key={invitation.id} className="px-6 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">

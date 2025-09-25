@@ -13,7 +13,9 @@ import {
     RefreshCw,
     AlertTriangle,
     CheckCircle,
-    Info
+    Info,
+    Image,
+    X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -25,6 +27,7 @@ function Settings() {
 
     const [activeTab, setActiveTab] = useState('system');
     const [backupLoading, setBackupLoading] = useState(false);
+    const [logoUploading, setLogoUploading] = useState(false);
     const [systemSettings, setSystemSettings] = useState({
         siteName: 'ESP8266 IoT Platform',
         adminEmail: '',
@@ -32,6 +35,15 @@ function Settings() {
         logRetentionDays: 7,
         alertsEnabled: true,
         maintenanceMode: false
+    });
+
+    const [brandingSettings, setBrandingSettings] = useState({
+        companyName: 'ESP8266 IoT Platform',
+        companyLogo: null,
+        logoPreview: null,
+        favicon: null,
+        primaryColor: '#2563eb',
+        accentColor: '#1d4ed8'
     });
 
     // Query system info
@@ -101,8 +113,60 @@ function Settings() {
         }
     };
 
+    const handleLogoUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please select a valid image file');
+            return;
+        }
+
+        // Validate file size (max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Image file size must be less than 2MB');
+            return;
+        }
+
+        setLogoUploading(true);
+
+        try {
+            // Create preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setBrandingSettings(prev => ({
+                    ...prev,
+                    logoPreview: e.target.result
+                }));
+            };
+            reader.readAsDataURL(file);
+
+            // Here you would upload the file to your server
+            // const formData = new FormData();
+            // formData.append('logo', file);
+            // const response = await apiService.uploadLogo(formData);
+
+            toast.success('Logo uploaded successfully');
+        } catch (error) {
+            toast.error('Failed to upload logo');
+        } finally {
+            setLogoUploading(false);
+        }
+    };
+
+    const removeLogo = () => {
+        setBrandingSettings(prev => ({
+            ...prev,
+            companyLogo: null,
+            logoPreview: null
+        }));
+        toast.success('Logo removed');
+    };
+
     const tabs = [
         { id: 'system', label: t('settings.tabs.system', 'System'), icon: Server },
+        { id: 'branding', label: t('settings.tabs.branding', 'Branding'), icon: Image },
         { id: 'database', label: t('settings.tabs.database', 'Database'), icon: Database },
         { id: 'email', label: t('settings.tabs.email', 'Email'), icon: Mail },
         { id: 'security', label: t('settings.tabs.security', 'Security'), icon: Shield }
@@ -236,6 +300,187 @@ function Settings() {
                                         <label htmlFor="maintenanceMode" className="ml-2 block text-sm text-gray-700">
                                             {t('settings.system.maintenanceMode', 'Maintenance Mode')}
                                         </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Branding Tab */}
+                        {activeTab === 'branding' && (
+                            <div className="p-6">
+                                <h3 className="text-lg font-medium text-gray-900 mb-6">
+                                    {t('settings.branding.title', 'Brand Customization')}
+                                </h3>
+
+                                <div className="space-y-6">
+                                    {/* Company Information */}
+                                    <div>
+                                        <h4 className="text-sm font-medium text-gray-900 mb-4">
+                                            {t('settings.branding.companyInfo', 'Company Information')}
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    {t('settings.branding.companyName', 'Company Name')}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={brandingSettings.companyName}
+                                                    onChange={(e) => setBrandingSettings(prev => ({
+                                                        ...prev,
+                                                        companyName: e.target.value
+                                                    }))}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Logo Management */}
+                                    <div>
+                                        <h4 className="text-sm font-medium text-gray-900 mb-4">
+                                            {t('settings.branding.logoManagement', 'Logo Management')}
+                                        </h4>
+
+                                        <div className="space-y-6">
+                                            {/* Company Logo */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    {t('settings.branding.companyLogo', 'Company Logo')}
+                                                    <span className="text-xs text-gray-500 ml-1">
+                                                        (Used in header and login screen)
+                                                    </span>
+                                                </label>
+
+                                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                                    {brandingSettings.logoPreview ? (
+                                                        <div className="space-y-4">
+                                                            <div className="flex justify-center">
+                                                                <img
+                                                                    src={brandingSettings.logoPreview}
+                                                                    alt="Company Logo Preview"
+                                                                    className="max-h-24 max-w-full object-contain"
+                                                                />
+                                                            </div>
+                                                            <div className="flex justify-center space-x-2">
+                                                                <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700">
+                                                                    {logoUploading ? 'Uploading...' : 'Change Logo'}
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        onChange={handleLogoUpload}
+                                                                        className="hidden"
+                                                                        disabled={logoUploading}
+                                                                    />
+                                                                </label>
+                                                                <button
+                                                                    onClick={removeLogo}
+                                                                    className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700"
+                                                                    disabled={logoUploading}
+                                                                >
+                                                                    <X className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-4">
+                                                            <Image className="w-12 h-12 text-gray-400 mx-auto" />
+                                                            <div>
+                                                                <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700">
+                                                                    {logoUploading ? 'Uploading...' : 'Upload Logo'}
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        onChange={handleLogoUpload}
+                                                                        className="hidden"
+                                                                        disabled={logoUploading}
+                                                                    />
+                                                                </label>
+                                                                <p className="text-xs text-gray-500 mt-2">
+                                                                    PNG, JPG up to 2MB. Recommended: 200x60px
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Color Scheme */}
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-900 mb-4">
+                                                    {t('settings.branding.colorScheme', 'Color Scheme')}
+                                                </h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                            {t('settings.branding.primaryColor', 'Primary Color')}
+                                                        </label>
+                                                        <div className="flex items-center space-x-2">
+                                                            <input
+                                                                type="color"
+                                                                value={brandingSettings.primaryColor}
+                                                                onChange={(e) => setBrandingSettings(prev => ({
+                                                                    ...prev,
+                                                                    primaryColor: e.target.value
+                                                                }))}
+                                                                className="h-10 w-16 border border-gray-300 rounded cursor-pointer"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={brandingSettings.primaryColor}
+                                                                onChange={(e) => setBrandingSettings(prev => ({
+                                                                    ...prev,
+                                                                    primaryColor: e.target.value
+                                                                }))}
+                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Preview */}
+                                    <div>
+                                        <h4 className="text-sm font-medium text-gray-900 mb-4">
+                                            {t('settings.branding.preview', 'Preview')}
+                                        </h4>
+                                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                                            <div className="flex items-center space-x-3 mb-4">
+                                                {brandingSettings.logoPreview ? (
+                                                    <img
+                                                        src={brandingSettings.logoPreview}
+                                                        alt="Preview"
+                                                        className="h-8 object-contain"
+                                                    />
+                                                ) : (
+                                                    <div className="h-8 w-24 bg-gray-300 rounded flex items-center justify-center text-xs">
+                                                        Logo
+                                                    </div>
+                                                )}
+                                                <h5 className="text-lg font-bold">{brandingSettings.companyName}</h5>
+                                            </div>
+                                            <div className="flex space-x-2">
+                                                <div
+                                                    className="px-4 py-2 text-white rounded text-sm"
+                                                    style={{ backgroundColor: brandingSettings.primaryColor }}
+                                                >
+                                                    Primary Button
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Save Button */}
+                                    <div className="flex justify-end pt-6 border-t">
+                                        <button
+                                            onClick={handleSaveSettings}
+                                            className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                        >
+                                            <Save className="w-4 h-4" />
+                                            <span>{t('settings.saveSettings', 'Save Settings')}</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>

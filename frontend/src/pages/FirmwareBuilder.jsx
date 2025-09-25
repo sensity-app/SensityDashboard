@@ -1,28 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Cpu, Wifi, Settings, Zap, AlertTriangle, CheckCircle, Info, Sparkles, Grid3X3 } from 'lucide-react';
+import { Download, Cpu, Wifi, Settings, Zap, AlertTriangle, CheckCircle, Info, MapPin } from 'lucide-react';
 import WebFlasher from '../components/WebFlasher';
+import { apiService } from '../services/api';
 
 const FirmwareBuilder = () => {
     const [sensorOptions, setSensorOptions] = useState({});
     const [pinMapping, setPinMapping] = useState({});
     const [availablePins, setAvailablePins] = useState({ digital: [], analog: [] });
-    const [templates, setTemplates] = useState([]);
-    const [categories, setCategories] = useState([]);
-    const [selectedTemplate, setSelectedTemplate] = useState(null);
-    const [showTemplates, setShowTemplates] = useState(true);
+    const [locations, setLocations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState(null);
     const [showWebFlasher, setShowWebFlasher] = useState(false);
 
+    // Generate unique device ID
+    const generateDeviceId = () => {
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substr(2, 5);
+        return `ESP8266_${timestamp}_${random}`;
+    };
+
+    // Generate API key
+    const generateApiKey = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 32; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    };
+
     // Form state
     const [config, setConfig] = useState({
-        device_id: 'ESP8266_001',
-        device_name: 'My ESP8266 Device',
-        device_location: 'Home',
+        device_id: generateDeviceId(),
+        device_name: '',
+        device_location: '',
         wifi_ssid: '',
         wifi_password: '',
         server_url: window.location.origin,
-        api_key: '',
+        api_key: generateApiKey(),
         heartbeat_interval: 300,
         sensor_read_interval: 5000,
         debug_mode: false,
@@ -31,10 +46,10 @@ const FirmwareBuilder = () => {
         sensors: {}
     });
 
-    // Load sensor options and templates on component mount
+    // Load sensor options and locations on component mount
     useEffect(() => {
         fetchSensorOptions();
-        fetchTemplates();
+        fetchLocations();
     }, []);
 
     const fetchSensorOptions = async () => {
@@ -51,66 +66,28 @@ const FirmwareBuilder = () => {
         }
     };
 
-    const fetchTemplates = async () => {
+    const fetchLocations = async () => {
         try {
-            const response = await fetch('/api/firmware-templates');
-            const data = await response.json();
-            if (data.success) {
-                setTemplates(data.templates);
-                setCategories(data.categories);
-            }
+            const data = await apiService.getLocations();
+            setLocations(data || []);
         } catch (error) {
-            console.error('Failed to load templates:', error);
+            console.error('Failed to load locations:', error);
+            setLocations([]);
         }
     };
 
-    const selectTemplate = async (templateId) => {
-        try {
-            const response = await fetch(`/api/firmware-templates/${templateId}`);
-            const data = await response.json();
-            if (data.success) {
-                const template = data.template;
-                setSelectedTemplate(template);
-
-                // Apply template configuration
-                setConfig(prev => ({
-                    ...prev,
-                    device_name: template.config.device_name,
-                    device_location: template.config.device_location,
-                    heartbeat_interval: template.config.heartbeat_interval,
-                    sensor_read_interval: template.config.sensor_read_interval,
-                    debug_mode: template.config.debug_mode,
-                    ota_enabled: template.config.ota_enabled,
-                    device_armed: template.config.device_armed,
-                    sensors: template.config.sensors
-                }));
-
-                setShowTemplates(false);
-            }
-        } catch (error) {
-            console.error('Failed to load template:', error);
-        }
+    const regenerateDeviceId = () => {
+        setConfig(prev => ({
+            ...prev,
+            device_id: generateDeviceId()
+        }));
     };
 
-    const startFromScratch = () => {
-        setSelectedTemplate(null);
-        setShowTemplates(false);
-        // Reset to default config
-        setConfig({
-            device_id: 'ESP8266_001',
-            device_name: 'My ESP8266 Device',
-            device_location: 'Home',
-            wifi_ssid: '',
-            wifi_password: '',
-            server_url: window.location.origin,
-            api_key: '',
-            heartbeat_interval: 300,
-            sensor_read_interval: 5000,
-            debug_mode: false,
-            ota_enabled: true,
-            device_armed: true,
-            sensors: {}
-        });
+    const regenerateApiKey = () => {
+        setConfig(prev => ({
+            ...prev,
+            api_key: generateApiKey()
+        }));
     };
 
     const handleConfigChange = (key, value) => {
@@ -152,7 +129,6 @@ const FirmwareBuilder = () => {
     const validateConfig = () => {
         const errors = [];
 
-        if (!config.device_id) errors.push('Device ID is required');
         if (!config.device_name) errors.push('Device name is required');
         if (!config.wifi_ssid) errors.push('WiFi SSID is required');
         if (!config.wifi_password) errors.push('WiFi password is required');
@@ -388,142 +364,31 @@ const FirmwareBuilder = () => {
     };
 
     const usedPins = getUsedPins();
-    const hasA0Conflict = usedPins['A0']?.length > 1;
     const pinConflicts = Object.entries(usedPins).filter(([pin, sensors]) => sensors.length > 1);
 
-    // Template selection view
-    if (showTemplates) {
-        return (
-            <div className="max-w-6xl mx-auto p-6">
-                <div className="bg-white rounded-lg shadow-lg">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <Sparkles className="w-6 h-6 text-blue-600" />
-                                <h1 className="text-2xl font-bold text-gray-900">Choose Your Setup</h1>
-                            </div>
-                            <button
-                                onClick={startFromScratch}
-                                className="flex items-center space-x-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
-                            >
-                                <Grid3X3 className="w-4 h-4" />
-                                <span>Custom Configuration</span>
-                            </button>
-                        </div>
-                        <p className="text-gray-600 mt-2">
-                            Select a pre-configured template for your use case, or create a custom configuration
-                        </p>
-                    </div>
-
-                    <div className="p-6">
-                        {/* Category filters */}
-                        <div className="mb-6">
-                            <div className="flex flex-wrap gap-2">
-                                {categories.map(category => (
-                                    <span
-                                        key={category.id}
-                                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full"
-                                    >
-                                        {category.name}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Template grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {templates.map(template => (
-                                <div
-                                    key={template.id}
-                                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md cursor-pointer transition-shadow"
-                                    onClick={() => selectTemplate(template.id)}
-                                >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex items-center space-x-3">
-                                            <span className="text-2xl">{template.icon}</span>
-                                            <div>
-                                                <h3 className="font-semibold text-gray-900">{template.name}</h3>
-                                                <p className="text-xs text-blue-600 capitalize">
-                                                    {template.category.replace('_', ' ')}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                            {template.sensor_count} sensors
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-gray-600 mb-3">
-                                        {template.description}
-                                    </p>
-                                    <div className="border-t pt-3">
-                                        <p className="text-xs text-gray-500 font-medium mb-1">Key Features:</p>
-                                        <ul className="space-y-1">
-                                            {template.use_cases.map((useCase, index) => (
-                                                <li key={index} className="text-xs text-gray-600 flex items-start">
-                                                    <span className="text-green-500 mr-1">•</span>
-                                                    {useCase}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="max-w-4xl mx-auto p-6">
+        <div className="max-w-5xl mx-auto p-6">
             <div className="bg-white rounded-lg shadow-lg">
                 <div className="px-6 py-4 border-b border-gray-200">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <Cpu className="w-6 h-6 text-blue-600" />
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900">
-                                    {selectedTemplate ? selectedTemplate.name : 'Custom Firmware Builder'}
-                                </h1>
-                                <p className="text-gray-600 mt-1">
-                                    {selectedTemplate
-                                        ? `Template: ${selectedTemplate.description}`
-                                        : 'Configure your ESP8266 device and generate custom firmware ready to flash'
-                                    }
-                                </p>
-                            </div>
+                    <div className="flex items-center space-x-3">
+                        <Cpu className="w-6 h-6 text-blue-600" />
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">Custom Firmware Builder</h1>
+                            <p className="text-gray-600 mt-1">
+                                Configure your ESP8266 device and generate custom firmware ready to flash
+                            </p>
                         </div>
-                        <button
-                            onClick={() => setShowTemplates(true)}
-                            className="flex items-center space-x-2 px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-                        >
-                            <Sparkles className="w-4 h-4" />
-                            <span>Change Template</span>
-                        </button>
                     </div>
                 </div>
 
-                <div className="p-6 space-y-8">
+                <div className="p-6 space-y-6">
                     {/* Device Configuration */}
-                    <div>
+                    <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center space-x-2 mb-4">
                             <Settings className="w-5 h-5 text-gray-700" />
                             <h2 className="text-lg font-semibold text-gray-900">Device Configuration</h2>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Device ID *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={config.device_id}
-                                    onChange={(e) => handleConfigChange('device_id', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="e.g., ESP8266_001"
-                                />
-                            </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Device Name *
@@ -540,24 +405,52 @@ const FirmwareBuilder = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Location
                                 </label>
-                                <input
-                                    type="text"
-                                    value={config.device_location}
-                                    onChange={(e) => handleConfigChange('device_location', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="e.g., Kitchen"
-                                />
+                                <div className="flex items-center space-x-2">
+                                    <MapPin className="w-4 h-4 text-gray-500" />
+                                    <select
+                                        value={config.device_location}
+                                        onChange={(e) => handleConfigChange('device_location', e.target.value)}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Select location...</option>
+                                        {locations.map(location => (
+                                            <option key={location.id} value={location.name}>
+                                                {location.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Device ID (Auto-generated)
+                                </label>
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="text"
+                                        value={config.device_id}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm font-mono"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={regenerateDeviceId}
+                                        className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                    >
+                                        New
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* WiFi Configuration */}
-                    <div>
+                    <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center space-x-2 mb-4">
                             <Wifi className="w-5 h-5 text-gray-700" />
                             <h2 className="text-lg font-semibold text-gray-900">WiFi Configuration</h2>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     WiFi Network Name (SSID) *
@@ -586,12 +479,12 @@ const FirmwareBuilder = () => {
                     </div>
 
                     {/* Server Configuration */}
-                    <div>
+                    <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center space-x-2 mb-4">
                             <Zap className="w-5 h-5 text-gray-700" />
                             <h2 className="text-lg font-semibold text-gray-900">Server Configuration</h2>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Server URL *
@@ -606,23 +499,31 @@ const FirmwareBuilder = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    API Key (optional)
+                                    API Key (Auto-generated)
                                 </label>
-                                <input
-                                    type="text"
-                                    value={config.api_key}
-                                    onChange={(e) => handleConfigChange('api_key', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Optional API key"
-                                />
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="text"
+                                        value={config.api_key}
+                                        readOnly
+                                        className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm font-mono"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={regenerateApiKey}
+                                        className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                    >
+                                        New
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Device Behavior */}
-                    <div>
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Device Behavior</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="bg-gray-50 rounded-lg p-4">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Device Behavior Settings</h2>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Heartbeat Interval (seconds)
@@ -649,7 +550,7 @@ const FirmwareBuilder = () => {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
-                            <div className="space-y-2">
+                            <div className="flex flex-col justify-center space-y-3">
                                 <label className="flex items-center space-x-2">
                                     <input
                                         type="checkbox"
@@ -737,41 +638,56 @@ const FirmwareBuilder = () => {
                         </div>
                     </div>
 
-                    {/* Build Buttons */}
-                    <div className="flex items-center justify-center space-x-4 pt-6 border-t">
-                        <button
-                            onClick={() => setShowWebFlasher(true)}
-                            disabled={loading || pinConflicts.length > 0}
-                            className={`flex items-center space-x-3 px-6 py-3 rounded-lg font-medium ${
-                                loading || pinConflicts.length > 0
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
-                            }`}
-                        >
-                            <Zap className="w-5 h-5" />
-                            <span>Flash to Device</span>
-                        </button>
-                        <button
-                            onClick={buildFirmware}
-                            disabled={loading || pinConflicts.length > 0}
-                            className={`flex items-center space-x-3 px-6 py-3 rounded-lg font-medium ${
-                                loading || pinConflicts.length > 0
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                            }`}
-                        >
-                            {loading ? (
-                                <>
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    <span>Building Firmware...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Download className="w-5 h-5" />
-                                    <span>Download Firmware</span>
-                                </>
-                            )}
-                        </button>
+                    {/* Build Actions */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Build Firmware</h3>
+                                <p className="text-sm text-gray-600">
+                                    {enabledSensorsCount} sensor{enabledSensorsCount !== 1 ? 's' : ''} configured
+                                    {pinConflicts.length > 0 && (
+                                        <span className="text-red-600 ml-2">
+                                            • {pinConflicts.length} pin conflict{pinConflicts.length > 1 ? 's' : ''} detected
+                                        </span>
+                                    )}
+                                </p>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <button
+                                    onClick={() => setShowWebFlasher(true)}
+                                    disabled={loading || pinConflicts.length > 0}
+                                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium ${
+                                        loading || pinConflicts.length > 0
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
+                                    }`}
+                                >
+                                    <Zap className="w-5 h-5" />
+                                    <span>Flash to Device</span>
+                                </button>
+                                <button
+                                    onClick={buildFirmware}
+                                    disabled={loading || pinConflicts.length > 0}
+                                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium ${
+                                        loading || pinConflicts.length > 0
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    }`}
+                                >
+                                    {loading ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            <span>Building...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Download className="w-5 h-5" />
+                                            <span>Download Firmware</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {downloadUrl && (

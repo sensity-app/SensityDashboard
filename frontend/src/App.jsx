@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocat
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { ChevronDown } from 'lucide-react';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -134,21 +135,49 @@ function AuthenticatedApp({ user, onLogout }) {
     const navigate = useNavigate();
     const location = useLocation();
     const currentPath = location.pathname;
+    const [dropdownOpen, setDropdownOpen] = useState(null);
 
     const navigationItems = [
         { path: '/', label: t('nav.dashboard', 'Dashboard'), icon: '📊' },
-        { path: '/devices', label: t('nav.devices', 'Device Management'), icon: '🔧' },
-        { path: '/analytics', label: t('nav.analytics', 'Analytics'), icon: '🧠' },
-        { path: '/device-groups', label: t('nav.deviceGroups', 'Device Groups'), icon: '🏷️' },
-        { path: '/device-tags', label: t('nav.deviceTags', 'Device Tags'), icon: '🏷️' },
-        { path: '/device-health', label: t('nav.deviceHealth', 'Device Health'), icon: '🏥' },
-        { path: '/alert-rules', label: t('nav.alertRules', 'Alert Rules'), icon: '⚙️' },
+        { path: '/devices', label: t('nav.devices', 'Devices'), icon: '🔧' },
+        {
+            label: t('nav.monitoring', 'Monitoring'), icon: '📈', dropdown: true,
+            items: [
+                { path: '/analytics', label: t('nav.analytics', 'Analytics'), icon: '🧠' },
+                { path: '/device-health', label: t('nav.deviceHealth', 'Device Health'), icon: '🏥' },
+                { path: '/alert-rules', label: t('nav.alertRules', 'Alert Rules'), icon: '⚙️' },
+            ]
+        },
+        {
+            label: t('nav.organization', 'Organization'), icon: '🏷️', dropdown: true,
+            items: [
+                { path: '/device-groups', label: t('nav.deviceGroups', 'Device Groups'), icon: '🏷️' },
+                { path: '/device-tags', label: t('nav.deviceTags', 'Device Tags'), icon: '🏷️' },
+            ]
+        },
         { path: '/firmware-builder', label: t('nav.firmwareBuilder', 'Firmware Builder'), icon: '🔧' },
         ...(user.role === 'admin' ? [
-            { path: '/users', label: t('nav.userManagement', 'User Management'), icon: '👥' },
-            { path: '/settings', label: t('nav.settings', 'Settings'), icon: '⚙️' }
+            {
+                label: t('nav.administration', 'Administration'), icon: '⚙️', dropdown: true,
+                items: [
+                    { path: '/users', label: t('nav.userManagement', 'Users'), icon: '👥' },
+                    { path: '/settings', label: t('nav.settings', 'Settings'), icon: '⚙️' }
+                ]
+            }
         ] : [])
     ];
+
+    const handleDropdownToggle = (index) => {
+        setDropdownOpen(dropdownOpen === index ? null : index);
+    };
+
+    const isPathActive = (path, items) => {
+        if (path === currentPath) return true;
+        if (items) {
+            return items.some(item => item.path === currentPath);
+        }
+        return false;
+    };
 
     return (
         <div className="min-h-screen">
@@ -181,29 +210,70 @@ function AuthenticatedApp({ user, onLogout }) {
             </header>
 
             {/* Navigation */}
-            <nav className="bg-gray-800">
+            <nav className="bg-gray-800 relative">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex space-x-8">
-                        {navigationItems.map((item) => (
-                            <button
-                                key={item.path}
-                                onClick={() => navigate(item.path)}
-                                className={`flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors ${
-                                    currentPath === item.path
-                                        ? 'text-white border-b-2 border-blue-400'
-                                        : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                                }`}
-                            >
-                                <span>{item.icon}</span>
-                                <span>{item.label}</span>
-                            </button>
+                    <div className="flex space-x-1">
+                        {navigationItems.map((item, index) => (
+                            <div key={item.path || index} className="relative">
+                                {item.dropdown ? (
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => handleDropdownToggle(index)}
+                                            className={`flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors rounded-t-md ${
+                                                isPathActive(item.path, item.items)
+                                                    ? 'text-white bg-gray-700'
+                                                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                                            }`}
+                                        >
+                                            <span>{item.icon}</span>
+                                            <span>{item.label}</span>
+                                            <ChevronDown className={`w-4 h-4 transition-transform ${
+                                                dropdownOpen === index ? 'rotate-180' : ''
+                                            }`} />
+                                        </button>
+                                        {dropdownOpen === index && (
+                                            <div className="absolute top-full left-0 w-48 bg-white rounded-b-md shadow-lg border border-gray-200 z-50">
+                                                {item.items.map((subItem) => (
+                                                    <button
+                                                        key={subItem.path}
+                                                        onClick={() => {
+                                                            navigate(subItem.path);
+                                                            setDropdownOpen(null);
+                                                        }}
+                                                        className={`w-full flex items-center space-x-2 px-4 py-3 text-sm text-left transition-colors ${
+                                                            currentPath === subItem.path
+                                                                ? 'bg-blue-50 text-blue-700'
+                                                                : 'text-gray-700 hover:bg-gray-50'
+                                                        }`}
+                                                    >
+                                                        <span>{subItem.icon}</span>
+                                                        <span>{subItem.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => navigate(item.path)}
+                                        className={`flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors ${
+                                            currentPath === item.path
+                                                ? 'text-white border-b-2 border-blue-400'
+                                                : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                                        }`}
+                                    >
+                                        <span>{item.icon}</span>
+                                        <span>{item.label}</span>
+                                    </button>
+                                )}
+                            </div>
                         ))}
                     </div>
                 </div>
             </nav>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8" onClick={() => setDropdownOpen(null)}>
                 <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/devices" element={<DeviceManagement />} />

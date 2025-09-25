@@ -67,6 +67,7 @@ function Login({ onLogin }) {
                                     name="email"
                                     type="email"
                                     required
+                                    autoComplete="email"
                                     className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                                     placeholder={t('auth.email', 'Email address')}
                                     value={formData.email}
@@ -87,6 +88,7 @@ function Login({ onLogin }) {
                                     name="password"
                                     type="password"
                                     required
+                                    autoComplete="current-password"
                                     className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                                     placeholder={t('auth.password', 'Password')}
                                     value={formData.password}

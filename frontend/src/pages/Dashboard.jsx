@@ -10,18 +10,34 @@ function Dashboard() {
     const { t } = useTranslation();
 
     // Query devices
-    const { data: devices = [], isLoading: devicesLoading } = useQuery(
+    const { data: devicesData, isLoading: devicesLoading, error: devicesError } = useQuery(
         'devices',
         () => apiService.getDevices(),
-        { refetchInterval: 30000 }
+        {
+            refetchInterval: 30000,
+            retry: false,
+            onError: (error) => {
+                console.error('Failed to fetch devices:', error);
+            }
+        }
     );
 
     // Query recent alerts
-    const { data: alerts = [], isLoading: alertsLoading } = useQuery(
+    const { data: alertsData, isLoading: alertsLoading, error: alertsError } = useQuery(
         'recent-alerts',
         () => apiService.getRecentAlerts(),
-        { refetchInterval: 10000 }
+        {
+            refetchInterval: 10000,
+            retry: false,
+            onError: (error) => {
+                console.error('Failed to fetch alerts:', error);
+            }
+        }
     );
+
+    // Safely handle API responses
+    const devices = Array.isArray(devicesData) ? devicesData : [];
+    const alerts = Array.isArray(alertsData) ? alertsData : [];
 
     const getStatusIcon = (status) => {
         switch (status) {

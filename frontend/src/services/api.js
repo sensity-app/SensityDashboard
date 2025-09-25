@@ -137,7 +137,7 @@ export const apiService = {
         apiClient.post('/auth/change-password', { currentPassword, newPassword }),
 
     // Alerts (for dashboard)
-    getRecentAlerts: (limit = 10) => apiClient.get('/alerts', { params: { limit, status: 'OPEN' } }),
+    getRecentAlerts: (limit = 10) => apiClient.get('/alerts', { params: { limit, status: 'active' } }),
 
     // Analytics
     getSensorRecommendations: (deviceId, sensorPin, timeRange = '30d') =>

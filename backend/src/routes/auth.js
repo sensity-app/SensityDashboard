@@ -258,7 +258,7 @@ router.get('/me', authenticateToken, async (req, res) => {
             `SELECT id, email, role, phone, notification_email, notification_sms,
                     notification_push, created_at
              FROM users WHERE id = $1`,
-            [req.user.userId]
+            [req.user.id]
         );
 
         if (result.rows.length === 0) {

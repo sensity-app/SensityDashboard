@@ -444,7 +444,7 @@ install_app_dependencies() {
         print_warning "Backend package.json not found - skipping backend dependencies"
     fi
 
-    # Install frontend dependencies and build
+    # Install frontend dependencies (but don't build yet)
     if [[ -f "$APP_DIR/frontend/package.json" ]]; then
         cd "$APP_DIR/frontend"
         if [[ -f "package-lock.json" ]]; then
@@ -457,6 +457,18 @@ install_app_dependencies() {
             print_warning "package-lock.json not found, using npm install"
             sudo -u "$APP_USER" npm install
         fi
+        print_success "Frontend dependencies installed"
+    else
+        print_warning "Frontend package.json not found - skipping frontend dependencies"
+    fi
+}
+
+# Function to build frontend after environment files are created
+build_frontend() {
+    print_status "Building frontend with environment variables..."
+
+    if [[ -f "$APP_DIR/frontend/package.json" ]]; then
+        cd "$APP_DIR/frontend"
         sudo -u "$APP_USER" npm run build
         print_success "Frontend built successfully"
     else
@@ -1264,6 +1276,7 @@ main() {
     install_app_dependencies
     setup_database
     create_env_files
+    build_frontend
     install_pm2
     install_nginx
 

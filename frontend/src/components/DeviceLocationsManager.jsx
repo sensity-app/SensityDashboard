@@ -175,26 +175,34 @@ function DeviceLocationsManager() {
 
     if (isLoading) {
         return (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="animate-pulse space-y-4">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                    ))}
+            <div className="space-y-8 animate-fade-in">
+                <div className="card p-8">
+                    <div className="flex justify-center items-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+                        <span className="ml-3 text-gray-600">Loading locations...</span>
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {/* Header */}
-            <div className="mb-8">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <MapPin className="h-8 w-8 text-blue-600" />
-                        <h1 className="text-3xl font-bold text-gray-900">
-                            {t('locations.title', 'Device Locations')}
-                        </h1>
+        <div className="space-y-8 animate-fade-in">
+            {/* Modern Header */}
+            <div className="card animate-slide-up">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                            <MapPin className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">
+                                {t('locations.title', 'Device Locations')}
+                            </h1>
+                            <p className="text-gray-600 mt-1">
+                                {t('locations.description', 'Manage physical locations where your devices are deployed')}
+                            </p>
+                        </div>
                     </div>
                     <button
                         onClick={() => setShowForm(true)}
@@ -204,151 +212,180 @@ function DeviceLocationsManager() {
                         <span>{t('locations.addLocation', 'Add Location')}</span>
                     </button>
                 </div>
-                <p className="mt-2 text-gray-600">
-                    {t('locations.description', 'Manage physical locations where your devices are deployed')}
-                </p>
             </div>
 
-            {/* Add/Edit Form */}
+            {/* Modern Add/Edit Form */}
             {showForm && (
-                <div className="mb-8 bg-white rounded-lg border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                            {editingLocation
-                                ? t('locations.editLocation', 'Edit Location')
-                                : t('locations.addLocation', 'Add Location')
-                            }
+                <div className="card animate-scale-in">
+                    <div className="card-header">
+                        <h2 className="card-title">
+                            <MapPin className="w-5 h-5 text-primary" />
+                            <span>
+                                {editingLocation
+                                    ? t('locations.editLocation', 'Edit Location')
+                                    : t('locations.addLocation', 'Add Location')
+                                }
+                            </span>
                         </h2>
                         <button
                             onClick={handleCancelForm}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="btn-ghost p-2"
                         >
-                            <X className="h-5 w-5" />
+                            <X className="h-4 w-4" />
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                                    {t('locations.name', 'Location Name')} *
+                    <div className="p-6">
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <MapPin className="w-4 h-4 inline mr-1" />
+                                        {t('locations.name', 'Location Name')} *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="name"
+                                        name="name"
+                                        value={formData.name}
+                                        onChange={handleInputChange}
+                                        required
+                                        className="input-field"
+                                        placeholder={t('locations.namePlaceholder', 'e.g. Main Office, Warehouse A')}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <Clock className="w-4 h-4 inline mr-1" />
+                                        {t('locations.timezone', 'Timezone')}
+                                    </label>
+                                    <select
+                                        id="timezone"
+                                        name="timezone"
+                                        value={formData.timezone}
+                                        onChange={handleInputChange}
+                                        className="input-field"
+                                    >
+                                        {commonTimezones.map(tz => (
+                                            <option key={tz} value={tz}>{tz}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">
+                                    {t('locations.description', 'Description')}
                                 </label>
-                                <input
-                                    type="text"
-                                    id="name"
-                                    name="name"
-                                    value={formData.name}
+                                <textarea
+                                    id="description"
+                                    name="description"
+                                    value={formData.description}
                                     onChange={handleInputChange}
-                                    required
+                                    rows="3"
                                     className="input-field"
-                                    placeholder={t('locations.namePlaceholder', 'e.g. Main Office, Warehouse A')}
+                                    placeholder={t('locations.descriptionPlaceholder', 'Optional description of this location')}
                                 />
                             </div>
-                            <div>
-                                <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 mb-1">
-                                    <Clock className="h-4 w-4 inline mr-1" />
-                                    {t('locations.timezone', 'Timezone')}
-                                </label>
-                                <select
-                                    id="timezone"
-                                    name="timezone"
-                                    value={formData.timezone}
-                                    onChange={handleInputChange}
-                                    className="input-field"
+
+                            <div className="glass p-4 rounded-xl">
+                                <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                                    <Globe className="w-4 h-4 mr-2" />
+                                    GPS Coordinates (Optional)
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            {t('locations.latitude', 'Latitude')}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            id="latitude"
+                                            name="latitude"
+                                            value={formData.latitude}
+                                            onChange={handleInputChange}
+                                            step="any"
+                                            min="-90"
+                                            max="90"
+                                            className="input-field"
+                                            placeholder="e.g. 37.7749"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            {t('locations.longitude', 'Longitude')}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            id="longitude"
+                                            name="longitude"
+                                            value={formData.longitude}
+                                            onChange={handleInputChange}
+                                            step="any"
+                                            min="-180"
+                                            max="180"
+                                            className="input-field"
+                                            placeholder="e.g. -122.4194"
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2">Coordinates help with mapping and location-based features</p>
+                            </div>
+
+                            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={handleCancelForm}
+                                    className="btn-secondary"
                                 >
-                                    {commonTimezones.map(tz => (
-                                        <option key={tz} value={tz}>{tz}</option>
-                                    ))}
-                                </select>
+                                    <X className="w-4 h-4 mr-2" />
+                                    {t('common.cancel', 'Cancel')}
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={createLocationMutation.isLoading || updateLocationMutation.isLoading}
+                                    className="btn-primary flex items-center space-x-2"
+                                >
+                                    {(createLocationMutation.isLoading || updateLocationMutation.isLoading) ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            <span>{editingLocation ? 'Updating...' : 'Creating...'}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="h-4 w-4" />
+                                            <span>
+                                                {editingLocation
+                                                    ? t('common.update', 'Update')
+                                                    : t('common.create', 'Create')
+                                                }
+                                            </span>
+                                        </>
+                                    )}
+                                </button>
                             </div>
-                        </div>
-
-                        <div>
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('locations.description', 'Description')}
-                            </label>
-                            <textarea
-                                id="description"
-                                name="description"
-                                value={formData.description}
-                                onChange={handleInputChange}
-                                rows="3"
-                                className="input-field"
-                                placeholder={t('locations.descriptionPlaceholder', 'Optional description of this location')}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor="latitude" className="block text-sm font-medium text-gray-700 mb-1">
-                                    <Globe className="h-4 w-4 inline mr-1" />
-                                    {t('locations.latitude', 'Latitude')}
-                                </label>
-                                <input
-                                    type="number"
-                                    id="latitude"
-                                    name="latitude"
-                                    value={formData.latitude}
-                                    onChange={handleInputChange}
-                                    step="any"
-                                    min="-90"
-                                    max="90"
-                                    className="input-field"
-                                    placeholder="e.g. 37.7749"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="longitude" className="block text-sm font-medium text-gray-700 mb-1">
-                                    <Globe className="h-4 w-4 inline mr-1" />
-                                    {t('locations.longitude', 'Longitude')}
-                                </label>
-                                <input
-                                    type="number"
-                                    id="longitude"
-                                    name="longitude"
-                                    value={formData.longitude}
-                                    onChange={handleInputChange}
-                                    step="any"
-                                    min="-180"
-                                    max="180"
-                                    className="input-field"
-                                    placeholder="e.g. -122.4194"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end space-x-3">
-                            <button
-                                type="button"
-                                onClick={handleCancelForm}
-                                className="btn-secondary"
-                            >
-                                {t('common.cancel', 'Cancel')}
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={createLocationMutation.isLoading || updateLocationMutation.isLoading}
-                                className="btn-primary flex items-center space-x-2"
-                            >
-                                <Save className="h-4 w-4" />
-                                <span>
-                                    {editingLocation
-                                        ? t('common.update', 'Update')
-                                        : t('common.create', 'Create')
-                                    }
-                                </span>
-                            </button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             )}
 
-            {/* Locations List */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            {/* Modern Locations List */}
+            <div className="card animate-slide-up" style={{animationDelay: '200ms'}}>
+                <div className="card-header">
+                    <h2 className="card-title">
+                        <MapPin className="w-5 h-5 text-primary" />
+                        <span>Locations</span>
+                    </h2>
+                    <span className="badge badge-primary">{locations.length} locations</span>
+                </div>
+
                 {locations.length === 0 ? (
                     <div className="p-12 text-center">
-                        <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center mb-6">
+                            <MapPin className="h-12 w-12 text-blue-500" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
                             {t('locations.noLocations', 'No locations yet')}
                         </h3>
                         <p className="text-gray-500 mb-6">
@@ -363,109 +400,106 @@ function DeviceLocationsManager() {
                         </button>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('locations.name', 'Location')}
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('locations.devices', 'Devices')}
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('locations.timezone', 'Timezone')}
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('locations.coordinates', 'Coordinates')}
-                                    </th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('common.actions', 'Actions')}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {locations.map((location) => (
-                                    <tr key={location.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {location.name}
-                                                </div>
-                                                {location.description && (
-                                                    <div className="text-sm text-gray-500">
-                                                        {location.description}
+                    <div className="p-6">
+                        <div className="table-modern overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr>
+                                        <th className="text-left">{t('locations.name', 'Location')}</th>
+                                        <th className="text-left">{t('locations.devices', 'Devices')}</th>
+                                        <th className="text-left">{t('locations.timezone', 'Timezone')}</th>
+                                        <th className="text-left">{t('locations.coordinates', 'Coordinates')}</th>
+                                        <th className="text-right">{t('common.actions', 'Actions')}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {locations.map((location, index) => (
+                                        <tr key={location.id} className="animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
+                                            <td>
+                                                <div className="flex items-start space-x-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center flex-shrink-0">
+                                                        <MapPin className="w-5 h-5 text-blue-600" />
                                                     </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="flex items-center space-x-1">
-                                                    <Users className="h-4 w-4 text-gray-400" />
-                                                    <span className="text-sm text-gray-600">
-                                                        {location.device_count || 0}
-                                                    </span>
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">
+                                                            {location.name}
+                                                        </div>
+                                                        {location.description && (
+                                                            <div className="text-sm text-gray-500 mt-1">
+                                                                {location.description}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center space-x-2">
+                                            </td>
+                                            <td>
+                                                <div className="flex items-center space-x-4">
                                                     <div className="flex items-center space-x-1">
-                                                        <CheckCircle className="h-4 w-4 text-green-500" />
-                                                        <span className="text-sm text-green-600">
-                                                            {location.online_devices || 0}
+                                                        <Users className="h-4 w-4 text-gray-400" />
+                                                        <span className="text-sm font-medium text-gray-900">
+                                                            {location.device_count || 0}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-center space-x-1">
-                                                        <AlertCircle className="h-4 w-4 text-red-500" />
-                                                        <span className="text-sm text-red-600">
+                                                    <div className="flex items-center space-x-2">
+                                                        <span className="badge badge-success text-xs">
+                                                            <CheckCircle className="h-3 w-3 mr-1" />
+                                                            {location.online_devices || 0}
+                                                        </span>
+                                                        <span className="badge badge-error text-xs">
+                                                            <AlertCircle className="h-3 w-3 mr-1" />
                                                             {location.offline_devices || 0}
                                                         </span>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center space-x-1">
-                                                <Clock className="h-4 w-4 text-gray-400" />
-                                                <span className="text-sm text-gray-600">
-                                                    {location.timezone || 'UTC'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {location.latitude && location.longitude ? (
+                                            </td>
+                                            <td>
                                                 <div className="flex items-center space-x-1">
-                                                    <Globe className="h-4 w-4 text-gray-400" />
+                                                    <Clock className="h-3 h-3 text-gray-400" />
                                                     <span className="text-sm text-gray-600">
-                                                        {parseFloat(location.latitude).toFixed(4)}, {parseFloat(location.longitude).toFixed(4)}
+                                                        {location.timezone || 'UTC'}
                                                     </span>
                                                 </div>
-                                            ) : (
-                                                <span className="text-sm text-gray-400">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex items-center justify-end space-x-2">
-                                                <button
-                                                    onClick={() => handleEdit(location)}
-                                                    className="text-blue-600 hover:text-blue-800"
-                                                    title={t('common.edit', 'Edit')}
-                                                >
-                                                    <Edit2 className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(location)}
-                                                    className="text-red-600 hover:text-red-800"
-                                                    title={t('common.delete', 'Delete')}
-                                                    disabled={location.device_count > 0}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </td>
+                                            <td>
+                                                {location.latitude && location.longitude ? (
+                                                    <div className="flex items-center space-x-1">
+                                                        <Globe className="h-3 w-3 text-gray-400" />
+                                                        <span className="text-xs font-mono text-gray-600">
+                                                            {parseFloat(location.latitude).toFixed(4)}, {parseFloat(location.longitude).toFixed(4)}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-sm text-gray-400">No coordinates</span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <div className="flex items-center justify-end space-x-1">
+                                                    <button
+                                                        onClick={() => handleEdit(location)}
+                                                        className="btn-ghost p-2 text-primary"
+                                                        title={t('common.edit', 'Edit')}
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(location)}
+                                                        className={`btn-ghost p-2 ${
+                                                            location.device_count > 0
+                                                                ? 'text-gray-400 cursor-not-allowed'
+                                                                : 'text-red-600 hover:text-red-700'
+                                                        }`}
+                                                        title={location.device_count > 0 ? 'Cannot delete location with devices' : t('common.delete', 'Delete')}
+                                                        disabled={location.device_count > 0}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>

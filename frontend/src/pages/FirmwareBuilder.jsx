@@ -1,5 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Cpu, Wifi, Settings, Zap, AlertTriangle, CheckCircle, Info, MapPin } from 'lucide-react';
+import {
+    Download,
+    Cpu,
+    Wifi,
+    Settings,
+    Zap,
+    AlertTriangle,
+    CheckCircle,
+    Info,
+    MapPin,
+    ArrowRight,
+    ArrowLeft,
+    Play,
+    Smartphone,
+    Monitor,
+    Thermometer,
+    Droplets,
+    Sun,
+    Wind,
+    Activity,
+    BarChart3,
+    Shield,
+    Key,
+    Globe
+} from 'lucide-react';
 import WebFlasher from '../components/WebFlasher';
 import { apiService } from '../services/api';
 
@@ -226,7 +250,7 @@ const FirmwareBuilder = () => {
                 <select
                     value={currentPin}
                     onChange={(e) => handleSensorConfigChange(sensorType, 'pin', e.target.value)}
-                    className="w-32 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-32 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                     {sensorInfo.recommended_pins?.map(pinPair => (
                         <option key={pinPair} value={pinPair}>
@@ -243,7 +267,7 @@ const FirmwareBuilder = () => {
                 <select
                     value={currentPin}
                     onChange={(e) => handleSensorConfigChange(sensorType, 'pin', e.target.value)}
-                    className="w-20 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-20 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                     {availablePinOptions.map(pinOption => {
                         const isRecommended = sensorInfo.recommended_pins?.includes(pinOption.pin);
@@ -261,77 +285,15 @@ const FirmwareBuilder = () => {
         );
     };
 
-    const renderSensorConfig = (sensorType, sensorInfo) => {
-        const isEnabled = config.sensors[sensorType]?.enabled || false;
-        const sensorConfig = config.sensors[sensorType] || {};
 
-        return (
-            <div key={sensorType} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                        <div className="flex items-center space-x-3">
-                            <input
-                                type="checkbox"
-                                id={sensorType}
-                                checked={isEnabled}
-                                onChange={(e) => handleSensorChange(sensorType, e.target.checked)}
-                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <label htmlFor={sensorType} className="text-sm font-medium text-gray-900">
-                                {sensorInfo.name}
-                            </label>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1">{sensorInfo.description}</p>
-                        {sensorInfo.wiring_notes && (
-                            <p className="text-xs text-blue-600 mt-1">💡 {sensorInfo.wiring_notes}</p>
-                        )}
-                        {isEnabled && (
-                            <div className="mt-2">
-                                <label className="text-xs text-gray-600 block mb-1">
-                                    Pin Selection:
-                                </label>
-                                {renderPinSelector(sensorType, sensorInfo, sensorConfig)}
-                            </div>
-                        )}
-                        {!isEnabled && sensorInfo.recommended_pins && (
-                            <p className="text-xs text-gray-500 mt-1">
-                                Recommended pins: {sensorInfo.recommended_pins.join(', ')}
-                            </p>
-                        )}
-                        {sensorInfo.conflicts_with && (
-                            <p className="text-xs text-red-500 mt-1">
-                                ⚠️ Conflicts with: {sensorInfo.conflicts_with.join(', ')}
-                            </p>
-                        )}
-                    </div>
-                </div>
+    const [currentStep, setCurrentStep] = useState(0);
 
-                {isEnabled && sensorInfo.thresholds && (
-                    <div className="mt-4 space-y-3 border-t pt-4">
-                        <h4 className="text-sm font-medium text-gray-700">Threshold Settings</h4>
-                        {Object.entries(sensorInfo.thresholds).map(([key, threshold]) => (
-                            <div key={key} className="flex items-center space-x-3">
-                                <label className="text-xs text-gray-600 w-24 flex-shrink-0">
-                                    {key.replace('_', ' ')}:
-                                </label>
-                                <input
-                                    type="number"
-                                    value={sensorConfig[key] || threshold.default}
-                                    onChange={(e) => handleSensorConfigChange(sensorType, key, parseFloat(e.target.value))}
-                                    min={threshold.min}
-                                    max={threshold.max}
-                                    className="w-20 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
-                                <span className="text-xs text-gray-500">
-                                    ({threshold.min}-{threshold.max})
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        );
-    };
+    const steps = [
+        { id: 'device', title: 'Device Setup', icon: Smartphone, description: 'Configure device identity and location' },
+        { id: 'network', title: 'Network Config', icon: Wifi, description: 'Set up WiFi and server connection' },
+        { id: 'sensors', title: 'Sensor Selection', icon: Activity, description: 'Choose and configure sensors' },
+        { id: 'review', title: 'Review & Build', icon: BarChart3, description: 'Review configuration and build firmware' }
+    ];
 
     const enabledSensorsCount = Object.values(config.sensors).filter(s => s?.enabled).length;
 
@@ -366,221 +328,341 @@ const FirmwareBuilder = () => {
     const usedPins = getUsedPins();
     const pinConflicts = Object.entries(usedPins).filter(([pin, sensors]) => sensors.length > 1);
 
+    const nextStep = () => {
+        if (currentStep < steps.length - 1) {
+            setCurrentStep(currentStep + 1);
+        }
+    };
+
+    const prevStep = () => {
+        if (currentStep > 0) {
+            setCurrentStep(currentStep - 1);
+        }
+    };
+
+    const canProceed = () => {
+        switch (currentStep) {
+            case 0: // Device setup
+                return config.device_name.trim();
+            case 1: // Network config
+                return config.wifi_ssid.trim() && config.wifi_password.trim() && config.server_url.trim();
+            case 2: // Sensors
+                return true; // No validation needed for sensors
+            case 3: // Review
+                return pinConflicts.length === 0;
+            default:
+                return true;
+        }
+    };
+
     return (
-        <div className="max-w-5xl mx-auto p-6">
-            <div className="bg-white rounded-lg shadow-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <div className="flex items-center space-x-3">
-                        <Cpu className="w-6 h-6 text-blue-600" />
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Custom Firmware Builder</h1>
-                            <p className="text-gray-600 mt-1">
-                                Configure your ESP8266 device and generate custom firmware ready to flash
-                            </p>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+            <div className="max-w-6xl mx-auto px-6">
+                {/* Modern Header */}
+                <div className="card animate-fade-in mb-8">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                                <Cpu className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900">Custom Firmware Builder</h1>
+                                <p className="text-gray-600 mt-1">
+                                    Configure your ESP8266 device step by step and generate custom firmware
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-6 space-y-6">
-                    {/* Device Configuration */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center space-x-2 mb-4">
-                            <Settings className="w-5 h-5 text-gray-700" />
-                            <h2 className="text-lg font-semibold text-gray-900">Device Configuration</h2>
-                        </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Device Name *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={config.device_name}
-                                    onChange={(e) => handleConfigChange('device_name', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="e.g., Kitchen Sensor"
-                                />
+                {/* Progress Steps */}
+                <div className="card animate-slide-up mb-8">
+                    <div className="flex items-center justify-between">
+                        {steps.map((step, index) => {
+                            const StepIcon = step.icon;
+                            const isActive = index === currentStep;
+                            const isCompleted = index < currentStep;
+                            const canAccess = index <= currentStep;
+
+                            return (
+                                <div key={step.id} className="flex items-center flex-1">
+                                    <div className="flex flex-col items-center flex-1">
+                                        <button
+                                            onClick={() => canAccess && setCurrentStep(index)}
+                                            className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                                                isActive
+                                                    ? 'border-primary bg-primary text-white shadow-lg'
+                                                    : isCompleted
+                                                    ? 'border-green-500 bg-green-500 text-white'
+                                                    : canAccess
+                                                    ? 'border-gray-300 bg-white text-gray-400 hover:border-gray-400'
+                                                    : 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed'
+                                            }`}
+                                        >
+                                            {isCompleted ? (
+                                                <CheckCircle className="w-6 h-6" />
+                                            ) : (
+                                                <StepIcon className="w-6 h-6" />
+                                            )}
+                                        </button>
+                                        <div className="text-center mt-2">
+                                            <p className={`text-sm font-medium ${
+                                                isActive || isCompleted ? 'text-gray-900' : 'text-gray-500'
+                                            }`}>
+                                                {step.title}
+                                            </p>
+                                            <p className="text-xs text-gray-500 mt-1">{step.description}</p>
+                                        </div>
+                                    </div>
+                                    {index < steps.length - 1 && (
+                                        <div className={`w-full h-0.5 mx-4 ${
+                                            index < currentStep ? 'bg-green-500' : 'bg-gray-200'
+                                        }`} />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Step Content */}
+                <div className="card animate-scale-in">
+                    {/* Step 0: Device Configuration */}
+                    {currentStep === 0 && (
+                        <div>
+                            <div className="card-header">
+                                <h2 className="card-title">
+                                    <Smartphone className="w-6 h-6 text-primary" />
+                                    <span>Device Setup</span>
+                                </h2>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Location
-                                </label>
-                                <div className="flex items-center space-x-2">
-                                    <MapPin className="w-4 h-4 text-gray-500" />
-                                    <select
-                                        value={config.device_location}
-                                        onChange={(e) => handleConfigChange('device_location', e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="">Select location...</option>
-                                        {Array.isArray(locations) && locations.map(location => (
-                                            <option key={location.id} value={location.name}>
-                                                {location.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            Device Name *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={config.device_name}
+                                            onChange={(e) => handleConfigChange('device_name', e.target.value)}
+                                            className="input-field"
+                                            placeholder="e.g., Kitchen Sensor Hub"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Choose a descriptive name for easy identification</p>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            <MapPin className="w-4 h-4 inline mr-1" />
+                                            Location
+                                        </label>
+                                        <select
+                                            value={config.device_location}
+                                            onChange={(e) => handleConfigChange('device_location', e.target.value)}
+                                            className="input-field"
+                                        >
+                                            <option value="">Select location...</option>
+                                            {Array.isArray(locations) && locations.map(location => (
+                                                <option key={location.id} value={location.name}>
+                                                    {location.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="glass p-4 rounded-lg">
+                                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                                        <Key className="w-4 h-4 mr-2" />
+                                        Auto-Generated Identifiers
+                                    </h3>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        <div className="form-group">
+                                            <label className="form-label">Device ID</label>
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="text"
+                                                    value={config.device_id}
+                                                    readOnly
+                                                    className="input-field bg-gray-50 font-mono text-sm flex-1"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={regenerateDeviceId}
+                                                    className="btn-secondary px-3 py-2 text-xs"
+                                                >
+                                                    Regenerate
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">API Key</label>
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="text"
+                                                    value={config.api_key}
+                                                    readOnly
+                                                    className="input-field bg-gray-50 font-mono text-sm flex-1"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={regenerateApiKey}
+                                                    className="btn-secondary px-3 py-2 text-xs"
+                                                >
+                                                    Regenerate
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Device ID (Auto-generated)
-                                </label>
-                                <div className="flex items-center space-x-2">
-                                    <input
-                                        type="text"
-                                        value={config.device_id}
-                                        readOnly
-                                        className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm font-mono"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={regenerateDeviceId}
-                                        className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                                    >
-                                        New
-                                    </button>
+                        </div>
+                    )}
+
+                    {/* Step 1: Network Configuration */}
+                    {currentStep === 1 && (
+                        <div>
+                            <div className="card-header">
+                                <h2 className="card-title">
+                                    <Wifi className="w-6 h-6 text-primary" />
+                                    <span>Network Configuration</span>
+                                </h2>
+                            </div>
+                            <div className="space-y-6">
+                                <div className="glass p-6 rounded-xl">
+                                    <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                                        <Wifi className="w-5 h-5 mr-2" />
+                                        WiFi Connection
+                                    </h3>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                WiFi Network Name (SSID) *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={config.wifi_ssid}
+                                                onChange={(e) => handleConfigChange('wifi_ssid', e.target.value)}
+                                                className="input-field"
+                                                placeholder="Your WiFi network name"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                WiFi Password *
+                                            </label>
+                                            <input
+                                                type="password"
+                                                value={config.wifi_password}
+                                                onChange={(e) => handleConfigChange('wifi_password', e.target.value)}
+                                                className="input-field"
+                                                placeholder="Your WiFi password"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="glass p-6 rounded-xl">
+                                    <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                                        <Globe className="w-5 h-5 mr-2" />
+                                        Server Connection
+                                    </h3>
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            Server URL *
+                                        </label>
+                                        <input
+                                            type="url"
+                                            value={config.server_url}
+                                            onChange={(e) => handleConfigChange('server_url', e.target.value)}
+                                            className="input-field"
+                                            placeholder="https://your-server.com"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">The device will connect to this server to send data</p>
+                                    </div>
+                                </div>
+
+                                <div className="glass p-6 rounded-xl">
+                                    <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                                        <Settings className="w-5 h-5 mr-2" />
+                                        Device Behavior
+                                    </h3>
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                Heartbeat Interval (seconds)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={config.heartbeat_interval}
+                                                onChange={(e) => handleConfigChange('heartbeat_interval', parseInt(e.target.value))}
+                                                min="60"
+                                                max="3600"
+                                                className="input-field"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">How often the device reports it's online (60-3600 seconds)</p>
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                Sensor Read Interval (ms)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={config.sensor_read_interval}
+                                                onChange={(e) => handleConfigChange('sensor_read_interval', parseInt(e.target.value))}
+                                                min="1000"
+                                                max="60000"
+                                                className="input-field"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">How often sensors are read (1000-60000 ms)</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-6">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3">Device Options</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={config.debug_mode}
+                                                    onChange={(e) => handleConfigChange('debug_mode', e.target.checked)}
+                                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                                />
+                                                <div>
+                                                    <span className="text-sm font-medium text-gray-700">Debug Mode</span>
+                                                    <p className="text-xs text-gray-500">Enable detailed logging</p>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={config.ota_enabled}
+                                                    onChange={(e) => handleConfigChange('ota_enabled', e.target.checked)}
+                                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                                />
+                                                <div>
+                                                    <span className="text-sm font-medium text-gray-700">OTA Updates</span>
+                                                    <p className="text-xs text-gray-500">Over-the-air firmware updates</p>
+                                                </div>
+                                            </label>
+                                            <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={config.device_armed}
+                                                    onChange={(e) => handleConfigChange('device_armed', e.target.checked)}
+                                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                                />
+                                                <div>
+                                                    <span className="text-sm font-medium text-gray-700">Device Armed</span>
+                                                    <p className="text-xs text-gray-500">Start monitoring on boot</p>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    {/* WiFi Configuration */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center space-x-2 mb-4">
-                            <Wifi className="w-5 h-5 text-gray-700" />
-                            <h2 className="text-lg font-semibold text-gray-900">WiFi Configuration</h2>
-                        </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    WiFi Network Name (SSID) *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={config.wifi_ssid}
-                                    onChange={(e) => handleConfigChange('wifi_ssid', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Your WiFi network name"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    WiFi Password *
-                                </label>
-                                <input
-                                    type="password"
-                                    value={config.wifi_password}
-                                    onChange={(e) => handleConfigChange('wifi_password', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Your WiFi password"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Server Configuration */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex items-center space-x-2 mb-4">
-                            <Zap className="w-5 h-5 text-gray-700" />
-                            <h2 className="text-lg font-semibold text-gray-900">Server Configuration</h2>
-                        </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Server URL *
-                                </label>
-                                <input
-                                    type="url"
-                                    value={config.server_url}
-                                    onChange={(e) => handleConfigChange('server_url', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="https://your-server.com"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    API Key (Auto-generated)
-                                </label>
-                                <div className="flex items-center space-x-2">
-                                    <input
-                                        type="text"
-                                        value={config.api_key}
-                                        readOnly
-                                        className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm font-mono"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={regenerateApiKey}
-                                        className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                                    >
-                                        New
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Device Behavior */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">Device Behavior Settings</h2>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Heartbeat Interval (seconds)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={config.heartbeat_interval}
-                                    onChange={(e) => handleConfigChange('heartbeat_interval', parseInt(e.target.value))}
-                                    min="60"
-                                    max="3600"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Sensor Read Interval (ms)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={config.sensor_read_interval}
-                                    onChange={(e) => handleConfigChange('sensor_read_interval', parseInt(e.target.value))}
-                                    min="1000"
-                                    max="60000"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                            <div className="flex flex-col justify-center space-y-3">
-                                <label className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={config.debug_mode}
-                                        onChange={(e) => handleConfigChange('debug_mode', e.target.checked)}
-                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                    />
-                                    <span className="text-sm text-gray-700">Debug Mode</span>
-                                </label>
-                                <label className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={config.ota_enabled}
-                                        onChange={(e) => handleConfigChange('ota_enabled', e.target.checked)}
-                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                    />
-                                    <span className="text-sm text-gray-700">OTA Updates</span>
-                                </label>
-                                <label className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={config.device_armed}
-                                        onChange={(e) => handleConfigChange('device_armed', e.target.checked)}
-                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                    />
-                                    <span className="text-sm text-gray-700">Device Armed</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+                    )}
 
                     {/* Sensor Configuration */}
                     <div>

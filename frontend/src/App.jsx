@@ -282,8 +282,8 @@ function AuthenticatedApp({ user, onLogout }) {
 
     return (
         <div className="min-h-screen">
-            {/* Header */}
-            <header className={`bg-white shadow transition-all duration-300 sticky top-0 z-40 ${
+            {/* Modern Header */}
+            <header className={`nav-modern transition-all duration-300 sticky top-0 z-40 ${
                 isHeaderMinimal ? 'py-2' : 'py-4'
             }`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -292,7 +292,7 @@ function AuthenticatedApp({ user, onLogout }) {
                     }`}>
                         <div className="flex items-center space-x-4">
                             {/* Logo */}
-                            {appSettings.branding?.companyLogo && (
+                            {appSettings.branding?.companyLogo ? (
                                 <div className={`transition-all duration-300 ${
                                     isHeaderMinimal ? 'h-8 w-8' : 'h-12 w-12'
                                 }`}>
@@ -305,9 +305,8 @@ function AuthenticatedApp({ user, onLogout }) {
                                         }}
                                     />
                                 </div>
-                            )}
-                            {/* Company Name - only show if no logo or when not minimal */}
-                            {(!appSettings.branding?.companyLogo || !isHeaderMinimal) && (
+                            ) : (
+                                /* Company Name - only show if no logo */
                                 <div>
                                     <h1 className={`font-bold text-gray-900 transition-all duration-300 ${
                                         isHeaderMinimal ? 'text-lg' : 'text-3xl'
@@ -325,26 +324,21 @@ function AuthenticatedApp({ user, onLogout }) {
                         <div className={`flex items-center transition-all duration-300 ${
                             isHeaderMinimal ? 'space-x-2' : 'space-x-4'
                         }`}>
-                            <LanguageSelector />
+                            <div className={`transition-all duration-300 ${
+                                isHeaderMinimal ? 'scale-90' : 'scale-100'
+                            }`}>
+                                <LanguageSelector />
+                            </div>
                             {!isHeaderMinimal && (
-                                <span className="text-sm text-gray-500">
+                                <span className="badge badge-primary text-xs">
                                     {t(`roles.${user.role}`, user.role)}
                                 </span>
                             )}
                             <button
                                 onClick={onLogout}
-                                className={`text-white px-4 py-2 rounded-md transition-all duration-300 ${
-                                    isHeaderMinimal ? 'text-sm' : ''
+                                className={`btn-danger transition-all duration-300 ${
+                                    isHeaderMinimal ? 'px-3 py-2 text-sm' : 'px-4 py-2'
                                 }`}
-                                style={{
-                                    backgroundColor: 'var(--primary-color, #dc2626)',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.target.style.opacity = '0.9';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.target.style.opacity = '1';
-                                }}
                             >
                                 {t('auth.logout', 'Logout')}
                             </button>
@@ -353,8 +347,8 @@ function AuthenticatedApp({ user, onLogout }) {
                 </div>
             </header>
 
-            {/* Navigation */}
-            <nav className="bg-gray-800 relative">
+            {/* Modern Navigation */}
+            <nav className="glass-dark relative border-t border-white/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex space-x-1">
                         {navigationItems.map((item, index) => (
@@ -363,20 +357,20 @@ function AuthenticatedApp({ user, onLogout }) {
                                     <div className="relative">
                                         <button
                                             onClick={() => handleDropdownToggle(index)}
-                                            className={`flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors rounded-t-md ${
+                                            className={`flex items-center space-x-2 px-4 py-4 text-sm font-medium transition-all duration-200 rounded-t-lg ${
                                                 isPathActive(item.path, item.items)
-                                                    ? 'text-white bg-gray-700'
-                                                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                                                    ? 'text-white bg-white/20 backdrop-blur-sm shadow-lg'
+                                                    : 'text-gray-300 hover:text-white hover:bg-white/10'
                                             }`}
                                         >
-                                            <span>{item.icon}</span>
+                                            <span className="text-base">{item.icon}</span>
                                             <span>{item.label}</span>
-                                            <ChevronDown className={`w-4 h-4 transition-transform ${
+                                            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
                                                 dropdownOpen === index ? 'rotate-180' : ''
                                             }`} />
                                         </button>
                                         {dropdownOpen === index && (
-                                            <div className="absolute top-full left-0 w-48 bg-white rounded-b-md shadow-lg border border-gray-200 z-50">
+                                            <div className="absolute top-full left-0 w-56 glass rounded-b-xl border-t-0 shadow-xl z-50 animate-fade-in">
                                                 {item.items.map((subItem) => (
                                                     <button
                                                         key={subItem.path}
@@ -384,13 +378,13 @@ function AuthenticatedApp({ user, onLogout }) {
                                                             navigate(subItem.path);
                                                             setDropdownOpen(null);
                                                         }}
-                                                        className={`w-full flex items-center space-x-2 px-4 py-3 text-sm text-left transition-colors ${
+                                                        className={`w-full flex items-center space-x-3 px-4 py-3 text-sm text-left transition-all duration-200 first:rounded-t-none last:rounded-b-xl ${
                                                             currentPath === subItem.path
-                                                                ? 'bg-blue-50 text-blue-700'
-                                                                : 'text-gray-700 hover:bg-gray-50'
+                                                                ? 'bg-primary/10 text-primary border-r-4 border-primary'
+                                                                : 'text-gray-700 hover:bg-white/50'
                                                         }`}
                                                     >
-                                                        <span>{subItem.icon}</span>
+                                                        <span className="text-base">{subItem.icon}</span>
                                                         <span>{subItem.label}</span>
                                                     </button>
                                                 ))}
@@ -400,13 +394,13 @@ function AuthenticatedApp({ user, onLogout }) {
                                 ) : (
                                     <button
                                         onClick={() => navigate(item.path)}
-                                        className={`flex items-center space-x-2 px-3 py-4 text-sm font-medium transition-colors ${
+                                        className={`flex items-center space-x-2 px-4 py-4 text-sm font-medium transition-all duration-200 rounded-lg ${
                                             currentPath === item.path
-                                                ? 'text-white border-b-2 border-blue-400'
-                                                : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                                                ? 'text-white bg-primary shadow-lg border-b-2 border-primary-hover'
+                                                : 'text-gray-300 hover:text-white hover:bg-white/10'
                                         }`}
                                     >
-                                        <span>{item.icon}</span>
+                                        <span className="text-base">{item.icon}</span>
                                         <span>{item.label}</span>
                                     </button>
                                 )}
@@ -417,7 +411,7 @@ function AuthenticatedApp({ user, onLogout }) {
             </nav>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8" onClick={() => setDropdownOpen(null)}>
+            <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8" onClick={() => setDropdownOpen(null)}>
                 <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/devices" element={<DeviceManagement />} />

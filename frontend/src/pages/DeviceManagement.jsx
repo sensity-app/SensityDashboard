@@ -1,7 +1,24 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
-import { Plus, Edit3, Trash2, Wifi, WifiOff, AlertTriangle, Monitor, Settings } from 'lucide-react';
+import {
+    Plus,
+    Edit3,
+    Trash2,
+    Wifi,
+    WifiOff,
+    AlertTriangle,
+    Monitor,
+    Settings,
+    Filter,
+    Search,
+    Eye,
+    MapPin,
+    Activity,
+    Clock,
+    RefreshCw,
+    X
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 
@@ -70,23 +87,19 @@ function DeviceManagement() {
         }
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'online': return 'bg-green-100 text-green-800';
-            case 'offline': return 'bg-gray-100 text-gray-800';
-            case 'alarm': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    };
 
     const deviceTypes = ['esp8266', 'esp32', 'arduino', 'raspberry_pi'];
     const statusOptions = ['all', 'online', 'offline', 'alarm'];
 
     if (devicesLoading) {
         return (
-            <div className="flex justify-center items-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-2">{t('common.loading')}</span>
+            <div className="space-y-8 animate-fade-in">
+                <div className="card p-8">
+                    <div className="flex justify-center items-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+                        <span className="ml-3 text-gray-600">{t('common.loading')}</span>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -94,103 +107,169 @@ function DeviceManagement() {
     const devices = devicesData || [];
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{t('devices.management', 'Device Management')}</h1>
-                    <p className="text-gray-600 mt-1">{t('devices.managementSubtitle', 'Manage your IoT devices')}</p>
-                </div>
-                <button
-                    onClick={() => {
-                        setEditingDevice(null);
-                        setShowCreateForm(true);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center space-x-2"
-                >
-                    <Plus className="h-4 w-4" />
-                    <span>{t('devices.addDevice')}</span>
-                </button>
-            </div>
-
-            {/* Filters */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <div className="flex flex-wrap gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('devices.filterByStatus', 'Filter by Status')}
-                        </label>
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            {statusOptions.map(status => (
-                                <option key={status} value={status}>
-                                    {status === 'all' ? t('common.all', 'All') : status.toUpperCase()}
-                                </option>
-                            ))}
-                        </select>
+        <div className="space-y-8 animate-fade-in">
+            {/* Modern Header */}
+            <div className="card animate-slide-up">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                            <Monitor className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">{t('devices.management', 'Device Management')}</h1>
+                            <p className="text-gray-600 mt-1">{t('devices.managementSubtitle', 'Manage and monitor your IoT devices')}</p>
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {t('devices.filterByType', 'Filter by Type')}
-                        </label>
-                        <select
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    <div className="flex items-center space-x-3">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="btn-secondary flex items-center space-x-2"
                         >
-                            <option value="all">{t('common.all', 'All')}</option>
-                            {deviceTypes.map(type => (
-                                <option key={type} value={type}>
-                                    {type.toUpperCase()}
-                                </option>
-                            ))}
-                        </select>
+                            <RefreshCw className="h-4 w-4" />
+                            <span>Refresh</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                setEditingDevice(null);
+                                setShowCreateForm(true);
+                            }}
+                            className="btn-primary flex items-center space-x-2"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span>{t('devices.addDevice')}</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <div className="flex items-center">
-                        <Monitor className="h-8 w-8 text-blue-600" />
-                        <div className="ml-3">
-                            <p className="text-sm text-gray-500">{t('dashboard.totalDevices')}</p>
-                            <p className="text-xl font-bold text-gray-900">{devices.length}</p>
+            {/* Modern Filters */}
+            <div className="card animate-slide-up" style={{animationDelay: '100ms'}}>
+                <div className="card-header">
+                    <h3 className="card-title">
+                        <Filter className="w-5 h-5 text-primary" />
+                        <span>Filter Devices</span>
+                    </h3>
+                </div>
+                <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="form-group">
+                            <label className="form-label">
+                                <Activity className="w-4 h-4 inline mr-1" />
+                                {t('devices.filterByStatus', 'Filter by Status')}
+                            </label>
+                            <select
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="input-field"
+                            >
+                                {statusOptions.map(status => (
+                                    <option key={status} value={status}>
+                                        {status === 'all' ? t('common.all', 'All') : status.toUpperCase()}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">
+                                <Monitor className="w-4 h-4 inline mr-1" />
+                                {t('devices.filterByType', 'Filter by Type')}
+                            </label>
+                            <select
+                                value={filterType}
+                                onChange={(e) => setFilterType(e.target.value)}
+                                className="input-field"
+                            >
+                                <option value="all">{t('common.all', 'All')}</option>
+                                {deviceTypes.map(type => (
+                                    <option key={type} value={type}>
+                                        {type.toUpperCase()}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">
+                                <Search className="w-4 h-4 inline mr-1" />
+                                Search Devices
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Search by name or ID..."
+                                className="input-field"
+                            />
+                        </div>
+                    </div>
+                    {(filterStatus !== 'all' || filterType !== 'all') && (
+                        <div className="mt-4 flex items-center space-x-2">
+                            <span className="text-sm text-gray-500">Active filters:</span>
+                            {filterStatus !== 'all' && (
+                                <span className="badge badge-primary flex items-center space-x-1">
+                                    <span>Status: {filterStatus}</span>
+                                    <button onClick={() => setFilterStatus('all')}>
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            )}
+                            {filterType !== 'all' && (
+                                <span className="badge badge-primary flex items-center space-x-1">
+                                    <span>Type: {filterType}</span>
+                                    <button onClick={() => setFilterType('all')}>
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Modern Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '200ms'}}>
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                            <Monitor className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-600 mb-1">{t('dashboard.totalDevices')}</p>
+                            <p className="text-3xl font-bold text-gray-900">{devices.length}</p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <div className="flex items-center">
-                        <Wifi className="h-8 w-8 text-green-600" />
-                        <div className="ml-3">
-                            <p className="text-sm text-gray-500">{t('dashboard.onlineDevices')}</p>
-                            <p className="text-xl font-bold text-green-600">
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '300ms'}}>
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                            <Wifi className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-600 mb-1">{t('dashboard.onlineDevices')}</p>
+                            <p className="text-3xl font-bold text-green-600">
                                 {devices.filter(d => d.current_status === 'online' || d.status === 'online').length}
                             </p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <div className="flex items-center">
-                        <WifiOff className="h-8 w-8 text-gray-600" />
-                        <div className="ml-3">
-                            <p className="text-sm text-gray-500">{t('dashboard.offlineDevices')}</p>
-                            <p className="text-xl font-bold text-gray-600">
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '400ms'}}>
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center">
+                            <WifiOff className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-600 mb-1">{t('dashboard.offlineDevices')}</p>
+                            <p className="text-3xl font-bold text-gray-600">
                                 {devices.filter(d => d.current_status === 'offline' || d.status === 'offline').length}
                             </p>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <div className="flex items-center">
-                        <AlertTriangle className="h-8 w-8 text-red-600" />
-                        <div className="ml-3">
-                            <p className="text-sm text-gray-500">{t('devices.alarmsActive', 'Active Alarms')}</p>
-                            <p className="text-xl font-bold text-red-600">
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '500ms'}}>
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                            <AlertTriangle className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-600 mb-1">{t('devices.alarmsActive', 'Active Alarms')}</p>
+                            <p className="text-3xl font-bold text-red-600">
                                 {devices.filter(d => d.current_status === 'alarm' || d.status === 'alarm').length}
                             </p>
                         </div>
@@ -198,116 +277,134 @@ function DeviceManagement() {
                 </div>
             </div>
 
-            {/* Devices Table */}
-            <div className="bg-white rounded-lg border border-gray-200">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-lg font-semibold">{t('devices.deviceList')}</h2>
+            {/* Modern Devices Table */}
+            <div className="card animate-slide-up" style={{animationDelay: '600ms'}}>
+                <div className="card-header">
+                    <h2 className="card-title">
+                        <Monitor className="w-6 h-6 text-primary" />
+                        <span>{t('devices.deviceList')}</span>
+                    </h2>
+                    <span className="badge badge-primary">{devices.length} devices</span>
                 </div>
                 {devices.length === 0 ? (
-                    <div className="p-6 text-center">
-                        <Monitor className="mx-auto h-12 w-12 text-gray-400" />
-                        <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    <div className="p-12 text-center">
+                        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-6">
+                            <Monitor className="h-12 w-12 text-gray-400" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
                             {t('devices.noDevices', 'No devices found')}
                         </h3>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="text-gray-500 mb-6">
                             {t('devices.addFirstDevice', 'Add your first IoT device to get started.')}
                         </p>
+                        <button
+                            onClick={() => {
+                                setEditingDevice(null);
+                                setShowCreateForm(true);
+                            }}
+                            className="btn-primary"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add First Device
+                        </button>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('devices.deviceName')}
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('common.status')}
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('devices.deviceType')}
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('devices.location')}
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('devices.lastHeartbeat')}
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('devices.firmwareVersion')}
-                                    </th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        {t('common.actions')}
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {(devices || []).map((device) => (
-                                    <tr key={device.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                {getStatusIcon(device.current_status || device.status)}
-                                                <div className="ml-3">
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {device.name}
+                    <div className="p-6">
+                        <div className="table-modern overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr>
+                                        <th className="text-left">{t('devices.deviceName')}</th>
+                                        <th className="text-left">{t('common.status')}</th>
+                                        <th className="text-left">{t('devices.deviceType')}</th>
+                                        <th className="text-left">{t('devices.location')}</th>
+                                        <th className="text-left">{t('devices.lastHeartbeat')}</th>
+                                        <th className="text-left">{t('devices.firmwareVersion')}</th>
+                                        <th className="text-right">{t('common.actions')}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(devices || []).map((device, index) => (
+                                        <tr key={device.id} className="animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
+                                            <td>
+                                                <div className="flex items-center space-x-3">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                                        device.current_status === 'online' ? 'bg-green-100' :
+                                                        device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
+                                                    }`}>
+                                                        {getStatusIcon(device.current_status || device.status)}
                                                     </div>
-                                                    <div className="text-sm text-gray-500">
-                                                        ID: {device.id}
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">{device.name}</div>
+                                                        <div className="text-xs text-gray-500 font-mono">ID: {device.id}</div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                getStatusColor(device.current_status || device.status)
-                                            }`}>
-                                                {(device.current_status || device.status || 'offline').toUpperCase()}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {(device.device_type || 'unknown').toUpperCase()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {device.location_name || t('common.unknown')}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {device.last_heartbeat ?
-                                                new Date(device.last_heartbeat).toLocaleString() :
-                                                t('devices.never', 'Never')
-                                            }
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {device.firmware_version || t('common.unknown')}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex justify-end space-x-2">
-                                                <Link
-                                                    to={`/devices/${device.id}`}
-                                                    className="text-blue-600 hover:text-blue-900"
-                                                    title={t('devices.viewDetails')}
-                                                >
-                                                    <Settings className="h-4 w-4" />
-                                                </Link>
-                                                <button
-                                                    onClick={() => handleEditDevice(device)}
-                                                    className="text-indigo-600 hover:text-indigo-900"
-                                                    title={t('common.edit')}
-                                                >
-                                                    <Edit3 className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteDevice(device)}
-                                                    className="text-red-600 hover:text-red-900"
-                                                    title={t('common.delete')}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </td>
+                                            <td>
+                                                <span className={`badge ${
+                                                    (device.current_status || device.status) === 'online' ? 'badge-success' :
+                                                    (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
+                                                }`}>
+                                                    {(device.current_status || device.status || 'offline').toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className="badge badge-primary">
+                                                    {(device.device_type || 'unknown').toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="flex items-center space-x-1 text-sm text-gray-900">
+                                                    <MapPin className="w-3 h-3 text-gray-400" />
+                                                    <span>{device.location_name || t('common.unknown')}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="flex items-center space-x-1 text-sm text-gray-500">
+                                                    <Clock className="w-3 h-3" />
+                                                    <span>
+                                                        {device.last_heartbeat ?
+                                                            new Date(device.last_heartbeat).toLocaleDateString() :
+                                                            t('devices.never', 'Never')
+                                                        }
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className="font-mono text-xs text-gray-900">
+                                                    {device.firmware_version || t('common.unknown')}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="flex justify-end space-x-1">
+                                                    <Link
+                                                        to={`/devices/${device.id}`}
+                                                        className="btn-ghost p-2"
+                                                        title={t('devices.viewDetails')}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => handleEditDevice(device)}
+                                                        className="btn-ghost p-2 text-primary"
+                                                        title={t('common.edit')}
+                                                    >
+                                                        <Edit3 className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteDevice(device)}
+                                                        className="btn-ghost p-2 text-red-600 hover:text-red-700"
+                                                        title={t('common.delete')}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>
@@ -409,14 +506,25 @@ function DeviceFormModal({ device, locations, onClose }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-screen overflow-y-auto">
-                <h2 className="text-lg font-semibold mb-4">
-                    {isEditing ? t('devices.editDevice') : t('devices.addDevice')}
-                </h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
+            <div className="card w-full max-w-lg max-h-screen overflow-y-auto animate-scale-in">
+                <div className="card-header">
+                    <h2 className="card-title">
+                        <Monitor className="w-5 h-5 text-primary" />
+                        <span>{isEditing ? t('devices.editDevice') : t('devices.addDevice')}</span>
+                    </h2>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="btn-ghost p-2"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    <div className="form-group">
+                        <label className="form-label">
+                            <Monitor className="w-4 h-4 inline mr-1" />
                             {t('devices.deviceName')} *
                         </label>
                         <input
@@ -424,19 +532,22 @@ function DeviceFormModal({ device, locations, onClose }) {
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="input-field"
+                            placeholder="Enter device name..."
                             required
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+
+                    <div className="form-group">
+                        <label className="form-label">
+                            <Activity className="w-4 h-4 inline mr-1" />
                             {t('devices.deviceType')} *
                         </label>
                         <select
                             name="device_type"
                             value={formData.device_type}
                             onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="input-field"
                             required
                         >
                             <option value="esp8266">ESP8266</option>
@@ -445,26 +556,29 @@ function DeviceFormModal({ device, locations, onClose }) {
                             <option value="raspberry_pi">Raspberry Pi</option>
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+
+                    <div className="form-group">
+                        <label className="form-label">
+                            <MapPin className="w-4 h-4 inline mr-1" />
                             {t('devices.location')}
                         </label>
                         <select
                             name="location_id"
                             value={formData.location_id}
                             onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="input-field"
                         >
                             <option value="">{t('devices.selectLocation', 'Select a location...')}</option>
-                            {locations.map(location => (
+                            {(locations || []).map(location => (
                                 <option key={location.id} value={location.id}>
                                     {location.name}
                                 </option>
                             ))}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+
+                    <div className="form-group">
+                        <label className="form-label">
                             {t('common.description')}
                         </label>
                         <textarea
@@ -472,11 +586,13 @@ function DeviceFormModal({ device, locations, onClose }) {
                             value={formData.description}
                             onChange={handleChange}
                             rows="3"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="input-field"
+                            placeholder="Optional description..."
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+
+                    <div className="form-group">
+                        <label className="form-label">
                             {t('devices.apiKey', 'API Key')}
                         </label>
                         <div className="flex space-x-2">
@@ -485,34 +601,46 @@ function DeviceFormModal({ device, locations, onClose }) {
                                 name="api_key"
                                 value={formData.api_key}
                                 onChange={handleChange}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="input-field flex-1 font-mono text-sm"
                                 readOnly={isEditing}
                             />
                             {!isEditing && (
                                 <button
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, api_key: generateApiKey() }))}
-                                    className="bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-md text-sm"
+                                    className="btn-secondary px-3 py-2 text-sm"
                                 >
+                                    <RefreshCw className="w-4 h-4 mr-1" />
                                     {t('devices.regenerate', 'Regenerate')}
                                 </button>
                             )}
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">This key will be used for device authentication</p>
                     </div>
-                    <div className="flex justify-end space-x-3 pt-4">
+                    <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md"
+                            className="btn-secondary"
                         >
                             {t('common.cancel')}
                         </button>
                         <button
                             type="submit"
                             disabled={createDeviceMutation.isLoading || updateDeviceMutation.isLoading}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md disabled:opacity-50"
+                            className="btn-primary"
                         >
-                            {isEditing ? t('common.update') : t('common.create')}
+                            {(createDeviceMutation.isLoading || updateDeviceMutation.isLoading) ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                    {isEditing ? 'Updating...' : 'Creating...'}
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    {isEditing ? t('common.update') : t('common.create')}
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>

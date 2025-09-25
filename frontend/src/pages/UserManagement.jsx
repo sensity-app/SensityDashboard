@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
-import { UserPlus, Mail, Trash2, Clock, CheckCircle, XCircle, AlertTriangle, Edit3 } from 'lucide-react';
+import {
+    UserPlus,
+    Mail,
+    Trash2,
+    Clock,
+    CheckCircle,
+    XCircle,
+    AlertTriangle,
+    Edit3,
+    Users,
+    Shield,
+    User
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { apiService } from '../services/api';
@@ -54,20 +66,30 @@ function UserManagement() {
     );
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900">
-                    {t('users.title', 'User Management')}
-                </h1>
-                <button
-                    onClick={() => {
-                        setEditingUser(null);
-                        setShowInviteForm(true);
-                    }}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    {t('users.inviteUser', 'Invite User')}
+        <div className="space-y-8 animate-fade-in">
+            {/* Modern Header */}
+            <div className="card animate-slide-up">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                            <Users className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">
+                                {t('users.title', 'User Management')}
+                            </h1>
+                            <p className="text-gray-600 mt-1">Manage system users and permissions</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setEditingUser(null);
+                            setShowInviteForm(true);
+                        }}
+                        className="btn-primary flex items-center space-x-2"
+                    >
+                        <UserPlus className="h-4 w-4" />
+                        <span>{t('users.inviteUser', 'Invite User')}</span>
                 </button>
             </div>
 
@@ -98,51 +120,61 @@ function UserManagement() {
                         {(users || []).map((user) => (
                             <div key={user.id} className="px-6 py-4">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                            <span className="text-sm font-medium text-gray-700">
+                                    <div className="flex items-center space-x-4">
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                                            user.role === 'admin' ? 'bg-gradient-to-br from-red-100 to-red-200' :
+                                            user.role === 'operator' ? 'bg-gradient-to-br from-yellow-100 to-yellow-200' :
+                                            'bg-gradient-to-br from-gray-100 to-gray-200'
+                                        }`}>
+                                            <span className={`text-lg font-semibold ${
+                                                user.role === 'admin' ? 'text-red-700' :
+                                                user.role === 'operator' ? 'text-yellow-700' :
+                                                'text-gray-700'
+                                            }`}>
                                                 {(user.full_name || user.email).charAt(0).toUpperCase()}
                                             </span>
                                         </div>
-                                        <div className="ml-4">
-                                            <div className="text-sm font-medium text-gray-900">
-                                                {user.full_name || user.email}
+                                        <div className="flex-1">
+                                            <div className="flex items-center space-x-2 mb-1">
+                                                <div className="font-semibold text-gray-900">
+                                                    {user.full_name || user.email}
+                                                </div>
+                                                <span className={`badge ${
+                                                    user.role === 'admin' ? 'badge-error' :
+                                                    user.role === 'operator' ? 'badge-warning' :
+                                                    'badge-primary'
+                                                }`}>
+                                                    <Shield className="w-3 h-3 mr-1" />
+                                                    {t(`roles.${user.role}`, user.role)}
+                                                </span>
                                             </div>
-                                            <div className="text-sm text-gray-500">
-                                                {user.email}
-                                                {user.phone && ` • ${user.phone}`}
+                                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                                <div className="flex items-center space-x-1">
+                                                    <Mail className="w-3 h-3" />
+                                                    <span>{user.email}</span>
+                                                </div>
+                                                <div className="flex items-center space-x-1">
+                                                    <Clock className="w-3 h-3" />
+                                                    <span>{new Date(user.created_at).toLocaleDateString()}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center space-x-4">
-                                        <div className="text-right">
-                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                user.role === 'admin' ? 'bg-red-100 text-red-800' :
-                                                user.role === 'operator' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-gray-100 text-gray-800'
-                                            }`}>
-                                                {t(`roles.${user.role}`, user.role)}
-                                            </span>
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                {new Date(user.created_at).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                        <div className="flex space-x-2">
-                                            <button
-                                                onClick={() => handleEditUser(user)}
-                                                className="text-blue-600 hover:text-blue-800"
-                                                title={t('common.edit')}
-                                            >
-                                                <Edit3 className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteUser(user)}
-                                                className="text-red-600 hover:text-red-800"
-                                                title={t('common.delete')}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                                    <div className="flex items-center space-x-1">
+                                        <button
+                                            onClick={() => handleEditUser(user)}
+                                            className="btn-ghost p-2 text-primary"
+                                            title={t('common.edit')}
+                                        >
+                                            <Edit3 className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteUser(user)}
+                                            className="btn-ghost p-2 text-red-600 hover:text-red-700"
+                                            title={t('common.delete')}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -227,7 +259,7 @@ function InvitationsList({ invitations }) {
 
     return (
         <div className="divide-y divide-gray-200">
-            {(invitations || []).map((invitation) => (
+            {Array.isArray(invitations) && invitations.map((invitation) => (
                 <div key={invitation.id} className="px-6 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">

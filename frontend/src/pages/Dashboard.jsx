@@ -2,7 +2,18 @@ import React from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Wifi, WifiOff, AlertTriangle, Monitor } from 'lucide-react';
+import {
+    Wifi,
+    WifiOff,
+    AlertTriangle,
+    Monitor,
+    Activity,
+    TrendingUp,
+    Clock,
+    MapPin,
+    Zap,
+    Eye
+} from 'lucide-react';
 
 import { apiService } from '../services/api';
 
@@ -52,27 +63,39 @@ function Dashboard() {
         }
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'online': return 'bg-green-100 text-green-800';
-            case 'offline': return 'bg-gray-100 text-gray-800';
-            case 'alarm': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    };
 
     if (devicesLoading) {
         return (
-            <div className="p-6">
+            <div className="space-y-8 animate-fade-in">
                 <div className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-1/4 mb-6"></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[...Array(6)].map((_, i) => (
-                            <div key={i} className="bg-white rounded-lg shadow p-6">
-                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-6 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-1/4 mb-8"></div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="card p-6">
+                                <div className="flex items-center space-x-4">
+                                    <div className="w-12 h-12 bg-gradient-to-r from-gray-200 to-gray-300 rounded-xl"></div>
+                                    <div className="flex-1">
+                                        <div className="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-3/4 mb-2"></div>
+                                        <div className="h-6 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-1/2"></div>
+                                    </div>
+                                </div>
                             </div>
                         ))}
+                    </div>
+                    <div className="card p-6">
+                        <div className="h-6 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-1/3 mb-6"></div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {[...Array(6)].map((_, i) => (
+                                <div key={i} className="glass p-4 rounded-xl">
+                                    <div className="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-3/4 mb-3"></div>
+                                    <div className="space-y-2">
+                                        <div className="h-3 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-full"></div>
+                                        <div className="h-3 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-2/3"></div>
+                                        <div className="h-3 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-4/5"></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -80,181 +103,241 @@ function Dashboard() {
     }
 
     return (
-        <div className="space-y-6">
-            {/* Stats Overview */}
+        <div className="space-y-8 animate-fade-in">
+            {/* Modern Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <Monitor className="h-8 w-8 text-blue-600" />
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up">
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                            <Monitor className="h-6 w-6 text-white" />
                         </div>
-                        <div className="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">
-                                    {t('dashboard.totalDevices', 'Total Devices')}
-                                </dt>
-                                <dd className="text-3xl font-bold text-gray-900">
-                                    {devices.length}
-                                </dd>
-                            </dl>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-600 mb-1">
+                                {t('dashboard.totalDevices', 'Total Devices')}
+                            </p>
+                            <p className="text-3xl font-bold text-gray-900">
+                                {devices.length}
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <Wifi className="h-8 w-8 text-green-600" />
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '100ms'}}>
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                            <Wifi className="h-6 w-6 text-white" />
                         </div>
-                        <div className="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">
-                                    {t('dashboard.onlineDevices', 'Online')}
-                                </dt>
-                                <dd className="text-3xl font-bold text-green-600">
-                                    {devices.filter(d => d.current_status === 'online').length}
-                                </dd>
-                            </dl>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-600 mb-1">
+                                {t('dashboard.onlineDevices', 'Online')}
+                            </p>
+                            <p className="text-3xl font-bold text-green-600">
+                                {devices.filter(d => d.current_status === 'online').length}
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <WifiOff className="h-8 w-8 text-gray-600" />
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '200ms'}}>
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center">
+                            <WifiOff className="h-6 w-6 text-white" />
                         </div>
-                        <div className="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">
-                                    {t('dashboard.offlineDevices', 'Offline')}
-                                </dt>
-                                <dd className="text-3xl font-bold text-gray-600">
-                                    {devices.filter(d => d.current_status === 'offline').length}
-                                </dd>
-                            </dl>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-600 mb-1">
+                                {t('dashboard.offlineDevices', 'Offline')}
+                            </p>
+                            <p className="text-3xl font-bold text-gray-600">
+                                {devices.filter(d => d.current_status === 'offline').length}
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                            <AlertTriangle className="h-8 w-8 text-red-600" />
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '300ms'}}>
+                    <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                            <AlertTriangle className="h-6 w-6 text-white" />
                         </div>
-                        <div className="ml-5 w-0 flex-1">
-                            <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">
-                                    {t('dashboard.activeAlerts', 'Active Alerts')}
-                                </dt>
-                                <dd className="text-3xl font-bold text-red-600">
-                                    {alerts.filter(a => a.status === 'OPEN').length}
-                                </dd>
-                            </dl>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-600 mb-1">
+                                {t('dashboard.activeAlerts', 'Active Alerts')}
+                            </p>
+                            <p className="text-3xl font-bold text-red-600">
+                                {alerts.filter(a => a.status === 'OPEN').length}
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Devices Grid */}
-            <div className="bg-white shadow rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-lg font-medium text-gray-900">
-                        {t('dashboard.devices', 'Devices')}
+            {/* Modern Devices Grid */}
+            <div className="card animate-slide-up">
+                <div className="card-header">
+                    <h2 className="card-title">
+                        <Activity className="w-6 h-6 text-primary" />
+                        <span>{t('dashboard.devices', 'Devices')}</span>
                     </h2>
+                    <div className="flex items-center space-x-2">
+                        <span className="badge badge-primary">{devices.length} total</span>
+                        <Link to="/devices" className="btn-secondary px-4 py-2 text-sm">
+                            <Eye className="w-4 h-4 mr-1" />
+                            View All
+                        </Link>
+                    </div>
                 </div>
 
                 {devices.length === 0 ? (
-                    <div className="p-6 text-center">
-                        <Monitor className="mx-auto h-12 w-12 text-gray-400" />
-                        <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    <div className="p-12 text-center">
+                        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-6">
+                            <Monitor className="h-12 w-12 text-gray-400" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
                             {t('dashboard.noDevices', 'No devices found')}
                         </h3>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="text-gray-500 mb-6">
                             {t('dashboard.addFirstDevice', 'Add your first IoT device to get started.')}
                         </p>
+                        <Link to="/firmware-builder" className="btn-primary">
+                            <Zap className="w-4 h-4 mr-2" />
+                            Build First Device
+                        </Link>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                        {(devices || []).map((device) => (
-                            <Link
-                                key={device.id}
-                                to={`/devices/${device.id}`}
-                                className="block bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors"
-                            >
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center space-x-2">
-                                        {getStatusIcon(device.current_status)}
-                                        <h3 className="text-lg font-medium text-gray-900">
-                                            {device.name}
-                                        </h3>
+                    <div className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {(devices || []).map((device, index) => (
+                                <Link
+                                    key={device.id}
+                                    to={`/devices/${device.id}`}
+                                    className="glass p-4 rounded-xl hover:bg-white/60 transition-all duration-200 group animate-scale-in"
+                                    style={{animationDelay: `${index * 50}ms`}}
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                                device.current_status === 'online' ? 'bg-green-100' :
+                                                device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
+                                            }`}>
+                                                {getStatusIcon(device.current_status)}
+                                            </div>
+                                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors">
+                                                {device.name}
+                                            </h3>
+                                        </div>
+                                        <span className={`badge ${
+                                            device.current_status === 'online' ? 'badge-success' :
+                                            device.current_status === 'alarm' ? 'badge-error' : 'badge-warning'
+                                        }`}>
+                                            {device.current_status.toUpperCase()}
+                                        </span>
                                     </div>
-                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(device.current_status)}`}>
-                                        {device.current_status.toUpperCase()}
-                                    </span>
-                                </div>
 
-                                <div className="text-sm text-gray-600">
-                                    <p><span className="font-medium">ID:</span> {device.id}</p>
-                                    <p><span className="font-medium">Location:</span> {device.location_name || 'Unknown'}</p>
-                                    <p><span className="font-medium">Version:</span> {device.firmware_version || 'Unknown'}</p>
-                                    <p><span className="font-medium">Last Seen:</span> {
-                                        device.last_heartbeat ?
-                                            new Date(device.last_heartbeat).toLocaleString() :
-                                            'Never'
-                                    }</p>
-                                </div>
-                            </Link>
-                        ))}
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-500 flex items-center">
+                                                <Monitor className="w-3 h-3 mr-1" />ID:
+                                            </span>
+                                            <span className="font-mono text-xs text-gray-900">{device.id}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-500 flex items-center">
+                                                <MapPin className="w-3 h-3 mr-1" />Location:
+                                            </span>
+                                            <span className="text-gray-900">{device.location_name || 'Unknown'}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-500 flex items-center">
+                                                <TrendingUp className="w-3 h-3 mr-1" />Version:
+                                            </span>
+                                            <span className="text-gray-900">{device.firmware_version || 'Unknown'}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-500 flex items-center">
+                                                <Clock className="w-3 h-3 mr-1" />Last Seen:
+                                            </span>
+                                            <span className="text-gray-900 text-xs">{
+                                                device.last_heartbeat ?
+                                                    new Date(device.last_heartbeat).toLocaleDateString() :
+                                                    'Never'
+                                            }</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* Recent Alerts */}
+            {/* Modern Recent Alerts */}
             {alerts.length > 0 && (
-                <div className="bg-white shadow rounded-lg">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-lg font-medium text-gray-900">
-                            {t('dashboard.recentAlerts', 'Recent Alerts')}
+                <div className="card animate-slide-up">
+                    <div className="card-header">
+                        <h2 className="card-title">
+                            <AlertTriangle className="w-6 h-6 text-red-500" />
+                            <span>{t('dashboard.recentAlerts', 'Recent Alerts')}</span>
                         </h2>
+                        <span className="badge badge-error">{alerts.filter(a => a.status === 'OPEN').length} active</span>
                     </div>
-                    <div className="divide-y divide-gray-200">
-                        {alerts.slice(0, 5).map((alert) => (
-                            <div key={alert.id} className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                            alert.severity === 'critical' ? 'bg-red-100 text-red-800' :
-                                            alert.severity === 'high' ? 'bg-orange-100 text-orange-800' :
-                                            'bg-yellow-100 text-yellow-800'
-                                        }`}>
-                                            {alert.severity.toUpperCase()}
-                                        </span>
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {alert.device_name} - {alert.alert_type}
-                                            </p>
-                                            <p className="text-sm text-gray-500">{alert.message}</p>
+                    <div className="p-6">
+                        <div className="space-y-4">
+                            {alerts.slice(0, 5).map((alert, index) => (
+                                <div key={alert.id} className={`glass p-4 rounded-xl transition-all duration-200 hover:bg-white/60 animate-scale-in`} style={{animationDelay: `${index * 100}ms`}}>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-4">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                                alert.severity === 'critical' ? 'bg-red-100' :
+                                                alert.severity === 'high' ? 'bg-orange-100' : 'bg-yellow-100'
+                                            }`}>
+                                                <AlertTriangle className={`w-5 h-5 ${
+                                                    alert.severity === 'critical' ? 'text-red-600' :
+                                                    alert.severity === 'high' ? 'text-orange-600' : 'text-yellow-600'
+                                                }`} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center space-x-2 mb-1">
+                                                    <span className={`badge ${
+                                                        alert.severity === 'critical' ? 'badge-error' :
+                                                        alert.severity === 'high' ? 'badge-warning' : 'badge-warning'
+                                                    }`}>
+                                                        {alert.severity.toUpperCase()}
+                                                    </span>
+                                                    <span className={`badge ${
+                                                        alert.status === 'OPEN' ? 'badge-error' :
+                                                        alert.status === 'ACK' ? 'badge-warning' : 'badge-success'
+                                                    }`}>
+                                                        {alert.status}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm font-semibold text-gray-900 mb-1">
+                                                    {alert.device_name} - {alert.alert_type}
+                                                </p>
+                                                <p className="text-sm text-gray-600">{alert.message}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right text-xs text-gray-500">
+                                            <div className="flex items-center justify-end space-x-1 mb-1">
+                                                <Clock className="w-3 h-3" />
+                                                <span>{new Date(alert.created_at).toLocaleDateString()}</span>
+                                            </div>
+                                            <span>{new Date(alert.created_at).toLocaleTimeString()}</span>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-sm text-gray-500">
-                                            {new Date(alert.created_at).toLocaleString()}
-                                        </p>
-                                        <span className={`text-xs px-2 py-1 rounded-full ${
-                                            alert.status === 'OPEN' ? 'bg-red-100 text-red-800' :
-                                            alert.status === 'ACK' ? 'bg-yellow-100 text-yellow-800' :
-                                            'bg-green-100 text-green-800'
-                                        }`}>
-                                            {alert.status}
-                                        </span>
-                                    </div>
                                 </div>
+                            ))}
+                        </div>
+                        {alerts.length > 5 && (
+                            <div className="mt-4 text-center">
+                                <Link to="/alerts" className="btn-ghost">
+                                    View All {alerts.length} Alerts
+                                </Link>
                             </div>
-                        ))}
+                        )}
                     </div>
                 </div>
             )}
+        </div>
         </div>
     );
 }

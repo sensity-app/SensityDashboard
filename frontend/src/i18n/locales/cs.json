@@ -377,6 +377,7 @@
     "title": "Systémová nastavení",
     "subtitle": "Nakonfigurujte nastavení vaší IoT platformy a systémové preference",
     "systemTab": "Systém",
+    "brandingTab": "Brandování",
     "databaseTab": "Databáze",
     "emailTab": "E-mail",
     "securityTab": "Bezpečnost",
@@ -458,7 +459,26 @@
     "settingsReset": "Nastavení byla úspěšně obnovena",
     "languageChanged": "Jazyk byl úspěšně změněn",
     "saveSettings": "Uložit nastavení",
-    "resetToDefault": "Obnovit výchozí"
+    "resetToDefault": "Obnovit výchozí",
+    "tabs": {
+      "system": "Systém",
+      "branding": "Brandování",
+      "database": "Databáze",
+      "email": "E-mail",
+      "security": "Bezpečnost"
+    },
+    "branding": {
+      "title": "Přizpůsobení značky",
+      "companyInfo": "Informace o společnosti",
+      "companyName": "Název společnosti",
+      "logoManagement": "Správa loga",
+      "companyLogo": "Logo společnosti",
+      "favicon": "Favicon",
+      "colorScheme": "Barevné schéma",
+      "primaryColor": "Primární barva",
+      "accentColor": "Akcentová barva",
+      "preview": "Náhled"
+    }
   },
   "errors": {
     "networkError": "Nastala chyba sítě",

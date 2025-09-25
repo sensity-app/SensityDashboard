@@ -95,7 +95,7 @@ function UserManagement() {
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-200">
-                        {users.map((user) => (
+                        {(users || []).map((user) => (
                             <div key={user.id} className="px-6 py-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center">

@@ -185,6 +185,7 @@ function SilentModeManager() {
     };
 
     const formatDays = (days) => {
+        if (!Array.isArray(days)) return 'No days selected';
         if (days.length === 7) return 'Every day';
         if (days.length === 5 && !days.includes(0) && !days.includes(6)) return 'Weekdays';
         if (days.length === 2 && days.includes(0) && days.includes(6)) return 'Weekends';
@@ -217,7 +218,7 @@ function SilentModeManager() {
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                 >
                     <option value="">All Devices</option>
-                    {devices.map(device => (
+                    {Array.isArray(devices) && devices.map(device => (
                         <option key={device.id} value={device.id}>{device.name}</option>
                     ))}
                 </select>
@@ -227,7 +228,7 @@ function SilentModeManager() {
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                 >
                     <option value="">All Locations</option>
-                    {locations.map(location => (
+                    {Array.isArray(locations) && locations.map(location => (
                         <option key={location.id} value={location.id}>{location.name}</option>
                     ))}
                 </select>
@@ -246,7 +247,7 @@ function SilentModeManager() {
                 </div>
             ) : (
                 <div className="grid gap-4">
-                    {schedules.map(schedule => (
+                    {Array.isArray(schedules) && schedules.map(schedule => (
                         <div key={schedule.id} className="bg-white border border-gray-200 rounded-lg p-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
@@ -399,7 +400,7 @@ function SilentModeManager() {
                                         className="w-full border border-gray-300 rounded-md px-3 py-2"
                                     >
                                         <option value="">Select Device</option>
-                                        {devices.map(device => (
+                                        {Array.isArray(devices) && devices.map(device => (
                                             <option key={device.id} value={device.id}>{device.name}</option>
                                         ))}
                                     </select>
@@ -414,7 +415,7 @@ function SilentModeManager() {
                                         className="w-full border border-gray-300 rounded-md px-3 py-2"
                                     >
                                         <option value="">Select Location</option>
-                                        {locations.map(location => (
+                                        {Array.isArray(locations) && locations.map(location => (
                                             <option key={location.id} value={location.id}>{location.name}</option>
                                         ))}
                                     </select>
@@ -431,7 +432,7 @@ function SilentModeManager() {
                                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                                 >
                                     <option value="">All severities</option>
-                                    {severityLevels.map(level => (
+                                    {Array.isArray(severityLevels) && severityLevels.map(level => (
                                         <option key={level} value={level}>
                                             Silence {level} and below
                                         </option>

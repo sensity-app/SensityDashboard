@@ -123,7 +123,7 @@ const DeviceHealthDashboard = () => {
                         }}
                         className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                        {(devices || []).map((device) => (
+                        {Array.isArray(devices) && devices.map((device) => (
                             <option key={device.id} value={device.id}>
                                 {device.name}
                             </option>
@@ -202,7 +202,7 @@ const DeviceHealthDashboard = () => {
                                 {t('deviceHealth.healthIssues')}
                             </h3>
                             <ul className="space-y-1">
-                                {deviceHealth.issues.map((issue, index) => (
+                                {Array.isArray(deviceHealth.issues) && deviceHealth.issues.map((issue, index) => (
                                     <li key={index} className="text-sm text-yellow-700">
                                         • {issue}
                                     </li>
@@ -218,7 +218,7 @@ const DeviceHealthDashboard = () => {
                                 {t('deviceHealth.recommendations')}
                             </h3>
                             <ul className="space-y-1">
-                                {deviceHealth.recommendations.map((recommendation, index) => (
+                                {Array.isArray(deviceHealth.recommendations) && deviceHealth.recommendations.map((recommendation, index) => (
                                     <li key={index} className="text-sm text-blue-700">
                                         • {recommendation}
                                     </li>
@@ -233,7 +233,7 @@ const DeviceHealthDashboard = () => {
             <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold mb-4">{t('deviceHealth.selectMetrics')}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {availableMetrics.map((metric) => (
+                    {Array.isArray(availableMetrics) && availableMetrics.map((metric) => (
                         <label key={metric.key} className="flex items-center space-x-2 cursor-pointer">
                             <input
                                 type="checkbox"
@@ -291,7 +291,7 @@ const DeviceHealthDashboard = () => {
                                         ]}
                                     />
                                     <Legend />
-                                    {selectedMetrics.map((metric) => {
+                                    {Array.isArray(selectedMetrics) && selectedMetrics.map((metric) => {
                                         const metricInfo = availableMetrics.find(m => m.key === metric);
                                         return (
                                             <Line
@@ -340,7 +340,7 @@ const DeviceHealthDashboard = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {(devices || []).map((device) => (
+                            {Array.isArray(devices) && devices.map((device) => (
                                 <tr key={device.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {device.name}

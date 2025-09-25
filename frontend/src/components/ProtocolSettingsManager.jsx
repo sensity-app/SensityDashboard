@@ -199,7 +199,7 @@ const ProtocolSettingsManager = () => {
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         >
                             <option value="">{t('protocolSettings.chooseDevice', 'Choose a device...')}</option>
-                            {devices.map((device) => (
+                            {Array.isArray(devices) && devices.map((device) => (
                                 <option key={device.id} value={device.id}>
                                     {device.name} ({device.device_type})
                                 </option>
@@ -343,7 +343,7 @@ const ProtocolSettingsManager = () => {
                                                 onChange={(e) => handleInputChange('mqttQos', parseInt(e.target.value))}
                                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                                             >
-                                                {mqttConfig?.availableQosLevels?.map((qos) => (
+                                                {Array.isArray(mqttConfig?.availableQosLevels) && mqttConfig.availableQosLevels.map((qos) => (
                                                     <option key={qos.value} value={qos.value}>
                                                         {qos.label}
                                                     </option>
@@ -382,7 +382,7 @@ const ProtocolSettingsManager = () => {
                                             {testResult.message}
                                         </span>
                                     </div>
-                                    {testResult.details && (
+                                    {testResult.details && typeof testResult.details === 'object' && (
                                         <div className="mt-2 text-sm text-gray-600">
                                             {Object.entries(testResult.details).map(([key, value]) => (
                                                 <div key={key}>

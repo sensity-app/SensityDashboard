@@ -27,6 +27,23 @@ import SilentModeManager from './components/SilentModeManager';
 import ProtocolSettingsManager from './components/ProtocolSettingsManager';
 import { apiService } from './services/api';
 
+// Utility function to adjust color brightness
+const adjustColorBrightness = (hexColor, amount) => {
+    const usePound = hexColor[0] === "#";
+    const col = usePound ? hexColor.slice(1) : hexColor;
+
+    const num = parseInt(col, 16);
+    let r = (num >> 16) + amount * 255;
+    let g = ((num >> 8) & 0x00FF) + amount * 255;
+    let b = (num & 0x0000FF) + amount * 255;
+
+    r = r > 255 ? 255 : r < 0 ? 0 : r;
+    g = g > 255 ? 255 : g < 0 ? 0 : g;
+    b = b > 255 ? 255 : b < 0 ? 0 : b;
+
+    return (usePound ? "#" : "") + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
+};
+
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
@@ -143,13 +160,15 @@ function AuthenticatedApp({ user, onLogout }) {
     const [appSettings, setAppSettings] = useState({
         branding: {
             companyName: 'IoT Monitoring Platform',
-            primaryColor: '#2563eb'
+            primaryColor: '#2563eb',
+            companyLogo: null
         }
     });
+    const [isHeaderMinimal, setIsHeaderMinimal] = useState(false);
 
     // Load app settings on mount
     useEffect(() => {
-        const loadSettings = () => {
+        const loadSettings = async () => {
             // Try to load from localStorage first
             const savedSettings = localStorage.getItem('appSettings');
             if (savedSettings) {
@@ -159,10 +178,42 @@ function AuthenticatedApp({ user, onLogout }) {
                     // Apply branding
                     if (parsed.branding?.primaryColor) {
                         document.documentElement.style.setProperty('--primary-color', parsed.branding.primaryColor);
+                        // Calculate hover and focus colors
+                        const primaryColor = parsed.branding.primaryColor;
+                        const hoverColor = adjustColorBrightness(primaryColor, -0.1);
+                        const focusColor = primaryColor;
+                        document.documentElement.style.setProperty('--primary-hover', hoverColor);
+                        document.documentElement.style.setProperty('--primary-focus', focusColor);
                     }
                 } catch (error) {
                     console.error('Error loading app settings:', error);
                 }
+            }
+
+            // Load from API
+            try {
+                const response = await apiService.getSettings();
+                if (response?.data) {
+                    const settings = response.data;
+                    setAppSettings(prev => ({ ...prev, ...settings }));
+
+                    // Apply branding
+                    if (settings.branding?.primaryColor) {
+                        document.documentElement.style.setProperty('--primary-color', settings.branding.primaryColor);
+                        // Calculate hover and focus colors
+                        const primaryColor = settings.branding.primaryColor;
+                        const hoverColor = adjustColorBrightness(primaryColor, -0.1);
+                        const focusColor = primaryColor;
+                        document.documentElement.style.setProperty('--primary-hover', hoverColor);
+                        document.documentElement.style.setProperty('--primary-focus', focusColor);
+                    }
+
+                    // Save to localStorage
+                    localStorage.setItem('appSettings', JSON.stringify(settings));
+                }
+            } catch (error) {
+                // Settings API might not be available
+                console.warn('Could not load settings from API:', error);
             }
         };
 
@@ -170,6 +221,17 @@ function AuthenticatedApp({ user, onLogout }) {
         // Listen for settings changes
         window.addEventListener('storage', loadSettings);
         return () => window.removeEventListener('storage', loadSettings);
+    }, []);
+
+    // Handle scroll for minimal header
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrolled = window.scrollY > 100;
+            setIsHeaderMinimal(scrolled);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     const navigationItems = [
@@ -219,25 +281,68 @@ function AuthenticatedApp({ user, onLogout }) {
     return (
         <div className="min-h-screen">
             {/* Header */}
-            <header className="bg-white shadow">
+            <header className={`bg-white shadow transition-all duration-300 sticky top-0 z-40 ${
+                isHeaderMinimal ? 'py-2' : 'py-4'
+            }`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-6">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">
-                                {appSettings.branding?.companyName || t('app.title', 'IoT Monitoring Platform')}
-                            </h1>
-                            <p className="text-gray-600">
-                                {t('common.welcome', 'Welcome')}, {user.full_name || user.email}
-                            </p>
-                        </div>
+                    <div className={`flex justify-between items-center transition-all duration-300 ${
+                        isHeaderMinimal ? 'py-2' : 'py-4'
+                    }`}>
                         <div className="flex items-center space-x-4">
+                            {/* Logo */}
+                            {appSettings.branding?.companyLogo && (
+                                <div className={`transition-all duration-300 ${
+                                    isHeaderMinimal ? 'h-8 w-8' : 'h-12 w-12'
+                                }`}>
+                                    <img
+                                        src={`${appSettings.branding.companyLogo}?${Date.now()}`}
+                                        alt="Company Logo"
+                                        className="h-full w-full object-contain"
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                        }}
+                                    />
+                                </div>
+                            )}
+                            {/* Company Name - only show if no logo or when not minimal */}
+                            {(!appSettings.branding?.companyLogo || !isHeaderMinimal) && (
+                                <div>
+                                    <h1 className={`font-bold text-gray-900 transition-all duration-300 ${
+                                        isHeaderMinimal ? 'text-lg' : 'text-3xl'
+                                    }`}>
+                                        {appSettings.branding?.companyName || t('app.title', 'IoT Monitoring Platform')}
+                                    </h1>
+                                    {!isHeaderMinimal && (
+                                        <p className="text-gray-600 text-sm">
+                                            {t('common.welcome', 'Welcome')}, {user.full_name || user.email}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <div className={`flex items-center transition-all duration-300 ${
+                            isHeaderMinimal ? 'space-x-2' : 'space-x-4'
+                        }`}>
                             <LanguageSelector />
-                            <span className="text-sm text-gray-500">
-                                {t(`roles.${user.role}`, user.role)}
-                            </span>
+                            {!isHeaderMinimal && (
+                                <span className="text-sm text-gray-500">
+                                    {t(`roles.${user.role}`, user.role)}
+                                </span>
+                            )}
                             <button
                                 onClick={onLogout}
-                                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                                className={`text-white px-4 py-2 rounded-md transition-all duration-300 ${
+                                    isHeaderMinimal ? 'text-sm' : ''
+                                }`}
+                                style={{
+                                    backgroundColor: 'var(--primary-color, #dc2626)',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.opacity = '0.9';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.opacity = '1';
+                                }}
                             >
                                 {t('auth.logout', 'Logout')}
                             </button>

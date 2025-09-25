@@ -2,6 +2,7 @@ const db = require('../models/database');
 const emailService = require('./emailService');
 const smsService = require('./smsService');
 const logger = require('../utils/logger');
+const { isInSilentMode } = require('../routes/silentMode');
 
 class AlertEscalationService {
     constructor() {
@@ -57,6 +58,22 @@ class AlertEscalationService {
 
     async escalateAlert(alert) {
         try {
+            // Check if device is in silent mode
+            const inSilentMode = await isInSilentMode(alert.device_id, alert.alert_type, alert.severity);
+
+            if (inSilentMode) {
+                logger.info(`Alert ${alert.id} escalation skipped - device in silent mode`);
+
+                // Update last_escalated to prevent repeated checks for a while
+                await db.query(`
+                    UPDATE alerts
+                    SET last_escalated = NOW()
+                    WHERE id = $1
+                `, [alert.id]);
+
+                return;
+            }
+
             const nextLevel = alert.escalation_level + 1;
 
             // Update alert escalation level

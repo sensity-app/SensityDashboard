@@ -1,5 +1,6 @@
 const db = require('../models/database');
 const logger = require('../utils/logger');
+const analyticsService = require('./analyticsService');
 
 class TelemetryProcessor {
     constructor(redis, websocketService) {
@@ -134,6 +135,14 @@ class TelemetryProcessor {
                 return await this.evaluateRateOfChange(rule, sensor);
             case 'pattern':
                 return await this.evaluatePattern(rule, sensor);
+            case 'dynamic_threshold':
+                return await this.evaluateDynamicThreshold(rule, sensor);
+            case 'statistical_anomaly':
+                return await this.evaluateStatisticalAnomaly(rule, sensor);
+            case 'seasonal_anomaly':
+                return await this.evaluateSeasonalAnomaly(rule, sensor);
+            case 'trend_detection':
+                return await this.evaluateTrend(rule, sensor);
             default:
                 return false;
         }
@@ -163,6 +172,177 @@ class TelemetryProcessor {
         // Implementation for pattern-based rules (e.g., detecting oscillations, trends)
         // This is a placeholder for advanced pattern detection
         return false;
+    }
+
+    async evaluateDynamicThreshold(rule, sensor) {
+        try {
+            // Get device and sensor info
+            const sensorInfo = await db.query(`
+                SELECT ds.pin, st.name as sensor_type
+                FROM device_sensors ds
+                JOIN sensor_types st ON ds.sensor_type_id = st.id
+                WHERE ds.id = $1
+            `, [rule.device_sensor_id]);
+
+            if (sensorInfo.rows.length === 0) return false;
+
+            const { pin, sensor_type } = sensorInfo.rows[0];
+
+            // Get dynamic thresholds from analytics service
+            const analysis = await analyticsService.calculateRecommendedThresholds(
+                rule.device_id, pin, rule.time_window || '7d'
+            );
+
+            if (!analysis.hasEnoughData || !analysis.recommendations) {
+                // Fall back to static thresholds if not enough data
+                return sensor.processed_value < rule.threshold_min || sensor.processed_value > rule.threshold_max;
+            }
+
+            const thresholds = analysis.recommendations;
+            const value = sensor.processed_value;
+
+            // Determine severity level based on rule settings
+            switch (rule.severity) {
+                case 'critical':
+                    return value < thresholds.critical.min || value > thresholds.critical.max;
+                case 'high':
+                case 'warning':
+                    return value < thresholds.warning.min || value > thresholds.warning.max;
+                default:
+                    return value < thresholds.optimal.min || value > thresholds.optimal.max;
+            }
+
+        } catch (error) {
+            logger.error('Error evaluating dynamic threshold:', error);
+            // Fall back to static threshold comparison
+            return sensor.processed_value < rule.threshold_min || sensor.processed_value > rule.threshold_max;
+        }
+    }
+
+    async evaluateStatisticalAnomaly(rule, sensor) {
+        try {
+            // Get recent historical data for baseline
+            const result = await db.query(`
+                SELECT processed_value, timestamp
+                FROM telemetry
+                WHERE device_sensor_id = $1
+                    AND timestamp > NOW() - INTERVAL '1 day' * $2
+                    AND timestamp < NOW() - INTERVAL '5 minutes'
+                ORDER BY timestamp DESC
+                LIMIT 500
+            `, [rule.device_sensor_id, rule.time_window_days || 7]);
+
+            if (result.rows.length < 20) return false;
+
+            const historicalValues = result.rows.map(row => parseFloat(row.processed_value));
+            const stats = analyticsService.calculateStatistics(historicalValues);
+
+            if (!stats) return false;
+
+            const value = sensor.processed_value;
+            const zScore = Math.abs((value - stats.mean) / stats.stdDev);
+
+            // Configurable sensitivity: higher values = less sensitive
+            const sensitivity = rule.sensitivity || 3; // Default 3-sigma
+
+            return zScore > sensitivity;
+
+        } catch (error) {
+            logger.error('Error evaluating statistical anomaly:', error);
+            return false;
+        }
+    }
+
+    async evaluateSeasonalAnomaly(rule, sensor) {
+        try {
+            // Get same time period from previous days/weeks for seasonal comparison
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const hourOfDay = now.getHours();
+
+            const result = await db.query(`
+                SELECT processed_value
+                FROM telemetry
+                WHERE device_sensor_id = $1
+                    AND EXTRACT(DOW FROM timestamp) = $2
+                    AND EXTRACT(HOUR FROM timestamp) BETWEEN $3 AND $4
+                    AND timestamp > NOW() - INTERVAL '30 days'
+                    AND timestamp < NOW() - INTERVAL '1 day'
+                ORDER BY timestamp DESC
+                LIMIT 100
+            `, [rule.device_sensor_id, dayOfWeek, hourOfDay - 1, hourOfDay + 1]);
+
+            if (result.rows.length < 10) {
+                // Fall back to general statistical anomaly if not enough seasonal data
+                return await this.evaluateStatisticalAnomaly(rule, sensor);
+            }
+
+            const seasonalValues = result.rows.map(row => parseFloat(row.processed_value));
+            const stats = analyticsService.calculateStatistics(seasonalValues);
+
+            if (!stats) return false;
+
+            const value = sensor.processed_value;
+            const zScore = Math.abs((value - stats.mean) / stats.stdDev);
+
+            const sensitivity = rule.sensitivity || 2.5; // Slightly more sensitive for seasonal
+
+            return zScore > sensitivity;
+
+        } catch (error) {
+            logger.error('Error evaluating seasonal anomaly:', error);
+            return false;
+        }
+    }
+
+    async evaluateTrend(rule, sensor) {
+        try {
+            // Get recent readings to analyze trend
+            const windowMinutes = rule.time_window_minutes || 60;
+            const result = await db.query(`
+                SELECT processed_value, timestamp
+                FROM telemetry
+                WHERE device_sensor_id = $1
+                    AND timestamp > NOW() - INTERVAL '1 minute' * $2
+                ORDER BY timestamp ASC
+            `, [rule.device_sensor_id, windowMinutes]);
+
+            if (result.rows.length < 10) return false;
+
+            const values = result.rows.map((row, index) => ({
+                x: index,
+                y: parseFloat(row.processed_value)
+            }));
+
+            // Calculate linear regression to determine trend
+            const n = values.length;
+            const sumX = values.reduce((sum, point) => sum + point.x, 0);
+            const sumY = values.reduce((sum, point) => sum + point.y, 0);
+            const sumXY = values.reduce((sum, point) => sum + (point.x * point.y), 0);
+            const sumXX = values.reduce((sum, point) => sum + (point.x * point.x), 0);
+
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+
+            // Determine trend direction and magnitude
+            const trendThreshold = rule.threshold_max || 0.1; // Rate of change threshold
+
+            switch (rule.trend_type) {
+                case 'increasing':
+                    return slope > trendThreshold;
+                case 'decreasing':
+                    return slope < -trendThreshold;
+                case 'stable':
+                    return Math.abs(slope) < trendThreshold;
+                case 'any_change':
+                    return Math.abs(slope) > trendThreshold;
+                default:
+                    return Math.abs(slope) > trendThreshold;
+            }
+
+        } catch (error) {
+            logger.error('Error evaluating trend:', error);
+            return false;
+        }
     }
 
     async createAlert(deviceId, sensor, rule) {

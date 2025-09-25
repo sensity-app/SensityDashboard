@@ -54,6 +54,8 @@ export const apiService = {
     login: (credentials) => apiClient.post('/auth/login', credentials),
     logout: () => apiClient.post('/auth/logout'),
     register: (userData) => apiClient.post('/auth/register', userData),
+    forgotPassword: (email) => apiClient.post('/auth/forgot-password', { email }),
+    resetPassword: (token, password) => apiClient.post('/auth/reset-password', { token, password }),
 
     // Setup and invitations
     checkSetup: () => apiClient.get('/auth/setup-check'),
@@ -203,6 +205,22 @@ export const apiService = {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
     removeLogo: () => apiClient.delete('/settings/logo'),
+
+    // Silent Mode
+    getSilentModeSchedules: (deviceId, locationId) => apiClient.get('/silent-mode', { params: { deviceId, locationId } }),
+    getSilentModeSchedule: (scheduleId) => apiClient.get(`/silent-mode/${scheduleId}`),
+    createSilentModeSchedule: (scheduleData) => apiClient.post('/silent-mode', scheduleData),
+    updateSilentModeSchedule: (scheduleId, scheduleData) => apiClient.put(`/silent-mode/${scheduleId}`, scheduleData),
+    deleteSilentModeSchedule: (scheduleId) => apiClient.delete(`/silent-mode/${scheduleId}`),
+    checkSilentMode: (deviceId, alertType, severity) => apiClient.get(`/silent-mode/check/${deviceId}`, { params: { alertType, severity } }),
+
+    // Protocol Settings
+    getProtocolSettings: () => apiClient.get('/protocol-settings'),
+    getDeviceProtocolSettings: (deviceId) => apiClient.get(`/protocol-settings/${deviceId}`),
+    updateProtocolSettings: (protocolData) => apiClient.post('/protocol-settings', protocolData),
+    deleteProtocolSettings: (deviceId) => apiClient.delete(`/protocol-settings/${deviceId}`),
+    getMqttConfig: () => apiClient.get('/protocol-settings/mqtt/config'),
+    testProtocolConnection: (connectionData) => apiClient.post('/protocol-settings/test-connection', connectionData),
 };
 
 export default apiService;

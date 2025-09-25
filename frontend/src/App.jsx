@@ -7,6 +7,8 @@ import { ChevronDown } from 'lucide-react';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import InitialSetup from './pages/InitialSetup';
 import Dashboard from './pages/Dashboard';
 import DeviceDetail from './pages/DeviceDetail';
@@ -21,6 +23,8 @@ import DeviceGroupsManager from './components/DeviceGroupsManager';
 import DeviceTagsManager from './components/DeviceTagsManager';
 import DeviceHealthDashboard from './components/DeviceHealthDashboard';
 import AlertRulesManager from './components/AlertRulesManager';
+import SilentModeManager from './components/SilentModeManager';
+import ProtocolSettingsManager from './components/ProtocolSettingsManager';
 import { apiService } from './services/api';
 
 const queryClient = new QueryClient({
@@ -177,6 +181,7 @@ function AuthenticatedApp({ user, onLogout }) {
                 { path: '/analytics', label: t('nav.analytics', 'Analytics'), icon: '🧠' },
                 { path: '/device-health', label: t('nav.deviceHealth', 'Device Health'), icon: '🏥' },
                 { path: '/alert-rules', label: t('nav.alertRules', 'Alert Rules'), icon: '⚙️' },
+                { path: '/silent-mode', label: t('nav.silentMode', 'Silent Mode'), icon: '🔕' },
             ]
         },
         {
@@ -192,7 +197,8 @@ function AuthenticatedApp({ user, onLogout }) {
                 label: t('nav.administration', 'Administration'), icon: '⚙️', dropdown: true,
                 items: [
                     { path: '/users', label: t('nav.userManagement', 'Users'), icon: '👥' },
-                    { path: '/settings', label: t('nav.settings', 'Settings'), icon: '⚙️' }
+                    { path: '/settings', label: t('nav.settings', 'Settings'), icon: '⚙️' },
+                    { path: '/protocol-settings', label: t('nav.protocolSettings', 'Protocol Settings'), icon: '🔌' }
                 ]
             }
         ] : [])
@@ -314,11 +320,13 @@ function AuthenticatedApp({ user, onLogout }) {
                     <Route path="/device-tags" element={<DeviceTagsManager />} />
                     <Route path="/device-health" element={<DeviceHealthDashboard />} />
                     <Route path="/alert-rules" element={<AlertRulesManager />} />
+                    <Route path="/silent-mode" element={<SilentModeManager />} />
                     <Route path="/firmware-builder" element={<FirmwareBuilder />} />
                     {user.role === 'admin' && (
                         <>
                             <Route path="/users" element={<UserManagement />} />
                             <Route path="/settings" element={<Settings />} />
+                            <Route path="/protocol-settings" element={<ProtocolSettingsManager />} />
                         </>
                     )}
                     <Route path="*" element={<Navigate to="/" />} />
@@ -337,6 +345,8 @@ function UnauthenticatedApp({ onLogin }) {
             <Routes>
                 <Route path="/login" element={<Login onLogin={onLogin} />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="*" element={<Navigate to="/login" />} />
             </Routes>
         </div>

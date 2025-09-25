@@ -363,6 +363,161 @@ router.post('/change-password', authenticateToken, [
     }
 });
 
+// POST /api/auth/forgot-password - Request password reset
+router.post('/forgot-password', [
+    body('email').isEmail().normalizeEmail()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { email } = req.body;
+
+        // Check if user exists
+        const userResult = await db.query('SELECT id, email, full_name FROM users WHERE email = $1', [email]);
+        if (userResult.rows.length === 0) {
+            // Don't reveal if user exists or not for security
+            return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+        }
+
+        const user = userResult.rows[0];
+
+        // Create password reset table if it doesn't exist
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                token VARCHAR(255) UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 1); // Expire in 1 hour
+
+        // Delete any existing reset tokens for this user
+        await db.query('DELETE FROM password_resets WHERE user_id = $1', [user.id]);
+
+        // Store reset token
+        await db.query(
+            'INSERT INTO password_resets (user_id, token, expires_at) VALUES ($1, $2, $3)',
+            [user.id, resetToken, expiresAt]
+        );
+
+        // Send password reset email
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+        const subject = 'Password Reset Request';
+
+        const html = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #007bff; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0; font-size: 24px;">Password Reset Request</h1>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 20px; border: 1px solid #dee2e6;">
+                    <h2 style="color: #495057; margin-top: 0;">Hello ${user.full_name || user.email},</h2>
+                    <p style="color: #6c757d; line-height: 1.6;">
+                        You requested a password reset for your IoT Monitoring Platform account.
+                        Click the button below to reset your password:
+                    </p>
+                </div>
+
+                <div style="background: white; padding: 20px; border: 1px solid #dee2e6; border-top: none; text-align: center;">
+                    <div style="margin-bottom: 20px;">
+                        <a href="${resetUrl}"
+                           style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">
+                            Reset Password
+                        </a>
+                    </div>
+                    <p style="color: #6c757d; margin: 10px 0; font-size: 14px;">
+                        Or copy and paste this link into your browser:
+                    </p>
+                    <p style="color: #007bff; font-size: 14px; word-break: break-all;">
+                        ${resetUrl}
+                    </p>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 8px 8px;">
+                    <p style="color: #6c757d; margin: 0; font-size: 12px; text-align: center;">
+                        This link will expire in 1 hour. If you didn't request a password reset,
+                        you can safely ignore this email.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        await emailService.sendEmail(email, subject, html);
+
+        logger.info(`Password reset requested for user: ${email}`);
+        res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+    } catch (error) {
+        logger.error('Password reset request error:', error);
+        res.status(500).json({ error: 'Failed to process password reset request' });
+    }
+});
+
+// POST /api/auth/reset-password - Reset password with token
+router.post('/reset-password', [
+    body('token').notEmpty(),
+    body('password').isLength({ min: 6 })
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { token, password } = req.body;
+
+        // Find valid reset token
+        const resetResult = await db.query(`
+            SELECT pr.id, pr.user_id, u.email
+            FROM password_resets pr
+            JOIN users u ON pr.user_id = u.id
+            WHERE pr.token = $1
+            AND pr.expires_at > CURRENT_TIMESTAMP
+            AND pr.used_at IS NULL
+        `, [token]);
+
+        if (resetResult.rows.length === 0) {
+            return res.status(400).json({ error: 'Invalid or expired reset token' });
+        }
+
+        const resetData = resetResult.rows[0];
+
+        // Hash new password
+        const saltRounds = 12;
+        const newPasswordHash = await bcrypt.hash(password, saltRounds);
+
+        // Update password and mark token as used
+        await db.transaction(async (client) => {
+            // Update user password
+            await client.query(
+                'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+                [newPasswordHash, resetData.user_id]
+            );
+
+            // Mark token as used
+            await client.query(
+                'UPDATE password_resets SET used_at = CURRENT_TIMESTAMP WHERE id = $1',
+                [resetData.id]
+            );
+        });
+
+        logger.info(`Password reset completed for user: ${resetData.email}`);
+        res.json({ message: 'Password reset successfully' });
+    } catch (error) {
+        logger.error('Password reset error:', error);
+        res.status(500).json({ error: 'Failed to reset password' });
+    }
+});
+
 // POST /api/auth/invite - Create user invitation (admin only)
 router.post('/invite', authenticateToken, requireRole(['admin']), [
     body('email').isEmail().normalizeEmail(),

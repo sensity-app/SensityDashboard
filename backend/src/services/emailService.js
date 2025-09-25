@@ -10,7 +10,7 @@ class EmailService {
     async initialize() {
         try {
             // Create transporter based on environment configuration
-            this.transporter = nodemailer.createTransporter({
+            this.transporter = nodemailer.createTransport({
                 host: process.env.SMTP_HOST,
                 port: process.env.SMTP_PORT || 587,
                 secure: process.env.SMTP_SECURE === 'true',

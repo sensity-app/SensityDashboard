@@ -342,6 +342,44 @@ const createTables = async () => {
             ip_address INET
         );
 
+        -- Silent mode schedules for quiet hours
+        CREATE TABLE IF NOT EXISTS silent_mode_schedules (
+            id SERIAL PRIMARY KEY,
+            device_id VARCHAR(50) REFERENCES devices(id) ON DELETE CASCADE,
+            location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            name VARCHAR(100) NOT NULL,
+            start_time TIME NOT NULL,
+            end_time TIME NOT NULL,
+            days_of_week INTEGER[] NOT NULL, -- Array of integers 0-6 (0=Sunday, 6=Saturday)
+            timezone VARCHAR(50) DEFAULT 'UTC',
+            enabled BOOLEAN DEFAULT true,
+            alert_types TEXT[], -- Array of alert types to silence, NULL means all
+            severity_threshold VARCHAR(20) DEFAULT NULL, -- Only silence alerts below this severity
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT check_severity CHECK (severity_threshold IS NULL OR severity_threshold IN ('low', 'medium', 'high', 'critical'))
+        );
+
+        -- System communication protocol settings
+        CREATE TABLE IF NOT EXISTS protocol_settings (
+            id SERIAL PRIMARY KEY,
+            device_id VARCHAR(50) REFERENCES devices(id) ON DELETE CASCADE UNIQUE,
+            protocol VARCHAR(10) NOT NULL DEFAULT 'http', -- 'http' or 'mqtt'
+            mqtt_broker_host VARCHAR(255),
+            mqtt_broker_port INTEGER DEFAULT 1883,
+            mqtt_username VARCHAR(100),
+            mqtt_password VARCHAR(255),
+            mqtt_topic_prefix VARCHAR(100) DEFAULT 'iot',
+            mqtt_qos INTEGER DEFAULT 1,
+            http_endpoint VARCHAR(500),
+            heartbeat_interval INTEGER DEFAULT 300, -- seconds
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT check_protocol CHECK (protocol IN ('http', 'mqtt')),
+            CONSTRAINT check_qos CHECK (mqtt_qos >= 0 AND mqtt_qos <= 2)
+        );
+
         -- Create indexes for better performance
         CREATE INDEX IF NOT EXISTS idx_telemetry_device_sensor_time ON telemetry(device_id, device_sensor_id, timestamp DESC);
         CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry(timestamp DESC);
@@ -352,6 +390,9 @@ const createTables = async () => {
         CREATE INDEX IF NOT EXISTS idx_ota_device_status ON ota_updates(device_id, status);
         CREATE INDEX IF NOT EXISTS idx_escalation_history_alert ON escalation_history(alert_id);
         CREATE INDEX IF NOT EXISTS idx_escalation_rules_device_location ON escalation_rules(device_id, location_id);
+        CREATE INDEX IF NOT EXISTS idx_silent_mode_device_enabled ON silent_mode_schedules(device_id, enabled);
+        CREATE INDEX IF NOT EXISTS idx_silent_mode_location_enabled ON silent_mode_schedules(location_id, enabled);
+        CREATE INDEX IF NOT EXISTS idx_protocol_settings_device ON protocol_settings(device_id);
     `;
 
     await query(createTablesSQL);

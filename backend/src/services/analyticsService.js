@@ -477,9 +477,9 @@ class AnalyticsService {
     }
 
     /**
-     * Get anomaly detection recommendations
+     * Enhanced anomaly detection with multiple algorithms
      */
-    async detectAnomalies(deviceId, sensorPin, timeRange = '24h') {
+    async detectAnomalies(deviceId, sensorPin, timeRange = '24h', algorithm = 'statistical') {
         try {
             // Get recent data
             const endDate = new Date();
@@ -499,11 +499,11 @@ class AnalyticsService {
                 JOIN device_sensors ds ON t.device_sensor_id = ds.id
                 WHERE ds.device_id = $1 AND ds.pin = $2
                 AND t.timestamp >= $3 AND t.timestamp <= $4
-                ORDER BY t.timestamp DESC
-                LIMIT 1000
+                ORDER BY t.timestamp ASC
+                LIMIT 2000
             `, [deviceId, sensorPin, startDate, endDate]);
 
-            if (result.rows.length < 10) {
+            if (result.rows.length < 20) {
                 return { anomalies: [], message: 'Not enough recent data for anomaly detection' };
             }
 
@@ -512,30 +512,294 @@ class AnalyticsService {
                 timestamp: row.timestamp
             }));
 
-            // Simple anomaly detection using statistical methods
-            const recentValues = values.slice(0, 50).map(v => v.value);
-            const stats = this.calculateStatistics(recentValues);
+            let anomalies = [];
+            let analysisInfo = {};
 
-            const anomalies = values.filter(point => {
-                const value = point.value;
-                return value < (stats.mean - stats.stdDev * 3) || value > (stats.mean + stats.stdDev * 3);
-            }).slice(0, 10); // Limit to 10 most recent anomalies
+            switch (algorithm) {
+                case 'statistical':
+                    ({ anomalies, analysisInfo } = this.detectStatisticalAnomalies(values));
+                    break;
+                case 'isolation_forest':
+                    ({ anomalies, analysisInfo } = this.detectIsolationAnomalies(values));
+                    break;
+                case 'seasonal':
+                    ({ anomalies, analysisInfo } = await this.detectSeasonalAnomalies(deviceId, sensorPin, values));
+                    break;
+                case 'change_point':
+                    ({ anomalies, analysisInfo } = this.detectChangePoints(values));
+                    break;
+                case 'rolling_statistics':
+                    ({ anomalies, analysisInfo } = this.detectRollingAnomalies(values));
+                    break;
+                default:
+                    ({ anomalies, analysisInfo } = this.detectStatisticalAnomalies(values));
+            }
 
             return {
-                anomalies: anomalies.map(a => ({
-                    value: a.value,
-                    timestamp: a.timestamp,
-                    deviation: Math.abs(a.value - stats.mean) / stats.stdDev,
-                    type: a.value > stats.mean ? 'high' : 'low'
-                })),
-                statistics: stats,
-                timeRange
+                anomalies: anomalies.slice(0, 20), // Limit to 20 most significant anomalies
+                algorithm,
+                analysisInfo,
+                timeRange,
+                dataPoints: values.length
             };
 
         } catch (error) {
             logger.error('Error detecting anomalies:', error);
             throw new Error('Failed to detect anomalies');
         }
+    }
+
+    /**
+     * Statistical anomaly detection using z-score and modified z-score
+     */
+    detectStatisticalAnomalies(values, threshold = 3) {
+        const numericValues = values.map(v => v.value);
+        const stats = this.calculateStatistics(numericValues);
+
+        // Calculate modified z-score (more robust to outliers)
+        const median = stats.median;
+        const mad = this.calculateMAD(numericValues, median);
+
+        const anomalies = values.filter((point, index) => {
+            const value = point.value;
+
+            // Standard z-score
+            const zScore = Math.abs((value - stats.mean) / stats.stdDev);
+
+            // Modified z-score using median absolute deviation
+            const modifiedZScore = mad > 0 ? Math.abs(0.6745 * (value - median) / mad) : 0;
+
+            return zScore > threshold || modifiedZScore > 3.5;
+        }).map(point => ({
+            ...point,
+            deviation: Math.abs(point.value - stats.mean) / stats.stdDev,
+            type: point.value > stats.mean ? 'high' : 'low',
+            algorithm: 'statistical'
+        }));
+
+        return {
+            anomalies,
+            analysisInfo: {
+                statistics: stats,
+                threshold,
+                mad,
+                method: 'z-score and modified z-score'
+            }
+        };
+    }
+
+    /**
+     * Simple isolation forest algorithm for anomaly detection
+     */
+    detectIsolationAnomalies(values, contamination = 0.1) {
+        // Simplified isolation forest - randomly select features and split points
+        const numericValues = values.map(v => v.value);
+        const stats = this.calculateStatistics(numericValues);
+
+        const isolationScores = values.map(point => {
+            let totalDepth = 0;
+            const numTrees = 10; // Number of isolation trees
+
+            for (let tree = 0; tree < numTrees; tree++) {
+                let depth = 0;
+                let currentValue = point.value;
+                let min = stats.min;
+                let max = stats.max;
+
+                // Simulate isolation tree traversal
+                while (depth < 20 && max - min > 0.01) { // Max depth or convergence
+                    const splitPoint = min + Math.random() * (max - min);
+
+                    if (currentValue < splitPoint) {
+                        max = splitPoint;
+                    } else {
+                        min = splitPoint;
+                    }
+                    depth++;
+                }
+
+                totalDepth += depth;
+            }
+
+            return {
+                ...point,
+                isolationScore: totalDepth / numTrees,
+                isAnomaly: false
+            };
+        });
+
+        // Sort by isolation score (lower scores = more anomalous)
+        isolationScores.sort((a, b) => a.isolationScore - b.isolationScore);
+
+        // Mark top percentage as anomalies
+        const anomalyCount = Math.max(1, Math.floor(values.length * contamination));
+        const anomalies = isolationScores.slice(0, anomalyCount).map(point => ({
+            ...point,
+            type: point.value > stats.mean ? 'high' : 'low',
+            algorithm: 'isolation_forest',
+            deviation: Math.abs(point.value - stats.mean) / stats.stdDev
+        }));
+
+        return {
+            anomalies,
+            analysisInfo: {
+                contamination,
+                method: 'simplified isolation forest',
+                totalDataPoints: values.length,
+                detectedAnomalies: anomalyCount
+            }
+        };
+    }
+
+    /**
+     * Seasonal anomaly detection based on day/hour patterns
+     */
+    async detectSeasonalAnomalies(deviceId, sensorPin, values) {
+        // Group values by hour of day and day of week
+        const hourlyPatterns = {};
+        const dailyPatterns = {};
+
+        values.forEach(point => {
+            const date = new Date(point.timestamp);
+            const hour = date.getHours();
+            const day = date.getDay();
+            const key = `${day}-${hour}`;
+
+            if (!hourlyPatterns[key]) {
+                hourlyPatterns[key] = [];
+            }
+            hourlyPatterns[key].push(point.value);
+
+            if (!dailyPatterns[day]) {
+                dailyPatterns[day] = [];
+            }
+            dailyPatterns[day].push(point.value);
+        });
+
+        const anomalies = values.filter(point => {
+            const date = new Date(point.timestamp);
+            const hour = date.getHours();
+            const day = date.getDay();
+            const key = `${day}-${hour}`;
+
+            const seasonalValues = hourlyPatterns[key];
+            if (!seasonalValues || seasonalValues.length < 3) return false;
+
+            const seasonalStats = this.calculateStatistics(seasonalValues);
+            const zScore = Math.abs((point.value - seasonalStats.mean) / seasonalStats.stdDev);
+
+            return zScore > 2.5; // Slightly more sensitive for seasonal
+        }).map(point => ({
+            ...point,
+            type: 'seasonal_anomaly',
+            algorithm: 'seasonal',
+            deviation: null // Will be calculated per seasonal group
+        }));
+
+        return {
+            anomalies,
+            analysisInfo: {
+                method: 'seasonal pattern analysis',
+                seasonalGroups: Object.keys(hourlyPatterns).length,
+                threshold: '2.5 sigma'
+            }
+        };
+    }
+
+    /**
+     * Change point detection to identify sudden shifts in data patterns
+     */
+    detectChangePoints(values, windowSize = 50) {
+        if (values.length < windowSize * 2) {
+            return { anomalies: [], analysisInfo: { message: 'Not enough data for change point detection' } };
+        }
+
+        const changePoints = [];
+
+        for (let i = windowSize; i < values.length - windowSize; i += 10) {
+            const beforeWindow = values.slice(i - windowSize, i).map(v => v.value);
+            const afterWindow = values.slice(i, i + windowSize).map(v => v.value);
+
+            const beforeStats = this.calculateStatistics(beforeWindow);
+            const afterStats = this.calculateStatistics(afterWindow);
+
+            // Calculate change magnitude
+            const meanChange = Math.abs(afterStats.mean - beforeStats.mean);
+            const stdChange = Math.abs(afterStats.stdDev - beforeStats.stdDev);
+
+            // Normalized change score
+            const changeScore = meanChange / Math.max(beforeStats.stdDev, 0.1) +
+                               stdChange / Math.max(beforeStats.stdDev, 0.1);
+
+            if (changeScore > 2) { // Threshold for significant change
+                changePoints.push({
+                    ...values[i],
+                    changeScore,
+                    type: 'change_point',
+                    algorithm: 'change_point',
+                    beforeMean: beforeStats.mean,
+                    afterMean: afterStats.mean,
+                    deviation: changeScore
+                });
+            }
+        }
+
+        return {
+            anomalies: changePoints,
+            analysisInfo: {
+                method: 'sliding window change point detection',
+                windowSize,
+                changePointsDetected: changePoints.length
+            }
+        };
+    }
+
+    /**
+     * Rolling statistics anomaly detection
+     */
+    detectRollingAnomalies(values, windowSize = 30) {
+        if (values.length < windowSize * 2) {
+            return { anomalies: [], analysisInfo: { message: 'Not enough data for rolling statistics' } };
+        }
+
+        const anomalies = [];
+
+        for (let i = windowSize; i < values.length; i++) {
+            const window = values.slice(i - windowSize, i).map(v => v.value);
+            const windowStats = this.calculateStatistics(window);
+
+            const currentValue = values[i].value;
+            const zScore = Math.abs((currentValue - windowStats.mean) / windowStats.stdDev);
+
+            if (zScore > 3) {
+                anomalies.push({
+                    ...values[i],
+                    deviation: zScore,
+                    type: currentValue > windowStats.mean ? 'high' : 'low',
+                    algorithm: 'rolling_statistics',
+                    rollingMean: windowStats.mean,
+                    rollingStd: windowStats.stdDev
+                });
+            }
+        }
+
+        return {
+            anomalies,
+            analysisInfo: {
+                method: 'rolling window statistics',
+                windowSize,
+                threshold: '3 sigma'
+            }
+        };
+    }
+
+    /**
+     * Calculate Median Absolute Deviation (MAD)
+     */
+    calculateMAD(values, median) {
+        const deviations = values.map(val => Math.abs(val - median));
+        deviations.sort((a, b) => a - b);
+        return this.percentile(deviations, 50);
     }
 
     /**

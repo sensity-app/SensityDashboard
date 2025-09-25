@@ -14,7 +14,9 @@
       "Bash(bash:*)",
       "Bash(npm start)",
       "Bash(npm run dev:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(brew install:*)",
+      "Bash(sudo xcodebuild:*)"
     ],
     "deny": [],
     "ask": []

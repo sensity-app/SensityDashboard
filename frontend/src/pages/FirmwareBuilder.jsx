@@ -413,7 +413,7 @@ const FirmwareBuilder = () => {
                                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
                                         <option value="">Select location...</option>
-                                        {locations.map(location => (
+                                        {locations && locations.map(location => (
                                             <option key={location.id} value={location.name}>
                                                 {location.name}
                                             </option>

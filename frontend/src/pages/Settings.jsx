@@ -15,7 +15,10 @@ import {
     CheckCircle,
     Info,
     Image,
-    X
+    X,
+    Code,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -27,6 +30,8 @@ function Settings() {
 
     const [activeTab, setActiveTab] = useState('system');
     const [backupLoading, setBackupLoading] = useState(false);
+    const [envVars, setEnvVars] = useState({});
+    const [envValidation, setEnvValidation] = useState({ valid: true, errors: [], warnings: [] });
     const [logoUploading, setLogoUploading] = useState(false);
     const [systemSettings, setSystemSettings] = useState({
         siteName: 'ESP8266 IoT Platform',
@@ -113,6 +118,22 @@ function Settings() {
             refetchInterval: 10000,
             onError: () => {
                 // System health endpoint might not exist yet
+            }
+        }
+    );
+
+    // Query environment variables
+    const { data: envData, isLoading: envLoading, refetch: refetchEnv } = useQuery(
+        'environment-variables',
+        () => apiService.getEnvironmentVariables(),
+        {
+            onSuccess: (data) => {
+                if (data?.variables) {
+                    setEnvVars(data.variables);
+                }
+            },
+            onError: () => {
+                // Environment variables endpoint might not be available
             }
         }
     );
@@ -262,9 +283,32 @@ function Settings() {
         }
     };
 
+    // Environment variable handlers
+    const handleEnvVarChange = (key, value) => {
+        setEnvVars(prev => ({ ...prev, [key]: value }));
+
+        // Validate on change
+        const updatedVars = { ...envVars, [key]: value };
+        apiService.validateEnvironmentVariables(updatedVars)
+            .then(result => setEnvValidation(result.data))
+            .catch(() => setEnvValidation({ valid: true, errors: [], warnings: [] }));
+    };
+
+    const handleSaveEnvVars = async () => {
+        try {
+            const response = await apiService.updateEnvironmentVariables(envVars);
+            toast.success(`Environment variables updated successfully. ${response.data.requiresRestart ? 'Server restart required.' : ''}`);
+            refetchEnv();
+        } catch (error) {
+            console.error('Save environment variables error:', error);
+            toast.error('Failed to save environment variables');
+        }
+    };
+
     const tabs = [
         { id: 'system', label: t('settings.tabs.system', 'System'), icon: Server },
         { id: 'branding', label: t('settings.tabs.branding', 'Branding'), icon: Image },
+        { id: 'environment', label: t('settings.tabs.environment', 'Environment'), icon: Code },
         { id: 'database', label: t('settings.tabs.database', 'Database'), icon: Database },
         { id: 'email', label: t('settings.tabs.email', 'Email'), icon: Mail },
         { id: 'security', label: t('settings.tabs.security', 'Security'), icon: Shield }
@@ -591,6 +635,178 @@ function Settings() {
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Environment Variables Tab */}
+                        {activeTab === 'environment' && (
+                            <div className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-medium text-gray-900">
+                                        {t('settings.environment.title', 'Environment Variables')}
+                                    </h3>
+                                    <div className="flex items-center space-x-2">
+                                        {envValidation.errors?.length > 0 && (
+                                            <div className="flex items-center space-x-1 text-red-600">
+                                                <AlertTriangle className="h-4 w-4" />
+                                                <span className="text-sm">{envValidation.errors.length} error(s)</span>
+                                            </div>
+                                        )}
+                                        {envValidation.warnings?.length > 0 && (
+                                            <div className="flex items-center space-x-1 text-yellow-600">
+                                                <AlertTriangle className="h-4 w-4" />
+                                                <span className="text-sm">{envValidation.warnings.length} warning(s)</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {envLoading ? (
+                                    <div className="animate-pulse space-y-4">
+                                        {[1, 2, 3, 4, 5].map(i => (
+                                            <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Validation Messages */}
+                                        {envValidation.errors?.length > 0 && (
+                                            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                                                <div className="flex">
+                                                    <AlertTriangle className="h-5 w-5 text-red-400" />
+                                                    <div className="ml-3">
+                                                        <h3 className="text-sm font-medium text-red-800">Errors</h3>
+                                                        <ul className="mt-2 text-sm text-red-700">
+                                                            {envValidation.errors.map((error, idx) => (
+                                                                <li key={idx}>• {error}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {envValidation.warnings?.length > 0 && (
+                                            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                                                <div className="flex">
+                                                    <Info className="h-5 w-5 text-yellow-400" />
+                                                    <div className="ml-3">
+                                                        <h3 className="text-sm font-medium text-yellow-800">Warnings</h3>
+                                                        <ul className="mt-2 text-sm text-yellow-700">
+                                                            {envValidation.warnings.map((warning, idx) => (
+                                                                <li key={idx}>• {warning}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Environment Variables by Category */}
+                                        {envData?.categories && Object.entries(envData.categories).map(([category, variables]) => {
+                                            const categoryVars = variables.filter(varName => envVars[varName] !== undefined);
+                                            if (categoryVars.length === 0) return null;
+
+                                            return (
+                                                <div key={category} className="mb-8">
+                                                    <h4 className="text-md font-semibold text-gray-800 mb-4 border-b pb-2">
+                                                        {category}
+                                                    </h4>
+                                                    <div className="space-y-4">
+                                                        {categoryVars.map(varName => {
+                                                            const isSensitive = envData.sensitiveKeys?.includes(varName);
+                                                            const [showSensitive, setShowSensitive] = React.useState(false);
+
+                                                            return (
+                                                                <div key={varName} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 bg-gray-50 rounded-lg">
+                                                                    <div className="flex flex-col">
+                                                                        <label className="text-sm font-medium text-gray-700 mb-1">
+                                                                            {varName}
+                                                                            {envData.sensitiveKeys?.includes(varName) && (
+                                                                                <span className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
+                                                                                    Sensitive
+                                                                                </span>
+                                                                            )}
+                                                                        </label>
+                                                                    </div>
+                                                                    <div className="md:col-span-2">
+                                                                        <div className="flex items-center space-x-2">
+                                                                            <input
+                                                                                type={isSensitive && !showSensitive ? 'password' : 'text'}
+                                                                                value={envVars[varName] || ''}
+                                                                                onChange={(e) => handleEnvVarChange(varName, e.target.value)}
+                                                                                placeholder={isSensitive ? '***MASKED***' : `Enter ${varName}`}
+                                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                                                                disabled={isSensitive && envVars[varName] === '***MASKED***'}
+                                                                            />
+                                                                            {isSensitive && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setShowSensitive(!showSensitive)}
+                                                                                    className="p-2 text-gray-400 hover:text-gray-600"
+                                                                                >
+                                                                                    {showSensitive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+
+                                        {/* Uncategorized Variables */}
+                                        {Object.keys(envVars).filter(key => !envData?.categories ||
+                                            !Object.values(envData.categories).flat().includes(key)).length > 0 && (
+                                            <div className="mb-8">
+                                                <h4 className="text-md font-semibold text-gray-800 mb-4 border-b pb-2">
+                                                    Other Variables
+                                                </h4>
+                                                <div className="space-y-4">
+                                                    {Object.keys(envVars)
+                                                        .filter(key => !envData?.categories || !Object.values(envData.categories).flat().includes(key))
+                                                        .map(varName => (
+                                                        <div key={varName} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 bg-gray-50 rounded-lg">
+                                                            <div className="flex flex-col">
+                                                                <label className="text-sm font-medium text-gray-700 mb-1">
+                                                                    {varName}
+                                                                </label>
+                                                            </div>
+                                                            <div className="md:col-span-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={envVars[varName] || ''}
+                                                                    onChange={(e) => handleEnvVarChange(varName, e.target.value)}
+                                                                    placeholder={`Enter ${varName}`}
+                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Save Button */}
+                                        <div className="flex justify-between items-center pt-6 border-t border-gray-200">
+                                            <div className="text-sm text-gray-500">
+                                                <Info className="h-4 w-4 inline mr-1" />
+                                                Changes may require server restart to take effect
+                                            </div>
+                                            <button
+                                                onClick={handleSaveEnvVars}
+                                                disabled={envValidation.errors?.length > 0}
+                                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                            >
+                                                <Save className="h-4 w-4 mr-2" />
+                                                Save Environment Variables
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )}
 

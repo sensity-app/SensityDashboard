@@ -206,6 +206,14 @@ export const apiService = {
     }),
     removeLogo: () => apiClient.delete('/settings/logo'),
 
+    // Environment Variables
+    getEnvironmentVariables: () => apiClient.get('/settings/environment'),
+    updateEnvironmentVariables: (variables, requireRestart = false) =>
+        apiClient.put('/settings/environment', { variables, requireRestart }),
+    validateEnvironmentVariables: (variables) =>
+        apiClient.post('/settings/environment/validate', { variables }),
+    getEnvironmentBackups: () => apiClient.get('/settings/environment/backups'),
+
     // Silent Mode
     getSilentModeSchedules: (deviceId, locationId) => apiClient.get('/silent-mode', { params: { deviceId, locationId } }),
     getSilentModeSchedule: (scheduleId) => apiClient.get(`/silent-mode/${scheduleId}`),

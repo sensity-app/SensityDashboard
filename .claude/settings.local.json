@@ -11,7 +11,8 @@
       "Bash(curl:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(git add:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(npm start)"
     ],
     "deny": [],
     "ask": []

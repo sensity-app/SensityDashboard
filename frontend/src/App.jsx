@@ -35,6 +35,7 @@ function App() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [needsSetup, setNeedsSetup] = useState(false);
+    const [hasUsers, setHasUsers] = useState(true);
 
     useEffect(() => {
         checkAuthAndSetup();
@@ -44,6 +45,8 @@ function App() {
         try {
             // Check if system needs initial setup
             const setupCheck = await apiService.checkSetup();
+            setHasUsers(setupCheck.hasUsers);
+
             if (setupCheck.needsSetup) {
                 setNeedsSetup(true);
                 setLoading(false);
@@ -80,6 +83,7 @@ function App() {
 
     const handleSetupComplete = (userData, token) => {
         setNeedsSetup(false);
+        setHasUsers(true);
         handleLogin(userData, token);
     };
 
@@ -94,7 +98,7 @@ function App() {
         );
     }
 
-    if (needsSetup) {
+    if (needsSetup || !hasUsers) {
         return (
             <QueryClientProvider client={queryClient}>
                 <div className="min-h-screen bg-gray-50">

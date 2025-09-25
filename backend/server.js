@@ -24,6 +24,7 @@ const deviceTagRoutes = require('./src/routes/deviceTags');
 const alertRuleRoutes = require('./src/routes/alertRules');
 const firmwareBuilderRoutes = require('./src/routes/firmwareBuilder');
 const firmwareTemplateRoutes = require('./src/routes/firmwareTemplates');
+const settingsRoutes = require('./src/routes/settings');
 
 const WebSocketService = require('./src/services/websocketService');
 const AlertEscalationService = require('./src/services/alertEscalationService');
@@ -85,6 +86,7 @@ app.use('/api/device-tags', deviceTagRoutes);
 app.use('/api/alert-rules', alertRuleRoutes);
 app.use('/api/firmware-builder', firmwareBuilderRoutes);
 app.use('/api/firmware-templates', firmwareTemplateRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // WebSocket authentication middleware
 io.use(websocketService.authenticateSocket);

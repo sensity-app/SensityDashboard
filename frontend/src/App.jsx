@@ -136,6 +136,37 @@ function AuthenticatedApp({ user, onLogout }) {
     const location = useLocation();
     const currentPath = location.pathname;
     const [dropdownOpen, setDropdownOpen] = useState(null);
+    const [appSettings, setAppSettings] = useState({
+        branding: {
+            companyName: 'IoT Monitoring Platform',
+            primaryColor: '#2563eb'
+        }
+    });
+
+    // Load app settings on mount
+    useEffect(() => {
+        const loadSettings = () => {
+            // Try to load from localStorage first
+            const savedSettings = localStorage.getItem('appSettings');
+            if (savedSettings) {
+                try {
+                    const parsed = JSON.parse(savedSettings);
+                    setAppSettings(prev => ({ ...prev, ...parsed }));
+                    // Apply branding
+                    if (parsed.branding?.primaryColor) {
+                        document.documentElement.style.setProperty('--primary-color', parsed.branding.primaryColor);
+                    }
+                } catch (error) {
+                    console.error('Error loading app settings:', error);
+                }
+            }
+        };
+
+        loadSettings();
+        // Listen for settings changes
+        window.addEventListener('storage', loadSettings);
+        return () => window.removeEventListener('storage', loadSettings);
+    }, []);
 
     const navigationItems = [
         { path: '/', label: t('nav.dashboard', 'Dashboard'), icon: '📊' },
@@ -187,7 +218,7 @@ function AuthenticatedApp({ user, onLogout }) {
                     <div className="flex justify-between items-center py-6">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900">
-                                {t('app.title', 'IoT Monitoring Platform')}
+                                {appSettings.branding?.companyName || t('app.title', 'IoT Monitoring Platform')}
                             </h1>
                             <p className="text-gray-600">
                                 {t('common.welcome', 'Welcome')}, {user.full_name || user.email}

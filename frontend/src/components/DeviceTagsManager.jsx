@@ -292,7 +292,7 @@ const DeviceTagsManager = () => {
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-200">
-                        {tags.map((tag) => (
+                        {(tags || []).map((tag) => (
                             <div key={tag.id} className="p-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
@@ -341,7 +341,7 @@ const DeviceTagsManager = () => {
                                             {t('deviceTags.assignedDevices')}:
                                         </p>
                                         <div className="flex flex-wrap gap-2">
-                                            {tag.devices.map((device) => (
+                                            {(tag.devices || []).map((device) => (
                                                 <div
                                                     key={device.id}
                                                     className="bg-gray-100 px-2 py-1 rounded-md text-sm flex items-center space-x-1"
@@ -378,7 +378,7 @@ const DeviceTagsManager = () => {
                             </div>
                         ) : (
                             <div className="space-y-2 max-h-64 overflow-y-auto">
-                                {devices.map((device) => (
+                                {(devices || []).map((device) => (
                                     <label key={device.id} className="flex items-center space-x-2">
                                         <input
                                             type="checkbox"

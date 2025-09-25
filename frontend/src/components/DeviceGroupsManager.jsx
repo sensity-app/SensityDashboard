@@ -190,7 +190,7 @@ function DeviceGroupsManager({ onClose }) {
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {groups.groups?.map((group) => (
+                                    {(groups.groups || []).map((group) => (
                                         <GroupCard
                                             key={group.id}
                                             group={group}
@@ -393,7 +393,7 @@ function GroupDetails({ group, onAddDevice, onRemoveDevice }) {
                     </div>
                 ) : (
                     <div className="space-y-2">
-                        {devices.map((device) => (
+                        {(devices || []).map((device) => (
                             <div
                                 key={device.id}
                                 className="flex items-center justify-between p-3 bg-gray-50 rounded border"
@@ -602,7 +602,7 @@ function AddDeviceToGroupForm({ group, devices, onSubmit, onClose, isLoading }) 
                                 <option value="">
                                     {t('deviceGroups.chooseDevice', 'Choose a device...')}
                                 </option>
-                                {availableDevices.map((device) => (
+                                {(availableDevices || []).map((device) => (
                                     <option key={device.id} value={device.id}>
                                         {device.name} ({device.id})
                                     </option>

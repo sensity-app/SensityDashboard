@@ -195,6 +195,14 @@ export const apiService = {
             params: { start_date: startDate, end_date: endDate, format },
             responseType: 'blob'
         }),
+
+    // Settings
+    getSettings: () => apiClient.get('/settings'),
+    updateSettings: (settings) => apiClient.put('/settings', settings),
+    uploadLogo: (formData) => apiClient.post('/settings/logo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    removeLogo: () => apiClient.delete('/settings/logo'),
 };
 
 export default apiService;

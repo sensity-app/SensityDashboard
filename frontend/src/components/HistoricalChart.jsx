@@ -57,7 +57,7 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
     const downloadData = () => {
         const csvContent = [
             ['Timestamp', 'Value', 'Min Value', 'Max Value'].join(','),
-            ...data.map(row => [
+            ...(data || []).map(row => [
                 row.formattedTime,
                 row.value,
                 row.min_value || '',

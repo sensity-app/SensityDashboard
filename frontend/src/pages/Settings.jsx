@@ -46,6 +46,53 @@ function Settings() {
         accentColor: '#1d4ed8'
     });
 
+    // Load settings from localStorage on mount as fallback
+    useEffect(() => {
+        const savedSettings = localStorage.getItem('appSettings');
+        if (savedSettings) {
+            try {
+                const parsed = JSON.parse(savedSettings);
+                if (parsed.system) {
+                    setSystemSettings(prev => ({ ...prev, ...parsed.system }));
+                }
+                if (parsed.branding) {
+                    setBrandingSettings(prev => ({ ...prev, ...parsed.branding }));
+                    // Apply saved branding
+                    if (parsed.branding.primaryColor) {
+                        document.documentElement.style.setProperty('--primary-color', parsed.branding.primaryColor);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading settings from localStorage:', error);
+            }
+        }
+    }, []);
+
+    // Query settings
+    const { data: settingsData, isLoading: settingsLoading } = useQuery(
+        'settings',
+        () => apiService.getSettings(),
+        {
+            onSuccess: (data) => {
+                if (data) {
+                    setSystemSettings(prev => ({ ...prev, ...data.system }));
+                    setBrandingSettings(prev => ({
+                        ...prev,
+                        ...data.branding,
+                        logoPreview: data.branding?.companyLogo ? `/api/settings/logo?${Date.now()}` : null
+                    }));
+                    // Apply server branding
+                    if (data.branding?.primaryColor) {
+                        document.documentElement.style.setProperty('--primary-color', data.branding.primaryColor);
+                    }
+                }
+            },
+            onError: () => {
+                // Settings endpoint might not exist yet - this is fine
+            }
+        }
+    );
+
     // Query system info
     const { data: systemInfo, isLoading: systemLoading } = useQuery(
         'system-info',
@@ -104,13 +151,42 @@ function Settings() {
         }
     };
 
-    const handleSaveSettings = async () => {
-        try {
-            // This would call a settings API endpoint when implemented
-            toast.success(t('settings.saveSuccess', 'Settings saved successfully'));
-        } catch (error) {
-            toast.error(t('settings.saveError', 'Failed to save settings'));
+    // Save settings mutation
+    const saveSettingsMutation = useMutation(
+        (settings) => apiService.updateSettings(settings),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries('settings');
+                toast.success(t('settings.saveSuccess', 'Settings saved successfully'));
+            },
+            onError: (error) => {
+                console.error('Save settings error:', error);
+                toast.error(t('settings.saveError', 'Failed to save settings'));
+            }
         }
+    );
+
+    const handleSaveSettings = async () => {
+        const allSettings = {
+            system: systemSettings,
+            branding: {
+                ...brandingSettings,
+                logoPreview: undefined // Don't send preview data
+            }
+        };
+
+        // Also save to localStorage as fallback
+        localStorage.setItem('appSettings', JSON.stringify(allSettings));
+
+        // Apply branding changes to the page
+        if (brandingSettings.primaryColor) {
+            document.documentElement.style.setProperty('--primary-color', brandingSettings.primaryColor);
+        }
+
+        // Dispatch event to notify other components of settings change
+        window.dispatchEvent(new CustomEvent('settingsChanged', { detail: allSettings }));
+
+        saveSettingsMutation.mutate(allSettings);
     };
 
     const handleLogoUpload = async (event) => {
@@ -132,7 +208,7 @@ function Settings() {
         setLogoUploading(true);
 
         try {
-            // Create preview
+            // Create preview first
             const reader = new FileReader();
             reader.onload = (e) => {
                 setBrandingSettings(prev => ({
@@ -142,26 +218,48 @@ function Settings() {
             };
             reader.readAsDataURL(file);
 
-            // Here you would upload the file to your server
-            // const formData = new FormData();
-            // formData.append('logo', file);
-            // const response = await apiService.uploadLogo(formData);
+            // Upload to server
+            const formData = new FormData();
+            formData.append('logo', file);
 
+            await apiService.uploadLogo(formData);
+
+            // Update branding settings to indicate logo exists
+            setBrandingSettings(prev => ({
+                ...prev,
+                companyLogo: file.name
+            }));
+
+            // Refresh settings to get the server logo URL
+            queryClient.invalidateQueries('settings');
             toast.success('Logo uploaded successfully');
         } catch (error) {
+            console.error('Logo upload error:', error);
             toast.error('Failed to upload logo');
+            // Reset preview on error
+            setBrandingSettings(prev => ({
+                ...prev,
+                logoPreview: null
+            }));
         } finally {
             setLogoUploading(false);
         }
     };
 
-    const removeLogo = () => {
-        setBrandingSettings(prev => ({
-            ...prev,
-            companyLogo: null,
-            logoPreview: null
-        }));
-        toast.success('Logo removed');
+    const removeLogo = async () => {
+        try {
+            await apiService.removeLogo();
+            setBrandingSettings(prev => ({
+                ...prev,
+                companyLogo: null,
+                logoPreview: null
+            }));
+            queryClient.invalidateQueries('settings');
+            toast.success('Logo removed');
+        } catch (error) {
+            console.error('Remove logo error:', error);
+            toast.error('Failed to remove logo');
+        }
     };
 
     const tabs = [
@@ -476,10 +574,20 @@ function Settings() {
                                     <div className="flex justify-end pt-6 border-t">
                                         <button
                                             onClick={handleSaveSettings}
-                                            className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                            disabled={saveSettingsMutation.isLoading}
+                                            className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            <Save className="w-4 h-4" />
-                                            <span>{t('settings.saveSettings', 'Save Settings')}</span>
+                                            {saveSettingsMutation.isLoading ? (
+                                                <>
+                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                    <span>Saving...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save className="w-4 h-4" />
+                                                    <span>{t('settings.saveSettings', 'Save Settings')}</span>
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                 </div>

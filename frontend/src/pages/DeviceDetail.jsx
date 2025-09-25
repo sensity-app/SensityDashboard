@@ -308,7 +308,7 @@ function DeviceDetail() {
                         <h2 className="text-lg font-medium text-gray-900">Recent Alerts</h2>
                     </div>
                     <div className="divide-y divide-gray-200">
-                        {alerts.slice(0, 5).map((alert) => (
+                        {(alerts || []).slice(0, 5).map((alert) => (
                             <div key={alert.id} className="p-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">

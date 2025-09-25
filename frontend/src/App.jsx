@@ -21,6 +21,7 @@ import LanguageSelector from './components/LanguageSelector';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import DeviceGroupsManager from './components/DeviceGroupsManager';
 import DeviceTagsManager from './components/DeviceTagsManager';
+import DeviceLocationsManager from './components/DeviceLocationsManager';
 import DeviceHealthDashboard from './components/DeviceHealthDashboard';
 import AlertRulesManager from './components/AlertRulesManager';
 import SilentModeManager from './components/SilentModeManager';
@@ -251,6 +252,7 @@ function AuthenticatedApp({ user, onLogout }) {
             items: [
                 { path: '/device-groups', label: t('nav.deviceGroups', 'Device Groups'), icon: '🏷️' },
                 { path: '/device-tags', label: t('nav.deviceTags', 'Device Tags'), icon: '🏷️' },
+                { path: '/device-locations', label: t('nav.deviceLocations', 'Device Locations'), icon: '📍' }
             ]
         },
         { path: '/firmware-builder', label: t('nav.firmwareBuilder', 'Firmware Builder'), icon: '🔧' },
@@ -423,6 +425,7 @@ function AuthenticatedApp({ user, onLogout }) {
                     <Route path="/analytics" element={<AnalyticsDashboard />} />
                     <Route path="/device-groups" element={<DeviceGroupsManager />} />
                     <Route path="/device-tags" element={<DeviceTagsManager />} />
+                    <Route path="/device-locations" element={<DeviceLocationsManager />} />
                     <Route path="/device-health" element={<DeviceHealthDashboard />} />
                     <Route path="/alert-rules" element={<AlertRulesManager />} />
                     <Route path="/silent-mode" element={<SilentModeManager />} />

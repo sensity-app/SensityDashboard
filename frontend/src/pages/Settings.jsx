@@ -669,6 +669,24 @@ function Settings() {
                                     </div>
                                 ) : (
                                     <>
+                                        {/* No environment variables message */}
+                                        {(!envVars || Object.keys(envVars).length === 0) && (
+                                            <div className="mb-6 p-6 bg-yellow-50 border border-yellow-200 rounded-md">
+                                                <div className="flex">
+                                                    <Info className="h-5 w-5 text-yellow-400" />
+                                                    <div className="ml-3">
+                                                        <h3 className="text-sm font-medium text-yellow-800">No Environment Variables Found</h3>
+                                                        <p className="mt-2 text-sm text-yellow-700">
+                                                            The .env file doesn't exist or is empty. Environment variables are used to configure your application settings like database connections, API keys, and other sensitive configurations.
+                                                        </p>
+                                                        <p className="mt-2 text-sm text-yellow-700">
+                                                            You can create environment variables below, and they will be saved to your .env file automatically.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Validation Messages */}
                                         {envValidation.errors?.length > 0 && (
                                             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
@@ -698,6 +716,81 @@ function Settings() {
                                                             ))}
                                                         </ul>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Simple form to add environment variables when none exist */}
+                                        {(!envVars || Object.keys(envVars).length === 0) && (
+                                            <div className="mb-8">
+                                                <h4 className="text-md font-semibold text-gray-800 mb-4 border-b pb-2">
+                                                    Add Environment Variables
+                                                </h4>
+                                                <div className="space-y-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 bg-gray-50 rounded-lg">
+                                                        <div>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Variable Name (e.g., DB_HOST)"
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Tab' || e.key === 'Enter') {
+                                                                        e.preventDefault();
+                                                                        const key = e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '');
+                                                                        if (key) {
+                                                                            e.target.value = key;
+                                                                            e.target.nextSibling.focus();
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div className="md:col-span-2">
+                                                            <div className="flex items-center space-x-2">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Value"
+                                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            const keyInput = e.target.parentElement.parentElement.previousSibling.firstChild;
+                                                                            const key = keyInput.value.trim();
+                                                                            const value = e.target.value.trim();
+
+                                                                            if (key && value) {
+                                                                                handleEnvVarChange(key, value);
+                                                                                keyInput.value = '';
+                                                                                e.target.value = '';
+                                                                                keyInput.focus();
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        const keyInput = e.target.closest('.grid').querySelector('input[placeholder*="Variable Name"]');
+                                                                        const valueInput = e.target.closest('.flex').querySelector('input[placeholder="Value"]');
+                                                                        const key = keyInput.value.trim();
+                                                                        const value = valueInput.value.trim();
+
+                                                                        if (key && value) {
+                                                                            handleEnvVarChange(key, value);
+                                                                            keyInput.value = '';
+                                                                            valueInput.value = '';
+                                                                            keyInput.focus();
+                                                                        }
+                                                                    }}
+                                                                    className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                                                                >
+                                                                    Add
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500">
+                                                        Press Tab to format variable names, or Enter to add the variable
+                                                    </p>
                                                 </div>
                                             </div>
                                         )}

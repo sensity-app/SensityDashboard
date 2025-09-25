@@ -90,7 +90,8 @@ function UserManagement() {
                     >
                         <UserPlus className="h-4 w-4" />
                         <span>{t('users.inviteUser', 'Invite User')}</span>
-                </button>
+                    </button>
+                </div>
             </div>
 
             {/* Existing Users */}

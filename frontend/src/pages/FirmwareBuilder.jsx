@@ -696,18 +696,6 @@ const FirmwareBuilder = () => {
                                 </div>
                             </div>
                         )}
-
-                        <div className="space-y-4">
-                            {Object.entries(sensorOptions).map(([type, info]) => renderSensorConfig(type, info))}
-                        </div>
-                    </div>
-
-                    {/* Pin Mapping Reference */}
-                    <div>
-                        <div className="flex items-center space-x-2 mb-4">
-                            <Info className="w-5 h-5 text-gray-700" />
-                            <h2 className="text-lg font-semibold text-gray-900">Pin Mapping Reference</h2>
-                        </div>
                         <div className="bg-gray-50 rounded-lg p-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                 {Object.entries(pinMapping).map(([pin, description]) => (

@@ -348,7 +348,7 @@ function AuthenticatedApp({ user, onLogout }) {
             </header>
 
             {/* Modern Navigation */}
-            <nav className="glass-dark relative border-t border-white/10">
+            <nav className="glass-dark relative border-t border-white/10 z-40">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex space-x-1">
                         {navigationItems.map((item, index) => (
@@ -360,7 +360,7 @@ function AuthenticatedApp({ user, onLogout }) {
                                             className={`flex items-center space-x-2 px-4 py-4 text-sm font-medium transition-all duration-200 rounded-t-lg ${
                                                 isPathActive(item.path, item.items)
                                                     ? 'text-white bg-white/20 backdrop-blur-sm shadow-lg'
-                                                    : 'text-gray-300 hover:text-white hover:bg-white/10'
+                                                    : 'text-gray-200 hover:text-white hover:bg-white/10'
                                             }`}
                                         >
                                             <span className="text-base">{item.icon}</span>
@@ -370,7 +370,7 @@ function AuthenticatedApp({ user, onLogout }) {
                                             }`} />
                                         </button>
                                         {dropdownOpen === index && (
-                                            <div className="absolute top-full left-0 w-56 glass rounded-b-xl border-t-0 shadow-xl z-50 animate-fade-in">
+                                            <div className="absolute top-full left-0 w-56 glass rounded-b-xl border-t-0 shadow-xl z-[60] animate-fade-in">
                                                 {item.items.map((subItem) => (
                                                     <button
                                                         key={subItem.path}
@@ -397,7 +397,7 @@ function AuthenticatedApp({ user, onLogout }) {
                                         className={`flex items-center space-x-2 px-4 py-4 text-sm font-medium transition-all duration-200 rounded-lg ${
                                             currentPath === item.path
                                                 ? 'text-white bg-primary shadow-lg border-b-2 border-primary-hover'
-                                                : 'text-gray-300 hover:text-white hover:bg-white/10'
+                                                : 'text-gray-200 hover:text-white hover:bg-white/10'
                                         }`}
                                     >
                                         <span className="text-base">{item.icon}</span>

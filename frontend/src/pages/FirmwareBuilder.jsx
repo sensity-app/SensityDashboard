@@ -68,7 +68,7 @@ const FirmwareBuilder = () => {
         debug_mode: false,
         ota_enabled: true,
         device_armed: true,
-        sensors: {}
+        sensors: []
     });
 
     // Load sensor options and locations on component mount
@@ -122,32 +122,59 @@ const FirmwareBuilder = () => {
         }));
     };
 
-    const handleSensorChange = (sensorType, enabled) => {
+    const addSensor = (sensorType) => {
         const sensorInfo = sensorOptions[sensorType];
+        const sensorId = `${sensorType}_${Date.now()}`;
+
+        // Get available pins based on sensor type
+        let availablePinsForSensor = [];
+        if (sensorInfo.pin_type === 'analog') {
+            availablePinsForSensor = availablePins.analog || [];
+        } else if (sensorInfo.pin_type === 'digital') {
+            availablePinsForSensor = availablePins.digital || [];
+        } else {
+            availablePinsForSensor = [...(availablePins.digital || []), ...(availablePins.analog || [])];
+        }
+
+        // Find first available pin that's not already used
+        const usedPins = getUsedPins();
+        let availablePin = '';
+
+        for (const pinOption of availablePinsForSensor) {
+            const pinValue = typeof pinOption === 'string' ? pinOption : pinOption.pin;
+            if (!usedPins[pinValue]) {
+                availablePin = pinValue;
+                break;
+            }
+        }
+
+        const newSensor = {
+            id: sensorId,
+            type: sensorType,
+            name: `${sensorInfo.name} ${config.sensors.filter(s => s.type === sensorType).length + 1}`,
+            pin: availablePin || (availablePinsForSensor[0]?.pin || availablePinsForSensor[0] || ''),
+            enabled: true
+        };
+
         setConfig(prev => ({
             ...prev,
-            sensors: {
-                ...prev.sensors,
-                [sensorType]: enabled
-                    ? {
-                        enabled: true,
-                        pin: sensorInfo?.default_pin || sensorInfo?.pins?.[0] || 'D4'
-                      }
-                    : { enabled: false }
-            }
+            sensors: [...prev.sensors, newSensor]
         }));
     };
 
-    const handleSensorConfigChange = (sensorType, key, value) => {
+    const removeSensor = (sensorId) => {
         setConfig(prev => ({
             ...prev,
-            sensors: {
-                ...prev.sensors,
-                [sensorType]: {
-                    ...prev.sensors[sensorType],
-                    [key]: value
-                }
-            }
+            sensors: prev.sensors.filter(s => s.id !== sensorId)
+        }));
+    };
+
+    const updateSensor = (sensorId, key, value) => {
+        setConfig(prev => ({
+            ...prev,
+            sensors: prev.sensors.map(sensor =>
+                sensor.id === sensorId ? { ...sensor, [key]: value } : sensor
+            )
         }));
     };
 
@@ -160,31 +187,11 @@ const FirmwareBuilder = () => {
         if (!config.server_url) errors.push('Server URL is required');
 
         // Check for pin conflicts
-        const usedPins = {};
-        const enabledSensors = Object.keys(config.sensors).filter(key => config.sensors[key]?.enabled);
+        const usedPins = getUsedPins();
+        const pinConflicts = Object.entries(usedPins).filter(([pin, sensors]) => sensors.length > 1);
 
-        for (const sensorType of enabledSensors) {
-            const sensorConfig = config.sensors[sensorType];
-            const sensorInfo = sensorOptions[sensorType];
-
-            // Get the actual pin(s) used by this sensor
-            let sensorPins = [];
-            if (sensorConfig.pin) {
-                // Handle distance sensors which use two pins (e.g., "D5,D6")
-                sensorPins = sensorConfig.pin.includes(',') ? sensorConfig.pin.split(',') : [sensorConfig.pin];
-            } else if (sensorInfo?.pins) {
-                // Fallback to default pins if no pin is configured
-                sensorPins = sensorInfo.pins;
-            }
-
-            for (const pin of sensorPins) {
-                const trimmedPin = pin.trim();
-                if (usedPins[trimmedPin]) {
-                    errors.push(`Pin ${trimmedPin} conflict: ${sensorType} and ${usedPins[trimmedPin]}`);
-                } else {
-                    usedPins[trimmedPin] = sensorType;
-                }
-            }
+        for (const [pin, sensors] of pinConflicts) {
+            errors.push(`Pin ${pin} conflict: ${sensors.join(', ')}`);
         }
 
         return errors;
@@ -296,30 +303,22 @@ const FirmwareBuilder = () => {
         { id: 'review', title: 'Review & Build', icon: BarChart3, description: 'Review configuration and build firmware' }
     ];
 
-    const enabledSensorsCount = Object.values(config.sensors).filter(s => s?.enabled).length;
+    const enabledSensorsCount = config.sensors.length;
 
     // Check for pin conflicts more accurately
     const getUsedPins = () => {
         const usedPins = {};
-        const enabledSensors = Object.keys(config.sensors).filter(key => config.sensors[key]?.enabled);
 
-        for (const sensorType of enabledSensors) {
-            const sensorConfig = config.sensors[sensorType];
-            const sensorInfo = sensorOptions[sensorType];
-
-            let sensorPins = [];
-            if (sensorConfig.pin && typeof sensorConfig.pin === 'string' && sensorConfig.pin.trim()) {
-                sensorPins = sensorConfig.pin.includes(',') ? sensorConfig.pin.split(',') : [sensorConfig.pin];
-            } else if (sensorInfo?.default_pin && typeof sensorInfo.default_pin === 'string' && sensorInfo.default_pin.trim()) {
-                sensorPins = sensorInfo.default_pin.includes(',') ? sensorInfo.default_pin.split(',') : [sensorInfo.default_pin];
-            }
-
-            for (const pin of sensorPins) {
-                const trimmedPin = pin.trim();
-                if (usedPins[trimmedPin]) {
-                    usedPins[trimmedPin].push(sensorType);
-                } else {
-                    usedPins[trimmedPin] = [sensorType];
+        for (const sensor of config.sensors) {
+            if (sensor.pin && sensor.pin.trim()) {
+                const pins = sensor.pin.includes(',') ? sensor.pin.split(',') : [sensor.pin];
+                for (const pin of pins) {
+                    const trimmedPin = pin.trim();
+                    if (usedPins[trimmedPin]) {
+                        usedPins[trimmedPin].push(sensor.name);
+                    } else {
+                        usedPins[trimmedPin] = [sensor.name];
+                    }
                 }
             }
         }

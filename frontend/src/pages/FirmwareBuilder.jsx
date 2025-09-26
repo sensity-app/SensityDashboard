@@ -356,8 +356,9 @@ const FirmwareBuilder = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
-            <div className="max-w-6xl mx-auto px-6">
+        <>
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+                <div className="max-w-6xl mx-auto px-6">
                 {/* Modern Header */}
                 <div className="card animate-fade-in mb-8">
                     <div className="flex items-center justify-between">
@@ -710,10 +711,8 @@ const FirmwareBuilder = () => {
                                     <span>Sensor Selection</span>
                                 </h2>
                             </div>
-                            <div>
-
-                        {/* Sensor Configuration */}
-                        <div className="space-y-6">
+                            <div className="space-y-6">
+                                {/* Sensor Configuration */}
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-semibold text-gray-900">Available Sensors</h3>
                             <div className="flex items-center space-x-4 text-sm text-gray-600">
@@ -755,25 +754,24 @@ const FirmwareBuilder = () => {
                             </div>
                         </div>
 
-                            {/* Step Navigation */}
-                            <div className="flex justify-between pt-6 border-t border-gray-200">
-                                <button
-                                    onClick={prevStep}
-                                    className="btn-secondary flex items-center space-x-2"
-                                >
-                                    <ArrowLeft className="w-4 h-4" />
-                                    <span>Previous: Network Config</span>
-                                </button>
-                                <button
-                                    onClick={nextStep}
-                                    disabled={enabledSensorsCount === 0 || pinConflicts.length > 0}
-                                    className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <span>Next: Review & Build</span>
-                                    <ArrowRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
+                                {/* Step Navigation */}
+                                <div className="flex justify-between pt-6 border-t border-gray-200">
+                                    <button
+                                        onClick={prevStep}
+                                        className="btn-secondary flex items-center space-x-2"
+                                    >
+                                        <ArrowLeft className="w-4 h-4" />
+                                        <span>Previous: Network Config</span>
+                                    </button>
+                                    <button
+                                        onClick={nextStep}
+                                        disabled={enabledSensorsCount === 0 || pinConflicts.length > 0}
+                                        className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <span>Next: Review & Build</span>
+                                        <ArrowRight className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -788,13 +786,12 @@ const FirmwareBuilder = () => {
                                 </h2>
                             </div>
                             <div className="space-y-6">
-
-                    {/* Build Actions */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Build Firmware</h3>
-                                <p className="text-sm text-gray-600">
+                                {/* Build Actions */}
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Build Firmware</h3>
+                                            <p className="text-sm text-gray-600">
                                     {enabledSensorsCount} sensor{enabledSensorsCount !== 1 ? 's' : ''} configured
                                     {pinConflicts.length > 0 && (
                                         <span className="text-red-600 ml-2">
@@ -863,31 +860,33 @@ const FirmwareBuilder = () => {
                     )}
 
                     {/* Step Navigation */}
-                        <div className="flex justify-between pt-6 border-t border-gray-200">
-                            <button
-                                onClick={prevStep}
-                                className="btn-secondary flex items-center space-x-2"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                                <span>Previous: Sensor Selection</span>
-                            </button>
-                            <div className="text-sm text-gray-600">
-                                Final step - Build your firmware above
-                            </div>
+                    <div className="flex justify-between pt-6 border-t border-gray-200">
+                        <button
+                            onClick={prevStep}
+                            className="btn-secondary flex items-center space-x-2"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            <span>Previous: Sensor Selection</span>
+                        </button>
+                        <div className="text-sm text-gray-600">
+                            Final step - Build your firmware above
                         </div>
                     </div>
-                    )}
                 </div>
             </div>
-
-            {/* Web Flasher Modal */}
-            {showWebFlasher && (
-                <WebFlasher
-                    config={config}
-                    onClose={() => setShowWebFlasher(false)}
-                />
-            )}
+        )}
+                </div>
+            </div>
         </div>
+
+        {/* Web Flasher Modal */}
+        {showWebFlasher && (
+            <WebFlasher
+                config={config}
+                onClose={() => setShowWebFlasher(false)}
+            />
+        )}
+        </>
     );
 };
 

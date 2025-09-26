@@ -94,7 +94,7 @@ function DeviceLocationsManager() {
         }
     );
 
-    const locations = Array.isArray(locationsData?.data?.locations) ? locationsData.data.locations : [];
+    const locations = Array.isArray(locationsData?.locations) ? locationsData.locations : [];
 
     const resetForm = () => {
         setFormData({

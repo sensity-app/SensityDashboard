@@ -254,6 +254,17 @@ const FirmwareBuilder = () => {
 
         setLoading(true);
         try {
+            // Debug: Log the config being sent
+            console.log('Sending firmware build request with config:', config);
+            console.log('Required fields check:', {
+                device_id: config.device_id,
+                device_name: config.device_name,
+                wifi_ssid: config.wifi_ssid,
+                wifi_password: config.wifi_password,
+                open_wifi: config.open_wifi,
+                server_url: config.server_url
+            });
+
             // First, build the firmware
             const response = await fetch('/api/firmware-builder/build', {
                 method: 'POST',

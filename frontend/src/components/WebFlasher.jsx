@@ -14,9 +14,33 @@ const WebFlasher = ({ config, onClose }) => {
 
     React.useEffect(() => {
         // Check if browser supports WebSerial API
-        if ('serial' in navigator) {
-            setSupportsWebSerial(true);
-        }
+        const checkWebSerialSupport = () => {
+            console.log('Checking Web Serial API support...');
+            console.log('navigator.serial exists:', 'serial' in navigator);
+            console.log('Is secure context (HTTPS/localhost):', window.isSecureContext);
+            console.log('User agent:', navigator.userAgent);
+            console.log('Location protocol:', window.location.protocol);
+            console.log('Location hostname:', window.location.hostname);
+
+            if ('serial' in navigator) {
+                console.log('Web Serial API is available!');
+                setSupportsWebSerial(true);
+                addLog('Web Serial API detected - web flashing available', 'success');
+            } else {
+                console.log('Web Serial API is NOT available');
+                const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+                const chromeVersion = navigator.userAgent.match(/Chrome\/(\d+)/)?.[1];
+
+                addLog(`Web Serial API not available. Chrome: ${isChrome}, Version: ${chromeVersion || 'unknown'}`, 'error');
+                addLog(`Secure context: ${window.isSecureContext}, Protocol: ${window.location.protocol}`, 'info');
+
+                if (!window.isSecureContext && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                    addLog('Web Serial API requires HTTPS or localhost', 'error');
+                }
+            }
+        };
+
+        checkWebSerialSupport();
     }, []);
 
     React.useEffect(() => {
@@ -208,11 +232,32 @@ const WebFlasher = ({ config, onClose }) => {
                             <AlertTriangle className="w-6 h-6 text-orange-500" />
                             <h3 className="text-lg font-semibold">Browser Not Supported</h3>
                         </div>
-                        <p className="text-gray-600 mb-6">
-                            Web-based flashing requires a browser that supports the WebSerial API.
-                            Please use Chrome 89+ or Edge 89+, or download the firmware files instead.
-                        </p>
+                        <div className="text-gray-600 mb-6 space-y-3">
+                            <p>
+                                Web-based flashing requires a browser that supports the WebSerial API.
+                            </p>
+                            <div className="bg-gray-50 p-4 rounded-lg text-sm">
+                                <p className="font-semibold text-gray-800 mb-2">To enable web flashing:</p>
+                                <ul className="list-disc list-inside space-y-1">
+                                    <li>Use Chrome 89+ or Edge 89+ (You appear to be using Chrome {navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] || 'unknown'})</li>
+                                    <li>Access the site via HTTPS or localhost</li>
+                                    <li>Enable "Experimental Web Platform features" in chrome://flags</li>
+                                    <li>Restart your browser after enabling the flag</li>
+                                </ul>
+                            </div>
+                            <p className="text-sm">
+                                Current context: {window.isSecureContext ? '✅ Secure (HTTPS/localhost)' : '❌ Not secure'} |
+                                Protocol: {window.location.protocol} |
+                                WebSerial: {'serial' in navigator ? '✅ Available' : '❌ Not available'}
+                            </p>
+                        </div>
                         <div className="flex space-x-3">
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="px-4 py-2 text-green-600 border border-green-600 rounded-lg hover:bg-green-50"
+                            >
+                                Retry Detection
+                            </button>
                             <button
                                 onClick={downloadInsteadOfFlash}
                                 className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

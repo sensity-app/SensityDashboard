@@ -14,6 +14,7 @@ router.post('/build', async (req, res) => {
             device_location,
             wifi_ssid,
             wifi_password,
+            open_wifi = false,
 
             // Server configuration
             server_url,
@@ -30,11 +31,23 @@ router.post('/build', async (req, res) => {
             sensors = {}
         } = req.body;
 
+        // Debug: Log the received data
+        console.log('Firmware builder request body:', JSON.stringify(req.body, null, 2));
+        console.log('Extracted fields:', { device_id, device_name, wifi_ssid, wifi_password: wifi_password ? '***' : undefined, open_wifi, server_url });
+
         // Validate required fields
-        if (!device_id || !device_name || !wifi_ssid || !wifi_password || !server_url) {
+        if (!device_id || !device_name || !wifi_ssid || !server_url) {
             return res.status(400).json({
                 success: false,
-                error: 'Missing required fields: device_id, device_name, wifi_ssid, wifi_password, server_url'
+                error: 'Missing required fields: device_id, device_name, wifi_ssid, server_url'
+            });
+        }
+
+        // Validate wifi_password is required only if not using open wifi
+        if (!open_wifi && !wifi_password) {
+            return res.status(400).json({
+                success: false,
+                error: 'WiFi password is required when not using open WiFi'
             });
         }
 

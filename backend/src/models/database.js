@@ -492,6 +492,39 @@ const runMigrations = async () => {
         //     name: '001_add_device_location_index',
         //     sql: 'CREATE INDEX IF NOT EXISTS idx_devices_location ON devices(location_id);'
         // }
+        {
+            name: '001_add_alert_rule_templates',
+            sql: `
+                -- Alert Rule Templates table for reusable alert configurations
+                CREATE TABLE IF NOT EXISTS alert_rule_templates (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    sensor_type VARCHAR(50),
+                    rule_config JSONB NOT NULL,
+                    is_system_template BOOLEAN DEFAULT false,
+                    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                -- Update sensor_rules table to support complex conditions
+                ALTER TABLE sensor_rules
+                ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT true,
+                ADD COLUMN IF NOT EXISTS complex_conditions JSONB,
+                ADD COLUMN IF NOT EXISTS evaluation_window_minutes INTEGER DEFAULT 5,
+                ADD COLUMN IF NOT EXISTS consecutive_violations_required INTEGER DEFAULT 1,
+                ADD COLUMN IF NOT EXISTS cooldown_minutes INTEGER DEFAULT 15,
+                ADD COLUMN IF NOT EXISTS message TEXT,
+                ADD COLUMN IF NOT EXISTS tags TEXT[],
+                ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id) ON DELETE SET NULL;
+
+                -- Create indexes for alert rule templates
+                CREATE INDEX IF NOT EXISTS idx_alert_rule_templates_sensor_type ON alert_rule_templates(sensor_type);
+                CREATE INDEX IF NOT EXISTS idx_alert_rule_templates_system ON alert_rule_templates(is_system_template);
+                CREATE INDEX IF NOT EXISTS idx_sensor_rules_device_sensor ON sensor_rules(device_sensor_id);
+            `
+        }
     ];
 
     for (const migration of migrations) {

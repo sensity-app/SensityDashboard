@@ -137,6 +137,8 @@ export const apiService = {
     deleteUser: (userId) => apiClient.delete(`/users/${userId}`),
     changePassword: (currentPassword, newPassword) =>
         apiClient.post('/auth/change-password', { currentPassword, newPassword }),
+    getUserLocations: (userId) => apiClient.get(`/users/${userId}/locations`),
+    updateUserLocations: (userId, locationIds) => apiClient.post(`/users/${userId}/locations`, { locationIds }),
 
     // Alerts (for dashboard)
     getRecentAlerts: (limit = 10) => apiClient.get('/alerts', { params: { limit, status: 'active' } }),

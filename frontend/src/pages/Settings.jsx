@@ -41,6 +41,7 @@ function Settings() {
         alertsEnabled: true,
         maintenanceMode: false
     });
+    const [showSensitive, setShowSensitive] = useState({});
 
     const [brandingSettings, setBrandingSettings] = useState({
         companyName: 'ESP8266 IoT Platform',
@@ -808,7 +809,7 @@ function Settings() {
                                                     <div className="space-y-4">
                                                         {categoryVars.map(varName => {
                                                             const isSensitive = envData.sensitiveKeys?.includes(varName);
-                                                            const [showSensitive, setShowSensitive] = React.useState(false);
+                                                            const isVisible = showSensitive[varName] || false;
 
                                                             return (
                                                                 <div key={varName} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 bg-gray-50 rounded-lg">
@@ -825,7 +826,7 @@ function Settings() {
                                                                     <div className="md:col-span-2">
                                                                         <div className="flex items-center space-x-2">
                                                                             <input
-                                                                                type={isSensitive && !showSensitive ? 'password' : 'text'}
+                                                                                type={isSensitive && !isVisible ? 'password' : 'text'}
                                                                                 value={envVars[varName] || ''}
                                                                                 onChange={(e) => handleEnvVarChange(varName, e.target.value)}
                                                                                 placeholder={isSensitive ? '***MASKED***' : `Enter ${varName}`}
@@ -835,10 +836,10 @@ function Settings() {
                                                                             {isSensitive && (
                                                                                 <button
                                                                                     type="button"
-                                                                                    onClick={() => setShowSensitive(!showSensitive)}
+                                                                                    onClick={() => setShowSensitive(prev => ({ ...prev, [varName]: !isVisible }))}
                                                                                     className="p-2 text-gray-400 hover:text-gray-600"
                                                                                 >
-                                                                                    {showSensitive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                                                    {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                                                                 </button>
                                                                             )}
                                                                         </div>

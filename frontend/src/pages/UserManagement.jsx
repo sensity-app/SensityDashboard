@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -62,11 +62,14 @@ function UserManagement() {
     };
 
     // Query invitations
-    const { data: invitations = [], isLoading: invitationsLoading } = useQuery(
+    const { data: invitationsData, isLoading: invitationsLoading } = useQuery(
         'invitations',
         () => apiService.getInvitations(),
         { refetchInterval: 10000 }
     );
+
+    // Safely handle invitations API response
+    const invitations = Array.isArray(invitationsData?.invitations) ? invitationsData.invitations : [];
 
     return (
         <div className="space-y-8 animate-fade-in">
@@ -331,6 +334,43 @@ function InviteUserModal({ user, onClose }) {
         fullName: user?.full_name || '',
         role: user?.role || 'viewer'
     });
+    const [selectedLocations, setSelectedLocations] = useState([]);
+
+    // Query locations for access management
+    const { data: locationsData } = useQuery('locations', () => apiService.getLocations());
+    const locations = Array.isArray(locationsData) ? locationsData : (Array.isArray(locationsData?.locations) ? locationsData.locations : []);
+
+    // Query user's current locations if editing
+    const { data: userLocationsData } = useQuery(
+        ['user-locations', user?.id],
+        () => apiService.getUserLocations(user.id),
+        { enabled: isEditing && !!user?.id }
+    );
+
+    // Set initial selected locations when editing
+    useEffect(() => {
+        if (isEditing && userLocationsData?.locations) {
+            setSelectedLocations(userLocationsData.locations.map(loc => loc.id));
+        }
+    }, [isEditing, userLocationsData]);
+
+    // Update form data when user prop changes
+    useEffect(() => {
+        if (user) {
+            setFormData({
+                email: user.email || '',
+                fullName: user.full_name || '',
+                role: user.role || 'viewer'
+            });
+        } else {
+            setFormData({
+                email: '',
+                fullName: '',
+                role: 'viewer'
+            });
+            setSelectedLocations([]);
+        }
+    }, [user]);
 
     const inviteMutation = useMutation(
         (data) => apiService.inviteUser(data),
@@ -348,10 +388,16 @@ function InviteUserModal({ user, onClose }) {
     );
 
     const updateUserMutation = useMutation(
-        ({ userId, userData }) => apiService.updateUser(userId, userData),
+        async ({ userId, userData, locationIds }) => {
+            await apiService.updateUser(userId, userData);
+            if (Array.isArray(locationIds)) {
+                await apiService.updateUserLocations(userId, locationIds);
+            }
+        },
         {
             onSuccess: () => {
                 queryClient.invalidateQueries('users');
+                queryClient.invalidateQueries(['user-locations', user?.id]);
                 toast.success(t('users.updateSuccess', 'User updated successfully'));
                 onClose();
             },
@@ -371,7 +417,8 @@ function InviteUserModal({ user, onClose }) {
                 userData: {
                     full_name: formData.fullName,
                     role: formData.role
-                }
+                },
+                locationIds: selectedLocations
             });
         } else {
             inviteMutation.mutate(formData);
@@ -447,6 +494,37 @@ function InviteUserModal({ user, onClose }) {
                                 <option value="admin">{t('roles.admin', 'Administrator')}</option>
                             </select>
                         </div>
+
+                        {/* Location Access Management */}
+                        {isEditing && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    {t('users.locationAccess', 'Location Access')}
+                                </label>
+                                <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+                                    {locations.map(location => (
+                                        <label key={location.id} className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedLocations.includes(location.id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedLocations([...selectedLocations, location.id]);
+                                                    } else {
+                                                        setSelectedLocations(selectedLocations.filter(id => id !== location.id));
+                                                    }
+                                                }}
+                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700">{location.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="mt-1 text-xs text-gray-500">
+                                    {t('users.locationAccessHelp', 'Select which locations this user can access')}
+                                </p>
+                            </div>
+                        )}
 
                         <div className="mt-6 flex space-x-3">
                             <button

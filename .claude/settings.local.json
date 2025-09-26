@@ -17,7 +17,11 @@
       "Bash(echo:*)",
       "Bash(brew install:*)",
       "Bash(sudo xcodebuild:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(brew list:*)",
+      "Bash(brew services start:*)",
+      "Bash(git commit:*)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []

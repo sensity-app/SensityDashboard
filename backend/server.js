@@ -27,6 +27,7 @@ const firmwareTemplateRoutes = require('./src/routes/firmwareTemplates');
 const settingsRoutes = require('./src/routes/settings');
 const silentModeRoutes = require('./src/routes/silentMode');
 const protocolSettingsRoutes = require('./src/routes/protocolSettings');
+const systemRoutes = require('./src/routes/system');
 
 const WebSocketService = require('./src/services/websocketService');
 const AlertEscalationService = require('./src/services/alertEscalationService');
@@ -91,6 +92,7 @@ app.use('/api/firmware-templates', firmwareTemplateRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/silent-mode', silentModeRoutes);
 app.use('/api/protocol-settings', protocolSettingsRoutes);
+app.use('/api/system', systemRoutes);
 
 // WebSocket authentication middleware
 io.use(websocketService.authenticateSocket);

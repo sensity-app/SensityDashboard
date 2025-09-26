@@ -305,6 +305,16 @@ CREATE TABLE IF NOT EXISTS device_tag_assignments (
     UNIQUE(tag_id, device_id)
 );
 
+-- User Location Access (many-to-many relationship)
+CREATE TABLE IF NOT EXISTS user_location_access (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
+    granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    granted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE(user_id, location_id)
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_telemetry_device_sensor_time ON telemetry(device_id, device_sensor_id, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry(timestamp DESC);
@@ -324,6 +334,8 @@ CREATE INDEX IF NOT EXISTS idx_device_group_members_group ON device_group_member
 CREATE INDEX IF NOT EXISTS idx_device_group_members_device ON device_group_members(device_id);
 CREATE INDEX IF NOT EXISTS idx_device_tag_assignments_tag ON device_tag_assignments(tag_id);
 CREATE INDEX IF NOT EXISTS idx_device_tag_assignments_device ON device_tag_assignments(device_id);
+CREATE INDEX IF NOT EXISTS idx_user_location_access_user ON user_location_access(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_location_access_location ON user_location_access(location_id);
 
 -- Insert default sensor types
 INSERT INTO sensor_types (name, unit, min_value, max_value, description, icon) VALUES

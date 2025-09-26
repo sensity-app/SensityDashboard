@@ -28,7 +28,7 @@ router.get('/', authenticateToken, requireAdmin, [
         let countQuery = 'SELECT COUNT(*) as total FROM users';
         let query = `
             SELECT
-                id, email, role, phone, notification_email, notification_sms,
+                id, email, role, phone, full_name, notification_email, notification_sms,
                 notification_push, created_at, updated_at
             FROM users
         `;
@@ -88,7 +88,7 @@ router.get('/:id', [
 
         const result = await db.query(`
             SELECT
-                id, email, role, phone, notification_email, notification_sms,
+                id, email, role, phone, full_name, notification_email, notification_sms,
                 notification_push, created_at, updated_at
             FROM users
             WHERE id = $1
@@ -434,6 +434,94 @@ router.get('/statistics', authenticateToken, requireAdmin, async (req, res) => {
     } catch (error) {
         logger.error('Get user statistics error:', error);
         res.status(500).json({ error: 'Failed to get user statistics' });
+    }
+});
+
+// GET /api/users/:id/locations - Get user's accessible locations
+router.get('/:id/locations', [
+    param('id').isInt({ min: 1 })
+], authenticateToken, async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { id } = req.params;
+
+        // Users can only view their own locations unless they're admin
+        if (req.user.role !== 'admin' && req.user.userId !== parseInt(id)) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        const result = await db.query(`
+            SELECT l.id, l.name, l.description, l.timezone,
+                   l.latitude, l.longitude, ula.granted_at
+            FROM locations l
+            JOIN user_location_access ula ON l.id = ula.location_id
+            WHERE ula.user_id = $1
+            ORDER BY l.name
+        `, [id]);
+
+        res.json({ locations: result.rows });
+    } catch (error) {
+        logger.error('Get user locations error:', error);
+        res.status(500).json({ error: 'Failed to get user locations' });
+    }
+});
+
+// POST /api/users/:id/locations - Grant user access to locations (admin only)
+router.post('/:id/locations', [
+    param('id').isInt({ min: 1 }),
+    body('locationIds').isArray().custom((arr) => {
+        return arr.every(id => Number.isInteger(id) && id > 0);
+    })
+], authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { id } = req.params;
+        const { locationIds } = req.body;
+
+        // Check if user exists
+        const userResult = await db.query('SELECT id FROM users WHERE id = $1', [id]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Grant access to locations
+        const client = await db.getClient();
+        try {
+            await client.query('BEGIN');
+
+            // Remove existing access
+            await client.query('DELETE FROM user_location_access WHERE user_id = $1', [id]);
+
+            // Grant new access
+            if (locationIds.length > 0) {
+                const insertQuery = `
+                    INSERT INTO user_location_access (user_id, location_id, granted_by)
+                    VALUES ${locationIds.map((_, i) => `($1, $${i + 2}, $${locationIds.length + 2})`).join(', ')}
+                `;
+                await client.query(insertQuery, [id, ...locationIds, req.user.userId]);
+            }
+
+            await client.query('COMMIT');
+            logger.info(`Location access updated for user ${id} by ${req.user.email}`);
+
+            res.json({ message: 'Location access updated successfully' });
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        logger.error('Update user location access error:', error);
+        res.status(500).json({ error: 'Failed to update location access' });
     }
 });
 

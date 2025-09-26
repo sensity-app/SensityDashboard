@@ -4,6 +4,56 @@ const fs = require('fs').promises;
 const path = require('path');
 const JSZip = require('jszip');
 
+// Convert sensor array from frontend to object format expected by generateDeviceConfig
+function convertSensorArrayToObject(sensorsArray) {
+    const sensorsObject = {};
+
+    if (!Array.isArray(sensorsArray)) {
+        console.log('Sensors is not an array, returning as-is');
+        return sensorsArray || {};
+    }
+
+    // Convert array of sensor objects to the expected format
+    sensorsArray.forEach(sensor => {
+        if (sensor.type && sensor.enabled) {
+            const sensorConfig = {
+                enabled: true,
+                pin: sensor.pin,
+                name: sensor.name
+            };
+
+            // Add type-specific properties
+            switch (sensor.type) {
+                case 'light':
+                    sensorConfig.min = sensor.light_min || 100;
+                    sensorConfig.max = sensor.light_max || 900;
+                    sensorConfig.calibration_offset = sensor.light_calibration_offset || 0.0;
+                    sensorConfig.calibration_multiplier = sensor.light_calibration_multiplier || 1.0;
+                    break;
+                case 'temperature_humidity':
+                    sensorConfig.temperature_min = sensor.temperature_min || -10.0;
+                    sensorConfig.temperature_max = sensor.temperature_max || 40.0;
+                    sensorConfig.humidity_min = sensor.humidity_min || 20.0;
+                    sensorConfig.humidity_max = sensor.humidity_max || 80.0;
+                    break;
+                case 'motion':
+                    sensorConfig.timeout = sensor.motion_timeout || 30000;
+                    break;
+                case 'distance':
+                    sensorConfig.trigger_pin = sensor.trigger_pin;
+                    sensorConfig.echo_pin = sensor.echo_pin;
+                    sensorConfig.min_distance = sensor.min_distance || 2.0;
+                    sensorConfig.max_distance = sensor.max_distance || 200.0;
+                    break;
+            }
+
+            sensorsObject[sensor.type] = sensorConfig;
+        }
+    });
+
+    return sensorsObject;
+}
+
 // Firmware builder route
 router.post('/build', async (req, res) => {
     try {
@@ -28,12 +78,16 @@ router.post('/build', async (req, res) => {
             device_armed = true,
 
             // Sensor configuration
-            sensors = {}
+            sensors = []
         } = req.body;
 
         // Debug: Log the received data
         console.log('Firmware builder request body:', JSON.stringify(req.body, null, 2));
         console.log('Extracted fields:', { device_id, device_name, wifi_ssid, wifi_password: wifi_password ? '***' : undefined, open_wifi, server_url });
+
+        // Convert sensor array to object format expected by generateDeviceConfig
+        const sensorsObject = convertSensorArrayToObject(sensors);
+        console.log('Converted sensors object:', sensorsObject);
 
         // Validate required fields
         if (!device_id || !device_name || !wifi_ssid || !server_url) {
@@ -65,7 +119,7 @@ router.post('/build', async (req, res) => {
             debug_mode,
             ota_enabled,
             device_armed,
-            sensors
+            sensors: sensorsObject
         });
 
         // Read base firmware files

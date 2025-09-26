@@ -1,5 +1,6 @@
 const express = require('express');
 const os = require('os');
+const path = require('path');
 const { promisify } = require('util');
 const exec = promisify(require('child_process').exec);
 const { spawn } = require('child_process');
@@ -266,9 +267,36 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
                 updateStatus.currentStep = 'Starting update script...';
                 updateStatus.progress = 10;
 
-                const updateProcess = spawn('bash', ['-c', 'update-system'], {
+                // Check if we're running in development or production
+                const isDevelopment = process.env.NODE_ENV !== 'production';
+                const projectRoot = process.cwd().includes('/backend') ?
+                    path.join(process.cwd(), '..') : process.cwd();
+
+                let updateCommand;
+                if (isDevelopment) {
+                    // Development: use development-friendly script
+                    const devScript = path.join(projectRoot, 'update-system-dev.sh');
+                    updateCommand = `bash "${devScript}"`;
+                    logger.info(`Development mode: Using development update script: ${devScript}`);
+                } else {
+                    // Production: use system-wide command or production script
+                    const prodScript = path.join(projectRoot, 'update-system.sh');
+                    try {
+                        // Try production script first
+                        await exec(`ls "${prodScript}"`);
+                        updateCommand = `sudo bash "${prodScript}"`;
+                        logger.info(`Production mode: Using production update script: ${prodScript}`);
+                    } catch (e) {
+                        // Fallback to system command
+                        updateCommand = 'update-system';
+                        logger.info('Production mode: Using system update-system command');
+                    }
+                }
+
+                const updateProcess = spawn('bash', ['-c', updateCommand], {
                     detached: true,
-                    stdio: 'pipe'
+                    stdio: 'pipe',
+                    cwd: projectRoot  // Set working directory to project root
                 });
 
                 updateProcess.stdout.on('data', (data) => {
@@ -389,20 +417,37 @@ router.get('/update-status', authenticateToken, requireAdmin, async (req, res) =
         let updateAvailable = false;
         let updateScript = '';
 
+        // Check if we're running in development or production
+        const isDevelopment = process.env.NODE_ENV !== 'production';
+        const projectRoot = process.cwd().includes('/backend') ?
+            path.join(process.cwd(), '..') : process.cwd();
+
         try {
-            // Check if update-system command exists
-            await exec('which update-system');
-            updateAvailable = true;
-            updateScript = 'update-system';
-        } catch (error) {
-            // Check if there's a local update script
-            try {
-                await exec('ls update-system.sh');
+            if (isDevelopment) {
+                // Development: check for development script
+                const devScript = path.join(projectRoot, 'update-system-dev.sh');
+                await exec(`ls "${devScript}"`);
                 updateAvailable = true;
-                updateScript = './update-system.sh';
-            } catch (localError) {
-                logger.info('No update script found');
+                updateScript = devScript;
+                logger.info(`Development mode: Found development update script: ${devScript}`);
+            } else {
+                // Production: try production script first, then system command
+                try {
+                    const prodScript = path.join(projectRoot, 'update-system.sh');
+                    await exec(`ls "${prodScript}"`);
+                    updateAvailable = true;
+                    updateScript = prodScript;
+                    logger.info(`Production mode: Found production update script: ${prodScript}`);
+                } catch (prodError) {
+                    // Fallback to system command
+                    await exec('which update-system');
+                    updateAvailable = true;
+                    updateScript = 'update-system';
+                    logger.info('Production mode: Found system update-system command');
+                }
             }
+        } catch (error) {
+            logger.info(`No update script found for ${isDevelopment ? 'development' : 'production'} mode:`, error.message);
         }
 
         res.json({

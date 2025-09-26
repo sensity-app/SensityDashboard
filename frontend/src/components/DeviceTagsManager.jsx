@@ -13,7 +13,7 @@ const DeviceTagsManager = () => {
     const [selectedTag, setSelectedTag] = useState(null);
 
     // Fetch device tags
-    const { data: tags = [], isLoading: tagsLoading, error: tagsError } = useQuery(
+    const { data: tagsData, isLoading: tagsLoading, error: tagsError } = useQuery(
         'device-tags',
         apiService.getDeviceTags,
         {
@@ -23,6 +23,8 @@ const DeviceTagsManager = () => {
             }
         }
     );
+
+    const tags = Array.isArray(tagsData?.tags) ? tagsData.tags : [];
 
     // Fetch devices for assignment
     const { data: devices = [], isLoading: devicesLoading } = useQuery(

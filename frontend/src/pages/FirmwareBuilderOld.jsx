@@ -22,9 +22,7 @@ import {
     BarChart3,
     Shield,
     Key,
-    Globe,
-    Plus,
-    X
+    Globe
 } from 'lucide-react';
 import WebFlasher from '../components/WebFlasher';
 import { apiService } from '../services/api';
@@ -96,7 +94,7 @@ const FirmwareBuilder = () => {
     const fetchLocations = async () => {
         try {
             const data = await apiService.getLocations();
-            setLocations(data.locations || []);
+            setLocations(data || []);
         } catch (error) {
             console.error('Failed to load locations:', error);
             setLocations([]);
@@ -239,6 +237,62 @@ const FirmwareBuilder = () => {
             setLoading(false);
         }
     };
+
+    const renderPinSelector = (sensorType, sensorInfo, sensorConfig) => {
+        const currentPin = sensorConfig.pin || sensorInfo.default_pin || sensorInfo.pins?.[0];
+
+        // Filter available pins based on sensor requirements
+        let availablePinOptions = [];
+        if (sensorInfo.pin_type === 'analog') {
+            availablePinOptions = availablePins.analog;
+        } else if (sensorInfo.pin_type === 'digital') {
+            availablePinOptions = availablePins.digital;
+        } else {
+            // Fallback: use all pins if pin_type not specified
+            availablePinOptions = [...availablePins.digital, ...availablePins.analog];
+        }
+
+        // For sensors that require multiple pins (like distance sensor)
+        if (sensorInfo.pins_required === 2) {
+            return (
+                <select
+                    value={currentPin}
+                    onChange={(e) => handleSensorConfigChange(sensorType, 'pin', e.target.value)}
+                    className="w-32 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                    {sensorInfo.recommended_pins?.map(pinPair => (
+                        <option key={pinPair} value={pinPair}>
+                            {pinPair}
+                        </option>
+                    ))}
+                </select>
+            );
+        }
+
+        // Single pin sensors
+        return (
+            <div className="flex items-center space-x-2">
+                <select
+                    value={currentPin}
+                    onChange={(e) => handleSensorConfigChange(sensorType, 'pin', e.target.value)}
+                    className="w-20 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                    {availablePinOptions.map(pinOption => {
+                        const isRecommended = sensorInfo.recommended_pins?.includes(pinOption.pin);
+                        return (
+                            <option key={pinOption.pin} value={pinOption.pin}>
+                                {pinOption.pin} {isRecommended ? '⭐' : ''}
+                            </option>
+                        );
+                    })}
+                </select>
+                <span className="text-xs text-gray-500">
+                    {availablePinOptions.find(p => p.pin === currentPin)?.note}
+                </span>
+            </div>
+        );
+    };
+
 
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -720,133 +774,102 @@ const FirmwareBuilder = () => {
                             </div>
                         </div>
 
-                        {/* Available Sensor Types */}
-                        <div className="space-y-6">
-                            <div>
-                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Available Sensor Types</h4>
-                                {Object.entries(sensorOptions).length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <p className="text-gray-500">Loading sensor options...</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {Object.entries(sensorOptions).map(([sensorKey, sensorInfo]) => {
-                                            const sensorCount = config.sensors.filter(s => s.type === sensorKey).length;
+                        {/* Sensor Configuration */}
+                        <div className="space-y-4">
+                            <h4 className="text-lg font-semibold text-gray-900 mb-4">Configure Sensors</h4>
+                            {Object.entries(sensorOptions).length === 0 ? (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-500">Loading sensor options...</p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-4">
+                                    {Object.entries(sensorOptions).map(([sensorKey, sensorInfo]) => {
+                                        const isEnabled = config.sensors[sensorKey]?.enabled || false;
+                                        const selectedPin = config.sensors[sensorKey]?.pin || '';
+                                        const availablePinsForSensor = sensorInfo.type === 'analog' ?
+                                            availablePins.analog || [] : availablePins.digital || [];
 
-                                            return (
-                                                <div key={sensorKey} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <h5 className="font-medium text-gray-900">{sensorInfo.name || sensorKey}</h5>
-                                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                            sensorInfo.pin_type === 'analog' ?
-                                                            'bg-green-100 text-green-800' :
-                                                            'bg-blue-100 text-blue-800'
-                                                        }`}>
-                                                            {sensorInfo.pin_type || 'digital'}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-500 mb-3">
-                                                        {sensorInfo.description || `${sensorInfo.pin_type || 'digital'} sensor`}
-                                                    </p>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs text-gray-400">
-                                                            {sensorCount} configured
-                                                        </span>
-                                                        <button
-                                                            onClick={() => addSensor(sensorKey)}
-                                                            className="btn-primary text-sm px-3 py-1"
-                                                        >
-                                                            <Plus className="w-3 h-3 mr-1" />
-                                                            Add
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
+                                        return (
+                                            <div key={sensorKey} className="border border-gray-200 rounded-lg p-4">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center space-x-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`sensor-${sensorKey}`}
+                                                            checked={isEnabled}
+                                                            onChange={(e) => {
+                                                                const newSensorConfig = { ...config.sensors };
+                                                                if (e.target.checked) {
+                                                                    // Get the first available pin, handling both string and object formats
+                                                                    const firstPin = availablePinsForSensor[0];
+                                                                    const defaultPin = firstPin ?
+                                                                        (typeof firstPin === 'string' ? firstPin : firstPin.pin || '') : '';
 
-                            {/* Configured Sensors */}
-                            {config.sensors.length > 0 && (
-                                <div>
-                                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Configured Sensors</h4>
-                                    <div className="space-y-4">
-                                        {config.sensors.map((sensor, index) => {
-                                            const sensorInfo = sensorOptions[sensor.type];
-                                            const availablePinsForSensor = sensorInfo?.pin_type === 'analog' ?
-                                                availablePins.analog || [] :
-                                                sensorInfo?.pin_type === 'digital' ?
-                                                availablePins.digital || [] :
-                                                [...(availablePins.digital || []), ...(availablePins.analog || [])];
-                                            const usedPins = getUsedPins();
-                                            const hasConflict = usedPins[sensor.pin]?.length > 1;
-
-                                            return (
-                                                <div key={sensor.id} className={`border rounded-lg p-4 ${hasConflict ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <div className="flex items-center space-x-3">
-                                                            <span className="font-medium text-gray-900">
-                                                                {sensor.name}
-                                                            </span>
-                                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                                sensorInfo?.pin_type === 'analog' ?
-                                                                'bg-green-100 text-green-800' :
-                                                                'bg-blue-100 text-blue-800'
-                                                            }`}>
-                                                                {sensorInfo?.pin_type || 'digital'}
-                                                            </span>
-                                                            {hasConflict && (
-                                                                <div className="flex items-center text-red-600">
-                                                                    <AlertTriangle className="w-4 h-4 mr-1" />
-                                                                    <span className="text-xs">Pin conflict</span>
-                                                                </div>
-                                                            )}
+                                                                    newSensorConfig[sensorKey] = {
+                                                                        enabled: true,
+                                                                        pin: defaultPin,
+                                                                        name: sensorInfo.name || sensorKey
+                                                                    };
+                                                                } else {
+                                                                    delete newSensorConfig[sensorKey];
+                                                                }
+                                                                setConfig({ ...config, sensors: newSensorConfig });
+                                                            }}
+                                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                        />
+                                                        <div>
+                                                            <label
+                                                                htmlFor={`sensor-${sensorKey}`}
+                                                                className="font-medium text-gray-900 cursor-pointer"
+                                                            >
+                                                                {sensorInfo.name || sensorKey}
+                                                            </label>
+                                                            <p className="text-sm text-gray-500">
+                                                                {sensorInfo.description || `${sensorInfo.type} sensor`}
+                                                            </p>
                                                         </div>
-                                                        <button
-                                                            onClick={() => removeSensor(sensor.id)}
-                                                            className="text-red-600 hover:text-red-800 p-1"
-                                                            title="Remove sensor"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </button>
                                                     </div>
+                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                        sensorInfo.type === 'analog' ?
+                                                        'bg-green-100 text-green-800' :
+                                                        'bg-blue-100 text-blue-800'
+                                                    }`}>
+                                                        {sensorInfo.type}
+                                                    </span>
+                                                </div>
 
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {isEnabled && (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-100">
                                                         <div>
                                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                                 Pin Assignment
                                                             </label>
                                                             <select
-                                                                value={sensor.pin}
-                                                                onChange={(e) => updateSensor(sensor.id, 'pin', e.target.value)}
-                                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm ${
-                                                                    hasConflict ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                                                                }`}
+                                                                value={selectedPin}
+                                                                onChange={(e) => {
+                                                                    const newSensorConfig = { ...config.sensors };
+                                                                    newSensorConfig[sensorKey] = {
+                                                                        ...newSensorConfig[sensorKey],
+                                                                        pin: e.target.value
+                                                                    };
+                                                                    setConfig({ ...config, sensors: newSensorConfig });
+                                                                }}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                                             >
                                                                 <option value="">Select Pin</option>
-                                                                {availablePinsForSensor.map(pinOption => {
-                                                                    const pinValue = typeof pinOption === 'string' ? pinOption : pinOption.pin;
+                                                                {availablePinsForSensor.map(pin => {
+                                                                    // Handle both string pins and pin objects
+                                                                    const pinValue = typeof pin === 'string' ? pin : pin.pin || pin;
+                                                                    const pinLabel = typeof pin === 'string' ? pin : pin.label || pin.pin || pin;
                                                                     const pinDescription = pinMapping[pinValue] || 'Available';
-                                                                    const isUsed = usedPins[pinValue] && usedPins[pinValue].length > 0 && !usedPins[pinValue].includes(sensor.name);
 
                                                                     return (
-                                                                        <option
-                                                                            key={pinValue}
-                                                                            value={pinValue}
-                                                                            disabled={isUsed}
-                                                                            style={{ color: isUsed ? '#9ca3af' : 'inherit' }}
-                                                                        >
-                                                                            {pinValue} - {pinDescription} {isUsed ? '(used)' : ''}
+                                                                        <option key={pinValue} value={pinValue}>
+                                                                            {pinLabel} - {pinDescription}
                                                                         </option>
                                                                     );
                                                                 })}
                                                             </select>
-                                                            {hasConflict && (
-                                                                <p className="text-xs text-red-600 mt-1">
-                                                                    Pin {sensor.pin} is also used by: {usedPins[sensor.pin].filter(name => name !== sensor.name).join(', ')}
-                                                                </p>
-                                                            )}
                                                         </div>
                                                         <div>
                                                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -854,17 +877,24 @@ const FirmwareBuilder = () => {
                                                             </label>
                                                             <input
                                                                 type="text"
-                                                                value={sensor.name}
-                                                                onChange={(e) => updateSensor(sensor.id, 'name', e.target.value)}
+                                                                value={config.sensors[sensorKey]?.name || ''}
+                                                                onChange={(e) => {
+                                                                    const newSensorConfig = { ...config.sensors };
+                                                                    newSensorConfig[sensorKey] = {
+                                                                        ...newSensorConfig[sensorKey],
+                                                                        name: e.target.value
+                                                                    };
+                                                                    setConfig({ ...config, sensors: newSensorConfig });
+                                                                }}
                                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                                                placeholder={`Enter name for ${sensorInfo?.name || sensor.type}`}
+                                                                placeholder={`Enter name for ${sensorInfo.name}`}
                                                             />
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -880,7 +910,7 @@ const FirmwareBuilder = () => {
                                     </button>
                                     <button
                                         onClick={nextStep}
-                                        disabled={pinConflicts.length > 0}
+                                        disabled={enabledSensorsCount === 0 || pinConflicts.length > 0}
                                         className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <span>Next: Review & Build</span>
@@ -901,136 +931,6 @@ const FirmwareBuilder = () => {
                                 </h2>
                             </div>
                             <div className="space-y-6">
-                                {/* Configuration Review */}
-                                <div className="space-y-6">
-                                    {/* Device Configuration */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                            <Smartphone className="w-5 h-5 text-blue-600 mr-2" />
-                                            Device Configuration
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <span className="font-medium text-gray-700">Device Name:</span>
-                                                <span className="ml-2 text-gray-900">{config.device_name}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">Location:</span>
-                                                <span className="ml-2 text-gray-900">{config.device_location}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">Device ID:</span>
-                                                <span className="ml-2 font-mono text-xs text-gray-900">{config.device_id}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">API Key:</span>
-                                                <span className="ml-2 font-mono text-xs text-gray-900">{config.api_key.substring(0, 8)}...</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Network Configuration */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                            <Wifi className="w-5 h-5 text-green-600 mr-2" />
-                                            Network Configuration
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <span className="font-medium text-gray-700">WiFi SSID:</span>
-                                                <span className="ml-2 text-gray-900">{config.wifi_ssid}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">WiFi Security:</span>
-                                                <span className="ml-2 text-gray-900">{config.open_wifi ? 'Open (no password)' : 'Secured'}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">Server URL:</span>
-                                                <span className="ml-2 text-gray-900">{config.server_url}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">Heartbeat:</span>
-                                                <span className="ml-2 text-gray-900">{config.heartbeat_interval}s</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Sensor Configuration */}
-                                    {config.sensors.length > 0 && (
-                                        <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                                <Activity className="w-5 h-5 text-purple-600 mr-2" />
-                                                Sensor Configuration ({config.sensors.length} sensors)
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {config.sensors.map((sensor) => {
-                                                    const sensorInfo = sensorOptions[sensor.type];
-                                                    const hasConflict = usedPins[sensor.pin]?.length > 1;
-
-                                                    return (
-                                                        <div key={sensor.id} className={`p-4 rounded-lg border ${hasConflict ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-gray-50'}`}>
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex items-center space-x-3">
-                                                                    <span className="font-medium text-gray-900">{sensor.name}</span>
-                                                                    <span className={`px-2 py-1 text-xs rounded-full ${
-                                                                        sensorInfo?.pin_type === 'analog' ?
-                                                                        'bg-green-100 text-green-800' :
-                                                                        'bg-blue-100 text-blue-800'
-                                                                    }`}>
-                                                                        {sensorInfo?.pin_type || 'digital'}
-                                                                    </span>
-                                                                    <span className="text-sm text-gray-600">Pin {sensor.pin}</span>
-                                                                    {hasConflict && (
-                                                                        <div className="flex items-center text-red-600">
-                                                                            <AlertTriangle className="w-4 h-4 mr-1" />
-                                                                            <span className="text-xs">Conflict!</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <span className="text-xs text-gray-500">{sensorInfo?.name}</span>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Device Options */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                            <Settings className="w-5 h-5 text-gray-600 mr-2" />
-                                            Device Options
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div className="flex items-center space-x-2">
-                                                {config.debug_mode ? (
-                                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                                ) : (
-                                                    <div className="w-5 h-5 border border-gray-300 rounded" />
-                                                )}
-                                                <span className="text-sm text-gray-700">Debug Mode</span>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                {config.ota_enabled ? (
-                                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                                ) : (
-                                                    <div className="w-5 h-5 border border-gray-300 rounded" />
-                                                )}
-                                                <span className="text-sm text-gray-700">OTA Updates</span>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                {config.device_armed ? (
-                                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                                ) : (
-                                                    <div className="w-5 h-5 border border-gray-300 rounded" />
-                                                )}
-                                                <span className="text-sm text-gray-700">Device Armed</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {/* Build Actions */}
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                                     <div className="flex items-center justify-between">

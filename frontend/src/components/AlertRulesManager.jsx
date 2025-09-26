@@ -15,13 +15,17 @@ const AlertRulesManager = () => {
     const [testResult, setTestResult] = useState(null);
 
     // Fetch alert rule templates
-    const { data: templates = [], isLoading: templatesLoading, error: templatesError } = useQuery(
+    const { data: templatesData, isLoading: templatesLoading, error: templatesError } = useQuery(
         ['alert-rule-templates', selectedSensorType],
         () => apiService.getAlertRuleTemplates(selectedSensorType === 'all' ? undefined : selectedSensorType, true),
         {
             refetchInterval: 30000
         }
     );
+
+    // Ensure templates is always an array - extract from response object
+    const templates = Array.isArray(templatesData?.templates) ? templatesData.templates :
+                      Array.isArray(templatesData) ? templatesData : [];
 
     // Fetch devices for template application
     const { data: devices = [], isLoading: devicesLoading } = useQuery(

@@ -20,7 +20,7 @@ import {
     Eye,
     EyeOff,
     GitBranch,
-    Update,
+    RotateCcw,
     Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -311,7 +311,7 @@ function Settings() {
 
     const tabs = [
         { id: 'system', label: t('settings.tabs.system', 'System'), icon: Server },
-        { id: 'platform', label: 'Platform Update', icon: Update },
+        { id: 'platform', label: 'Platform Update', icon: RotateCcw },
         { id: 'branding', label: t('settings.tabs.branding', 'Branding'), icon: Image },
         { id: 'environment', label: t('settings.tabs.environment', 'Environment'), icon: Code },
         { id: 'database', label: t('settings.tabs.database', 'Database'), icon: Database },
@@ -1208,7 +1208,7 @@ function PlatformUpdateTab() {
     return (
         <div className="p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center">
-                <Update className="w-5 h-5 mr-2 text-blue-600" />
+                <RotateCcw className="w-5 h-5 mr-2 text-blue-600" />
                 Platform Update
             </h3>
 
@@ -1265,7 +1265,7 @@ function PlatformUpdateTab() {
                 {/* Update Section */}
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
                     <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
-                        <Update className="w-4 h-4 mr-2" />
+                        <RotateCcw className="w-4 h-4 mr-2" />
                         Platform Update
                     </h4>
 
@@ -1316,7 +1316,7 @@ function PlatformUpdateTab() {
                                     </>
                                 ) : (
                                     <>
-                                        <Update className="w-4 h-4 mr-2" />
+                                        <RotateCcw className="w-4 h-4 mr-2" />
                                         Update Platform
                                     </>
                                 )}

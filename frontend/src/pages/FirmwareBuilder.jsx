@@ -60,6 +60,7 @@ const FirmwareBuilder = () => {
         device_location: '',
         wifi_ssid: '',
         wifi_password: '',
+        open_wifi: false,
         server_url: window.location.origin,
         api_key: generateApiKey(),
         heartbeat_interval: 300,
@@ -155,7 +156,7 @@ const FirmwareBuilder = () => {
 
         if (!config.device_name) errors.push('Device name is required');
         if (!config.wifi_ssid) errors.push('WiFi SSID is required');
-        if (!config.wifi_password) errors.push('WiFi password is required');
+        if (!config.open_wifi && !config.wifi_password) errors.push('WiFi password is required (or enable Open WiFi)');
         if (!config.server_url) errors.push('Server URL is required');
 
         // Check for pin conflicts
@@ -345,7 +346,7 @@ const FirmwareBuilder = () => {
             case 0: // Device setup
                 return config.device_name.trim();
             case 1: // Network config
-                return config.wifi_ssid.trim() && config.wifi_password.trim() && config.server_url.trim();
+                return config.wifi_ssid.trim() && (config.open_wifi || config.wifi_password.trim()) && config.server_url.trim();
             case 2: // Sensors
                 return true; // No validation needed for sensors
             case 3: // Review
@@ -568,15 +569,35 @@ const FirmwareBuilder = () => {
                                         </div>
                                         <div className="form-group">
                                             <label className="form-label">
-                                                WiFi Password *
+                                                WiFi Password {!config.open_wifi && '*'}
                                             </label>
                                             <input
                                                 type="password"
                                                 value={config.wifi_password}
                                                 onChange={(e) => handleConfigChange('wifi_password', e.target.value)}
                                                 className="input-field"
-                                                placeholder="Your WiFi password"
+                                                placeholder={config.open_wifi ? "No password required" : "Your WiFi password"}
+                                                disabled={config.open_wifi}
                                             />
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={config.open_wifi}
+                                                    onChange={(e) => {
+                                                        handleConfigChange('open_wifi', e.target.checked);
+                                                        if (e.target.checked) {
+                                                            handleConfigChange('wifi_password', '');
+                                                        }
+                                                    }}
+                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm text-gray-700">Open WiFi (no password)</span>
+                                            </label>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Check this if connecting to an open WiFi network without password
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -692,7 +713,7 @@ const FirmwareBuilder = () => {
                                 </button>
                                 <button
                                     onClick={nextStep}
-                                    disabled={!config.wifi_ssid || !config.wifi_password}
+                                    disabled={!config.wifi_ssid || (!config.open_wifi && !config.wifi_password)}
                                     className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <span>Next: Sensor Selection</span>
@@ -752,6 +773,119 @@ const FirmwareBuilder = () => {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+
+                        {/* Sensor Configuration */}
+                        <div className="space-y-4">
+                            <h4 className="text-lg font-semibold text-gray-900 mb-4">Configure Sensors</h4>
+                            {Object.entries(sensorOptions).length === 0 ? (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-500">Loading sensor options...</p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-4">
+                                    {Object.entries(sensorOptions).map(([sensorKey, sensorInfo]) => {
+                                        const isEnabled = config.sensors[sensorKey]?.enabled || false;
+                                        const selectedPin = config.sensors[sensorKey]?.pin || '';
+                                        const availablePinsForSensor = sensorInfo.type === 'analog' ?
+                                            availablePins.analog || [] : availablePins.digital || [];
+
+                                        return (
+                                            <div key={sensorKey} className="border border-gray-200 rounded-lg p-4">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div className="flex items-center space-x-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`sensor-${sensorKey}`}
+                                                            checked={isEnabled}
+                                                            onChange={(e) => {
+                                                                const newSensorConfig = { ...config.sensors };
+                                                                if (e.target.checked) {
+                                                                    newSensorConfig[sensorKey] = {
+                                                                        enabled: true,
+                                                                        pin: availablePinsForSensor[0] || '',
+                                                                        name: sensorInfo.name || sensorKey
+                                                                    };
+                                                                } else {
+                                                                    delete newSensorConfig[sensorKey];
+                                                                }
+                                                                setConfig({ ...config, sensors: newSensorConfig });
+                                                            }}
+                                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                        />
+                                                        <div>
+                                                            <label
+                                                                htmlFor={`sensor-${sensorKey}`}
+                                                                className="font-medium text-gray-900 cursor-pointer"
+                                                            >
+                                                                {sensorInfo.name || sensorKey}
+                                                            </label>
+                                                            <p className="text-sm text-gray-500">
+                                                                {sensorInfo.description || `${sensorInfo.type} sensor`}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                        sensorInfo.type === 'analog' ?
+                                                        'bg-green-100 text-green-800' :
+                                                        'bg-blue-100 text-blue-800'
+                                                    }`}>
+                                                        {sensorInfo.type}
+                                                    </span>
+                                                </div>
+
+                                                {isEnabled && (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-100">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                Pin Assignment
+                                                            </label>
+                                                            <select
+                                                                value={selectedPin}
+                                                                onChange={(e) => {
+                                                                    const newSensorConfig = { ...config.sensors };
+                                                                    newSensorConfig[sensorKey] = {
+                                                                        ...newSensorConfig[sensorKey],
+                                                                        pin: e.target.value
+                                                                    };
+                                                                    setConfig({ ...config, sensors: newSensorConfig });
+                                                                }}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                            >
+                                                                <option value="">Select Pin</option>
+                                                                {availablePinsForSensor.map(pin => (
+                                                                    <option key={pin} value={pin}>
+                                                                        {pin} - {pinMapping[pin] || 'Available'}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                Sensor Name
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={config.sensors[sensorKey]?.name || ''}
+                                                                onChange={(e) => {
+                                                                    const newSensorConfig = { ...config.sensors };
+                                                                    newSensorConfig[sensorKey] = {
+                                                                        ...newSensorConfig[sensorKey],
+                                                                        name: e.target.value
+                                                                    };
+                                                                    setConfig({ ...config, sensors: newSensorConfig });
+                                                                }}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                                placeholder={`Enter name for ${sensorInfo.name}`}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                                 {/* Step Navigation */}

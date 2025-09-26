@@ -801,9 +801,14 @@ const FirmwareBuilder = () => {
                                                             onChange={(e) => {
                                                                 const newSensorConfig = { ...config.sensors };
                                                                 if (e.target.checked) {
+                                                                    // Get the first available pin, handling both string and object formats
+                                                                    const firstPin = availablePinsForSensor[0];
+                                                                    const defaultPin = firstPin ?
+                                                                        (typeof firstPin === 'string' ? firstPin : firstPin.pin || '') : '';
+
                                                                     newSensorConfig[sensorKey] = {
                                                                         enabled: true,
-                                                                        pin: availablePinsForSensor[0] || '',
+                                                                        pin: defaultPin,
                                                                         name: sensorInfo.name || sensorKey
                                                                     };
                                                                 } else {
@@ -853,11 +858,18 @@ const FirmwareBuilder = () => {
                                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                                                             >
                                                                 <option value="">Select Pin</option>
-                                                                {availablePinsForSensor.map(pin => (
-                                                                    <option key={pin} value={pin}>
-                                                                        {pin} - {pinMapping[pin] || 'Available'}
-                                                                    </option>
-                                                                ))}
+                                                                {availablePinsForSensor.map(pin => {
+                                                                    // Handle both string pins and pin objects
+                                                                    const pinValue = typeof pin === 'string' ? pin : pin.pin || pin;
+                                                                    const pinLabel = typeof pin === 'string' ? pin : pin.label || pin.pin || pin;
+                                                                    const pinDescription = pinMapping[pinValue] || 'Available';
+
+                                                                    return (
+                                                                        <option key={pinValue} value={pinValue}>
+                                                                            {pinLabel} - {pinDescription}
+                                                                        </option>
+                                                                    );
+                                                                })}
                                                             </select>
                                                         </div>
                                                         <div>

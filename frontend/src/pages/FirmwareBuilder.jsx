@@ -308,9 +308,9 @@ const FirmwareBuilder = () => {
             const sensorInfo = sensorOptions[sensorType];
 
             let sensorPins = [];
-            if (sensorConfig.pin) {
+            if (sensorConfig.pin && typeof sensorConfig.pin === 'string' && sensorConfig.pin.trim()) {
                 sensorPins = sensorConfig.pin.includes(',') ? sensorConfig.pin.split(',') : [sensorConfig.pin];
-            } else if (sensorInfo?.default_pin) {
+            } else if (sensorInfo?.default_pin && typeof sensorInfo.default_pin === 'string' && sensorInfo.default_pin.trim()) {
                 sensorPins = sensorInfo.default_pin.includes(',') ? sensorInfo.default_pin.split(',') : [sensorInfo.default_pin];
             }
 

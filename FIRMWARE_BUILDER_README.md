@@ -44,7 +44,9 @@ Each generated firmware includes:
 - **Complete WiFi setup**: Pre-filled network credentials
 - **Server integration**: Automatic API endpoint configuration
 - **Device identification**: Unique device IDs and naming
+- **Automatic device creation**: Devices self-register after firmware flash
 - **Sensor thresholds**: Optimized default values for each use case
+- **Multi-sensor support**: Up to 9 different sensor types per device
 
 ## 🌐 How Users Experience It
 
@@ -82,9 +84,10 @@ Option B - Traditional:
 ```
 Device automatically:
 - Connects to WiFi
-- Registers with platform
-- Starts sending sensor data
-- Appears in dashboard
+- Auto-registers with platform (creates device entry)
+- Starts sending multi-sensor telemetry data
+- Appears in real-time dashboard with all configured sensors
+- Begins health monitoring and alert rule evaluation
 ```
 
 ## 🔧 Installation & Setup
@@ -143,14 +146,15 @@ docker-compose up -d
 ## 🎯 Supported Sensors
 
 ### Fully Configured Sensors
-- **DHT22**: Temperature & humidity monitoring
-- **PIR**: Motion detection with timeout settings
-- **HC-SR04**: Ultrasonic distance measurement
-- **LDR/Photodiode**: Light level monitoring
-- **Magnetic Reed Switch**: Door/window state detection
-- **Vibration Sensor**: Impact and movement detection
-- **Sound Level**: Noise monitoring (analog)
-- **MQ Gas Sensors**: Air quality and gas detection
+- **DHT22**: Temperature & humidity monitoring with trend analysis
+- **PIR**: Motion detection with configurable timeout settings
+- **HC-SR04**: Ultrasonic distance measurement with range validation
+- **LDR/Photodiode**: Light level monitoring with adaptive thresholds
+- **Magnetic Reed Switch**: Door/window state detection with debouncing
+- **Vibration Sensor**: Impact and movement detection with sensitivity control
+- **Sound Level**: Noise monitoring (analog) with dBA conversion
+- **MQ Gas Sensors**: Air quality and gas detection with PPM calculations
+- **Multi-sensor combination**: Up to 9 sensors per device with intelligent power management
 
 ### Pin Mapping & Conflicts
 - **Analog A0**: Shared by light, sound, and gas sensors (conflict detection)

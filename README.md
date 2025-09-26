@@ -16,23 +16,36 @@ A comprehensive web-based platform for managing ESP8266 IoT devices with **drag-
 - **🔧 Custom Configuration** - Point-and-click sensor setup with conflict detection
 - **📦 Complete Packages** - Generated firmware includes wiring guides and documentation
 
-### 📊 **Real-Time Monitoring**
-- **Live Dashboard** with WebSocket updates
-- **Multi-Sensor Support** - Temperature, humidity, motion, distance, light, gas, vibration
-- **Interactive Charts** with historical data visualization
-- **Device Health Monitoring** with uptime and connectivity status
+### 🔐 **Enterprise Authentication**
+- **Secure User Management** - JWT-based authentication with role-based access
+- **Temporary Admin Setup** - Auto-creates first admin user, then locks setup
+- **Password Reset System** - Email-based password recovery with secure tokens
+- **User Invitation System** - Admin can invite users with specific roles
+- **Multi-Role Support** - Admin, Operator, and Viewer access levels
 
-### 🚨 **Advanced Alerting**
-- **Rule-Based Alerts** with customizable thresholds
-- **Multi-Channel Notifications** - Email, SMS, WebSocket
-- **Alert Escalation** with severity levels and acknowledgments
-- **Scheduled Reporting** with automated summaries
+### 📊 **Real-Time Monitoring & Analytics**
+- **Live Dashboard** with WebSocket updates and interactive charts
+- **Multi-Sensor Support** - Temperature, humidity, motion, distance, light, gas, vibration, magnetic, sound
+- **Device Health Monitoring** - Memory usage, WiFi signal, battery level, CPU temperature
+- **Historical Data Visualization** - Time-range based charts and trend analysis
+- **Anomaly Detection** - AI-powered anomaly detection with predictive analytics
+- **CSV Export** - Complete data export functionality
 
-### 🔧 **Device Management**
-- **Bulk Device Operations** with grouping and tagging
-- **Over-the-Air (OTA) Updates** with rollback capability
-- **Remote Configuration** without device access
-- **Device Analytics** with performance insights
+### 🚨 **Advanced Alert System**
+- **Multi-Channel Notifications** - Email (SMTP), SMS (Twilio), and WebSocket alerts
+- **Customizable Alert Rules** - Per-sensor threshold configuration with multiple conditions
+- **Alert Escalation** - Multi-level escalation system with delays and severity levels
+- **Silent Mode Scheduling** - Time-based quiet hours with granular controls
+- **Offline Device Detection** - Automated detection with configurable timeouts
+- **Comprehensive Event Logging** - Full alert history and statistics
+
+### 🔧 **Advanced Device Management**
+- **Complete Device Lifecycle** - CRUD operations with grouping and tagging system
+- **Over-the-Air (OTA) Updates** - Remote firmware updates with progress tracking
+- **Remote Configuration** - WiFi setup, device naming, and sensor calibration
+- **Dynamic Threshold Adjustment** - Server-controlled threshold updates
+- **Location Management** - Geographic organization of devices
+- **Device Analytics** - Performance insights and health metrics
 
 ## 🎯 Supported Device Templates
 

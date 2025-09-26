@@ -33,6 +33,7 @@ const WebSocketService = require('./src/services/websocketService');
 const AlertEscalationService = require('./src/services/alertEscalationService');
 const TelemetryProcessor = require('./src/services/telemetryProcessor');
 const logger = require('./src/utils/logger');
+const db = require('./src/models/database');
 
 const app = express();
 const server = http.createServer(app);
@@ -155,8 +156,16 @@ process.on('SIGTERM', async () => {
     });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
     logger.info(`Enhanced ESP8266 Platform server running on port ${PORT}`);
+
+    // Initialize database and run migrations
+    try {
+        await db.initialize();
+        logger.info('Database initialization completed');
+    } catch (error) {
+        logger.error('Database initialization failed:', error);
+    }
 });
 
 module.exports = { app, server, io, redis };

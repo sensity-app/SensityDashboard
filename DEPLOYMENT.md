@@ -557,7 +557,28 @@ For issues and support:
 
 ## 🔄 Updates
 
-To update the platform:
+### Platform Update via Web Interface
+
+The platform includes an integrated update system accessible from Settings > Platform Update:
+
+1. **Automatic Updates**: Check for and apply updates directly from the web interface
+2. **Git Integration**: Syncs with the GitHub repository automatically
+3. **Backup & Rollback**: Creates automatic backups before updates with rollback capability
+4. **Development Mode**: For development environments, use the included update script
+
+#### Development Update Script
+
+For development environments, use the included update script:
+
+```bash
+cd /path/to/your/project
+./update-system-dev.sh        # Update development system
+./update-system-dev.sh rollback # Rollback to last backup
+```
+
+### Manual Updates
+
+To update the platform manually:
 
 ```bash
 cd /opt/esp8266-platform
@@ -583,15 +604,32 @@ pm2 restart esp8266-platform
 
 ## ✅ Post-Installation Checklist
 
+### Infrastructure
 - [ ] Domain DNS is configured and pointing to server
 - [ ] SSL certificates are installed and auto-renewing
-- [ ] Admin user is created and can log in
 - [ ] All services are running (nginx, postgresql, redis, pm2)
 - [ ] Firewall is configured and active
 - [ ] Backups are configured and tested
+
+### Platform Configuration
+- [ ] Admin user is created and can log in
+- [ ] Platform Update system is accessible and functional
 - [ ] Email/SMS notifications are configured (optional)
+- [ ] Alert rules and escalation workflows are configured
+- [ ] Silent mode settings are configured for maintenance windows
+
+### Device Management
 - [ ] Firmware builder is accessible and working
+- [ ] Device templates are configured and tested
 - [ ] First test device is created and receiving data
+- [ ] Device groups and tags are set up for organization
+- [ ] WebSerial flashing is tested and functional
+
+### Analytics & Monitoring
+- [ ] Real-time dashboard is displaying device data
+- [ ] Analytics and trend analysis are working
+- [ ] Alert system is configured and sending notifications
+- [ ] System health monitoring is active
 
 ---
 

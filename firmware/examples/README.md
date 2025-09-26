@@ -1,75 +1,118 @@
-# Device Configuration Examples
+# Device Template Examples
 
-This directory contains pre-configured device setups for common IoT monitoring scenarios. Each configuration file provides all the necessary settings to flash directly to an ESP8266 device without requiring manual configuration.
+This directory contains pre-configured device templates for common IoT monitoring scenarios. These templates are integrated into the **Web-Based Firmware Builder** and can be used without manual configuration.
 
-## How to Use
+## Web-Based Firmware Builder (Recommended)
 
+**The easiest way to use these templates is through the web interface:**
+
+1. **Visit the Firmware Builder**: `https://your-platform.com/firmware-builder`
+2. **Select a template** from the visual gallery
+3. **Configure device settings** (WiFi, sensors, etc.)
+4. **Flash directly via browser** using WebSerial API OR download firmware package
+5. **Device auto-registers** and starts sending data immediately
+
+## Manual Configuration (Advanced Users)
+
+If you prefer manual setup:
 1. Copy the content from one of the example files
 2. Paste it into `firmware/device_config.h`
 3. Update the WiFi credentials and server URL with your actual values
 4. Flash the firmware to your ESP8266
 
-## Available Configurations
+## Available Templates
 
-### 1. Kitchen Monitor (`kitchen_monitor.h`)
-**Purpose**: Monitor kitchen environment and safety
+### 1. 🍳 Kitchen Monitor (`kitchen_monitor.h`)
+**Purpose**: Comprehensive kitchen environment and safety monitoring
 **Sensors Enabled**:
-- Temperature & Humidity (DHT22 on D4)
-- Light Level (A0)
-- Motion Detection (D2)
-- Gas Detection (A0) - conflicts with light, choose one
-- Magnetic Door Sensor (D3)
+- Temperature & Humidity (DHT22) - Food safety monitoring
+- Light Level (LDR) - Energy efficiency tracking
+- Motion Detection (PIR) - Occupancy detection
+- Gas Detection (MQ sensors) - Safety monitoring
+- Magnetic Door Sensor - Cabinet/appliance monitoring
 
-**Use Cases**:
-- Food safety monitoring
-- Energy efficiency (lights/appliances)
-- Security monitoring
-- Fire/gas leak detection
+**Real-world Applications**:
+- Food safety compliance monitoring
+- Energy efficiency optimization
+- Kitchen security when unoccupied
+- Gas leak early warning system
+- Appliance usage tracking
 
-### 2. Security Node (`security_node.h`)
-**Purpose**: Perimeter and intrusion monitoring
+### 2. 🛡️ Security Node (`security_node.h`)
+**Purpose**: Multi-layered perimeter and intrusion detection
 **Sensors Enabled**:
-- Motion Detection (D2) - Primary security sensor
-- Distance/Proximity (D5/D6)
-- Door/Window Magnetic (D3)
-- Vibration Detection (D7)
-- Environmental monitoring (DHT22 on D4)
-- Light Level (A0)
+- Motion Detection (PIR) - Primary intrusion detection
+- Distance/Proximity (HC-SR04) - Perimeter monitoring
+- Door/Window Magnetic - Entry point monitoring
+- Vibration Detection - Tamper and break-in detection
+- Environmental monitoring (DHT22) - Baseline conditions
+- Light Level (LDR) - Ambient change detection
 
-**Use Cases**:
-- Home security
-- Perimeter monitoring
-- Break-in detection
-- Tamper detection
+**Real-world Applications**:
+- Comprehensive home security system
+- Commercial perimeter monitoring
+- Multi-zone intrusion detection
+- Equipment tamper protection
+- Environmental baseline monitoring
 
-### 3. Environmental Monitor (`environmental_monitor.h`)
-**Purpose**: Indoor climate and comfort monitoring
+### 3. 🌿 Environmental Monitor (`environmental_monitor.h`)
+**Purpose**: Advanced indoor climate and air quality monitoring
 **Sensors Enabled**:
-- Temperature & Humidity (DHT22 on D4)
-- Light Level (A0)
-- Optional air quality monitoring
+- Temperature & Humidity (DHT22) - Climate tracking
+- Light Level (LDR) - Natural light monitoring
+- Air Quality (MQ sensors) - Pollution and gas detection
+- Sound Level - Noise pollution monitoring
 
-**Use Cases**:
-- HVAC optimization
-- Comfort monitoring
-- Energy efficiency
-- Health and wellness tracking
+**Real-world Applications**:
+- HVAC system optimization
+- Indoor air quality compliance
+- Energy efficiency analysis
+- Health and wellness monitoring
+- Smart building automation
 
-### 4. Greenhouse Monitor (`greenhouse_monitor.h`)
-**Purpose**: Plant growth environment monitoring
+### 4. 🏡 Greenhouse Monitor (`greenhouse_monitor.h`)
+**Purpose**: Comprehensive plant growth environment optimization
 **Sensors Enabled**:
-- Temperature & Humidity (DHT22 on D4)
-- Light Level (A0) - for grow light control
-- Distance Sensor (D5/D6) - water tank level
-- Motion Detection (D2) - security
-- Magnetic Door Sensor (D3)
-- Vibration Detection (D7) - wind/structural
+- Temperature & Humidity (DHT22) - Growing conditions
+- Light Level (LDR) - Grow light optimization
+- Distance Sensor (HC-SR04) - Water tank level monitoring
+- Motion Detection (PIR) - Security and pest detection
+- Magnetic Door Sensor - Access monitoring
+- Vibration Detection - Wind and structural monitoring
 
-**Use Cases**:
-- Plant health monitoring
-- Automated irrigation
-- Climate control
-- Security monitoring
+**Real-world Applications**:
+- Automated plant care systems
+- Irrigation management and alerts
+- Climate control optimization
+- Security monitoring for high-value crops
+- Structural health monitoring
+
+### 5. 🌡️ Simple Temperature Monitor
+**Purpose**: Beginner-friendly basic monitoring setup
+**Sensors Enabled**:
+- Temperature & Humidity (DHT22) only
+
+**Real-world Applications**:
+- Learning IoT development
+- Basic room monitoring
+- Temperature-sensitive storage areas
+- Simple climate tracking
+
+### 6. 🔨 Workshop Monitor
+**Purpose**: Industrial workshop safety and compliance monitoring
+**Sensors Enabled**:
+- Sound Level - Noise compliance monitoring
+- Vibration Detection - Equipment monitoring
+- Air Quality (MQ sensors) - Workplace safety
+- Motion Detection - Occupancy tracking
+- Light Level - Workspace illumination
+
+**Real-world Applications**:
+- OSHA noise compliance monitoring
+- Equipment health monitoring
+- Workplace safety compliance
+- Automated ventilation control
+- Security monitoring after hours
 
 ## Configuration Guidelines
 
@@ -160,10 +203,26 @@ To create a new configuration:
 
 ## Production Deployment
 
-For production use:
+### Using Web-Based Firmware Builder (Recommended)
+1. **Access Platform**: Visit `https://your-platform.com/firmware-builder`
+2. **Configure Template**: Select appropriate template and configure sensors
+3. **Security Settings**: WiFi credentials auto-filled securely
+4. **Flash Device**: Use WebSerial for direct browser flashing
+5. **Auto-Registration**: Device automatically appears in dashboard
+6. **Monitor Remotely**: Real-time alerts and analytics available
+
+### Manual Production Deployment
+For advanced users preferring manual configuration:
 1. Set `DEBUG_MODE false`
 2. Use strong WiFi passwords
 3. Enable HTTPS with valid certificates
 4. Implement proper authentication
 5. Monitor device health remotely
 6. Plan for OTA updates
+
+### Enterprise Features Available
+- **Device Groups & Tags**: Organize devices by location or function
+- **Alert Rules**: Configure automated notifications and escalations
+- **Analytics Dashboard**: Real-time monitoring and trend analysis
+- **User Management**: Role-based access control
+- **Platform Updates**: Integrated update system with backup/rollback

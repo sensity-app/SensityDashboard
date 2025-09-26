@@ -23,12 +23,24 @@ ESP-Management-Platform/
 │   │   ├── 🔧 middleware/          # Auth, validation, etc.
 │   │   ├── 📊 models/              # Database models
 │   │   ├── 🛤️  routes/             # API endpoints
-│   │   │   ├── 🔐 auth.js          # Authentication
-│   │   │   ├── 📱 devices.js       # Device management
-│   │   │   ├── 🚨 alerts.js        # Alert system
-│   │   │   ├── 📊 telemetry.js     # Sensor data
-│   │   │   ├── 🏗️  firmwareBuilder.js # Firmware generator
-│   │   │   └── 📋 firmwareTemplates.js # Device templates
+│   │   │   ├── 🔐 auth.js          # Authentication & sessions
+│   │   │   ├── 📱 devices.js       # Device lifecycle management
+│   │   │   ├── 🚨 alerts.js        # Alert system & notifications
+│   │   │   ├── 📊 telemetry.js     # Sensor data & analytics
+│   │   │   ├── 🏗️  firmwareBuilder.js # Dynamic firmware generator
+│   │   │   ├── 📋 firmwareTemplates.js # Device templates
+│   │   │   ├── 👥 users.js         # User management & roles
+│   │   │   ├── 📍 locations.js     # Location & site management
+│   │   │   ├── 🔄 firmware.js      # Firmware deployment
+│   │   │   ├── ⚠️  escalation.js   # Alert escalation workflows
+│   │   │   ├── 📈 analytics.js     # Data analysis & reporting
+│   │   │   ├── 🏷️  deviceGroups.js # Device grouping & organization
+│   │   │   ├── 🏷️  deviceTags.js   # Device tagging system
+│   │   │   ├── 📋 alertRules.js    # Alert rules engine
+│   │   │   ├── ⚙️  settings.js     # System configuration
+│   │   │   ├── 🔇 silentMode.js    # Maintenance mode controls
+│   │   │   ├── 🔧 protocolSettings.js # Communication protocols
+│   │   │   └── 🖥️  system.js       # Platform management
 │   │   ├── 🔧 services/            # Business logic
 │   │   └── 🛠️  utils/              # Helper functions
 │   └── 🗄️  migrations/            # Database migrations
@@ -64,18 +76,25 @@ ESP-Management-Platform/
 ## 🎯 Key Components
 
 ### 🖥️ Backend (Node.js + Express)
-**Purpose**: RESTful API server with WebSocket support
-- **Authentication**: JWT-based user management
-- **Device API**: ESP8266 device registration and telemetry
-- **Firmware Builder**: Dynamic Arduino code generation
-- **Real-time**: WebSocket for live dashboard updates
+**Purpose**: Enterprise-grade RESTful API server with real-time capabilities
+- **Authentication**: JWT-based user management with role-based access control
+- **Device API**: Comprehensive ESP8266 device lifecycle management
+- **Firmware Builder**: Dynamic Arduino code generation with multi-sensor support
+- **Real-time**: WebSocket for live dashboard updates and instant notifications
+- **Analytics**: Advanced telemetry processing and trend analysis
+- **Alert System**: Intelligent rules engine with escalation management
+- **System Management**: Platform updates, settings, and silent mode controls
 
 ### 🎨 Frontend (React + Tailwind)
-**Purpose**: Web-based user interface
-- **Dashboard**: Real-time device monitoring
-- **Firmware Builder**: Visual ESP8266 configuration
-- **Web Flashing**: Direct USB programming via WebSerial
-- **Device Management**: Bulk operations and analytics
+**Purpose**: Modern enterprise web interface with real-time capabilities
+- **Dashboard**: Real-time device monitoring with advanced analytics
+- **Firmware Builder**: Visual ESP8266 configuration with template system
+- **Web Flashing**: Direct USB programming via WebSerial API
+- **Device Management**: Advanced grouping, tagging, and bulk operations
+- **Alert Management**: Comprehensive rules engine with escalation workflows
+- **Analytics**: Data visualization, trends, and performance insights
+- **User Management**: Role-based access control and authentication
+- **System Administration**: Platform updates, settings, and maintenance
 
 ### 🔌 Firmware (Arduino/ESP8266)
 **Purpose**: IoT device code with multi-sensor support
@@ -85,11 +104,13 @@ ESP-Management-Platform/
 - **JSON API**: Structured data transmission
 
 ### 💾 Database (PostgreSQL)
-**Purpose**: Persistent data storage
-- **Users & Authentication**: Role-based access control
-- **Devices**: Registration, configuration, status
-- **Telemetry**: Time-series sensor data
-- **Alerts**: Rules, notifications, history
+**Purpose**: Enterprise-grade persistent data storage with advanced analytics
+- **Users & Authentication**: Multi-role access control with sessions
+- **Devices**: Full lifecycle management with grouping and tagging
+- **Telemetry**: Time-series sensor data with aggregation and trends
+- **Alerts**: Comprehensive rules engine with escalation workflows
+- **Analytics**: Performance metrics, health monitoring, and reporting
+- **System**: Configuration, settings, and platform management
 
 ## 🚀 Deployment Files
 

@@ -108,3 +108,6 @@ backup_*.sql
 INSTALLATION_INFO.md
 /.claude
 /.claude
+.last-backup
+/backups
+.last-backup

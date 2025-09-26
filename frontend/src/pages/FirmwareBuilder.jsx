@@ -183,6 +183,7 @@ const FirmwareBuilder = () => {
     const validateConfig = () => {
         const errors = [];
 
+        if (!config.device_id) errors.push('Device ID is required');
         if (!config.device_name) errors.push('Device name is required');
         if (!config.wifi_ssid) errors.push('WiFi SSID is required');
         if (!config.open_wifi && !config.wifi_password) errors.push('WiFi password is required (or enable Open WiFi)');

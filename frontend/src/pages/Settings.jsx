@@ -392,12 +392,25 @@ function Settings() {
                                     </div>
 
                                     <div className="bg-gray-50 rounded-lg p-4">
-                                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                                            <GitBranch className="w-4 h-4 mr-1" />
                                             {t('settings.system.version', 'Version')}
                                         </h4>
-                                        <p className="text-gray-900">
-                                            {systemInfo?.version || '2.1.0'}
-                                        </p>
+                                        <div className="space-y-1">
+                                            <p className="text-gray-900 font-mono text-sm">
+                                                {systemInfo?.version?.commit || 'unknown'}
+                                            </p>
+                                            {systemInfo?.version?.branch && (
+                                                <p className="text-xs text-gray-600">
+                                                    {systemInfo.version.branch} branch
+                                                </p>
+                                            )}
+                                            {systemInfo?.version?.date && (
+                                                <p className="text-xs text-gray-500">
+                                                    {new Date(systemInfo.version.date).toLocaleDateString()}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="bg-gray-50 rounded-lg p-4">
@@ -1147,6 +1160,7 @@ function Settings() {
 function PlatformUpdateTab() {
     const { t } = useTranslation();
     const [updating, setUpdating] = useState(false);
+    const [showLogs, setShowLogs] = useState(false);
 
     // Query system version
     const { data: versionData, isLoading: versionLoading, refetch: refetchVersion } = useQuery(
@@ -1171,13 +1185,38 @@ function PlatformUpdateTab() {
         }
     );
 
+    // Query update progress (only when updating)
+    const { data: progressData, isLoading: progressLoading } = useQuery(
+        'update-progress',
+        apiService.getUpdateProgress,
+        {
+            enabled: updating,
+            refetchInterval: 1000, // Poll every second when updating
+            onSuccess: (data) => {
+                const status = data?.status;
+                if (status && !status.isRunning && updating) {
+                    setUpdating(false);
+                    if (status.error) {
+                        toast.error(`Update failed: ${status.error}`);
+                    } else {
+                        toast.success('Platform update completed successfully!');
+                        refetchVersion();
+                    }
+                }
+            },
+            onError: (error) => {
+                console.error('Failed to get update progress:', error);
+            }
+        }
+    );
+
     // Update platform mutation
     const updatePlatformMutation = useMutation(
         apiService.updatePlatform,
         {
             onSuccess: () => {
-                toast.success('Platform update started successfully! The system will restart automatically.');
-                setUpdating(false);
+                toast.success('Platform update started! Monitor progress below.');
+                setUpdating(true);
             },
             onError: (error) => {
                 const message = error.response?.data?.error || 'Failed to start platform update';
@@ -1345,6 +1384,114 @@ function PlatformUpdateTab() {
                         </div>
                     )}
                 </div>
+
+                {/* Progress Tracking Section - Only show when updating */}
+                {updating && progressData?.status && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                        <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                            <Clock className="w-4 h-4 mr-2" />
+                            Update Progress
+                        </h4>
+
+                        <div className="space-y-4">
+                            {/* Progress Bar */}
+                            <div>
+                                <div className="flex justify-between text-sm mb-2">
+                                    <span className="text-gray-600">Progress</span>
+                                    <span className="font-medium text-gray-900">
+                                        {progressData.status.progress}%
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div
+                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                                        style={{ width: `${progressData.status.progress}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+
+                            {/* Current Step */}
+                            <div className="flex items-center text-sm">
+                                <span className="text-gray-600 mr-2">Current step:</span>
+                                <span className="font-medium text-gray-900 flex items-center">
+                                    {progressData.status.isRunning && (
+                                        <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                    )}
+                                    {progressData.status.currentStep || 'Initializing...'}
+                                </span>
+                            </div>
+
+                            {/* Duration */}
+                            {progressData.status.duration && (
+                                <div className="flex items-center text-sm text-gray-600">
+                                    <span className="mr-2">Duration:</span>
+                                    <span>{Math.floor(progressData.status.duration / 1000)}s</span>
+                                </div>
+                            )}
+
+                            {/* Error Message */}
+                            {progressData.status.error && (
+                                <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                                    <div className="flex items-start">
+                                        <X className="w-4 h-4 text-red-400 mt-0.5 mr-2 flex-shrink-0" />
+                                        <div>
+                                            <h5 className="text-sm font-medium text-red-800">Update Failed</h5>
+                                            <p className="mt-1 text-sm text-red-700">{progressData.status.error}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Logs Section */}
+                            {progressData.status.logs && progressData.status.logs.length > 0 && (
+                                <div className="mt-6">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h5 className="text-sm font-medium text-gray-900">Update Logs</h5>
+                                        <button
+                                            onClick={() => setShowLogs(!showLogs)}
+                                            className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+                                        >
+                                            {showLogs ? (
+                                                <>
+                                                    <EyeOff className="w-3 h-3 mr-1" />
+                                                    Hide Logs
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Eye className="w-3 h-3 mr-1" />
+                                                    Show Logs ({progressData.status.logs.length})
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {showLogs && (
+                                        <div className="bg-gray-900 text-gray-100 rounded-md p-4 font-mono text-xs overflow-auto max-h-60">
+                                            {progressData.status.logs.slice(-20).map((log, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={`mb-1 ${
+                                                        log.type === 'error' ? 'text-red-300' : 'text-gray-300'
+                                                    }`}
+                                                >
+                                                    <span className="text-gray-500 mr-2">
+                                                        {new Date(log.timestamp).toLocaleTimeString()}
+                                                    </span>
+                                                    {log.message}
+                                                </div>
+                                            ))}
+                                            {progressData.status.logs.length > 20 && (
+                                                <div className="text-gray-500 text-center mt-2">
+                                                    ... showing last 20 entries of {progressData.status.logs.length} total
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

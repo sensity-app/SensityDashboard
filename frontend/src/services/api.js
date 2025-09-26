@@ -194,6 +194,7 @@ export const apiService = {
     getSystemHealth: () => apiClient.get('/system/health'),
     getSystemVersion: () => apiClient.get('/system/version'),
     getUpdateStatus: () => apiClient.get('/system/update-status'),
+    getUpdateProgress: () => apiClient.get('/system/update-progress'),
     updatePlatform: () => apiClient.post('/system/update'),
 
     // Export data

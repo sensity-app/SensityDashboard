@@ -860,8 +860,9 @@ const FirmwareBuilder = () => {
                                 </div>
                             </div>
                         </div>
+                    )}
 
-                        {/* Step Navigation */}
+                    {/* Step Navigation */}
                         <div className="flex justify-between pt-6 border-t border-gray-200">
                             <button
                                 onClick={prevStep}

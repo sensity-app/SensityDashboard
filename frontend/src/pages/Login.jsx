@@ -18,6 +18,9 @@ function Login({ onLogin }) {
         companyLogo: null,
         primaryColor: '#2563eb'
     });
+    const [systemSettings, setSystemSettings] = useState({
+        siteName: 'ESP8266 IoT Platform'
+    });
 
     // Load branding settings
     useEffect(() => {
@@ -40,6 +43,9 @@ function Login({ onLogin }) {
                 const response = await apiService.getSettings();
                 if (response?.data?.branding) {
                     setBranding(prev => ({ ...prev, ...response.data.branding }));
+                }
+                if (response?.data?.system) {
+                    setSystemSettings(prev => ({ ...prev, ...response.data.system }));
                 }
             } catch (error) {
                 // Settings API might not be available during login
@@ -122,7 +128,7 @@ function Login({ onLogin }) {
                             {t('auth.signInTitle', 'Welcome back')}
                         </h2>
                         <p className="text-gray-600 text-sm">
-                            {branding.companyName || t('auth.iotPlatform', 'IoT Monitoring Platform')}
+                            {systemSettings.siteName || 'ESP8266 IoT Platform'}, {branding.companyName || t('auth.iotPlatform', 'IoT Monitoring Platform')}
                         </p>
                     </div>
 

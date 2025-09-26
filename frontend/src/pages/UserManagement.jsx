@@ -25,11 +25,14 @@ function UserManagement() {
     const [editingUser, setEditingUser] = useState(null);
 
     // Query users
-    const { data: users = [], isLoading: usersLoading } = useQuery(
+    const { data: usersData, isLoading: usersLoading } = useQuery(
         'users',
         () => apiService.getUsers(),
         { refetchInterval: 30000 }
     );
+
+    // Safely handle API response
+    const users = Array.isArray(usersData) ? usersData : (Array.isArray(usersData?.users) ? usersData.users : []);
 
     // Delete user mutation
     const deleteUserMutation = useMutation(

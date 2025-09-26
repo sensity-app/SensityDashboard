@@ -162,7 +162,7 @@ function DeviceGroupsManager({ onClose }) {
                             {t('deviceGroups.createGroup', 'Create Group')}
                         </button>
                         <button
-                            onClick={onClose}
+                            onClick={onClose || (() => window.history.back())}
                             className="text-gray-400 hover:text-gray-600"
                         >
                             <X className="h-6 w-6" />

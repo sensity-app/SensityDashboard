@@ -461,7 +461,7 @@ const createEnvBackup = async (envFilePath) => {
 // GET /api/settings/environment - Get environment variables
 router.get('/environment', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const envFilePath = path.join(__dirname, '../../../.env');
+        const envFilePath = path.join(__dirname, '../../.env');
 
         let envContent = '';
         try {
@@ -525,7 +525,7 @@ router.put('/environment', authenticateToken, requireAdmin, async (req, res) => 
             return res.status(400).json({ error: 'Invalid variables format' });
         }
 
-        const envFilePath = path.join(__dirname, '../../../.env');
+        const envFilePath = path.join(__dirname, '../../.env');
 
         // Create backup before making changes
         const backupPath = await createEnvBackup(envFilePath);

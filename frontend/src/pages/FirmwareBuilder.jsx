@@ -456,18 +456,24 @@ const FirmwareBuilder = () => {
                                             <MapPin className="w-4 h-4 inline mr-1" />
                                             Location
                                         </label>
-                                        <select
-                                            value={config.device_location}
-                                            onChange={(e) => handleConfigChange('device_location', e.target.value)}
-                                            className="input-field"
-                                        >
-                                            <option value="">Select location...</option>
-                                            {Array.isArray(locations) && locations.map(location => (
-                                                <option key={location.id} value={location.name}>
-                                                    {location.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={config.device_location}
+                                                onChange={(e) => handleConfigChange('device_location', e.target.value)}
+                                                className="input-field"
+                                                placeholder="Enter or select location..."
+                                                list="locations-list"
+                                            />
+                                            <datalist id="locations-list">
+                                                {Array.isArray(locations) && locations.map(location => (
+                                                    <option key={location.id} value={location.name} />
+                                                ))}
+                                            </datalist>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Choose from existing locations or type a new one
+                                        </p>
                                     </div>
                                 </div>
 
@@ -515,6 +521,18 @@ const FirmwareBuilder = () => {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Step Navigation */}
+                            <div className="flex justify-end pt-6 border-t border-gray-200">
+                                <button
+                                    onClick={nextStep}
+                                    disabled={!config.device_name || !config.device_location}
+                                    className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <span>Next: Network Config</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                     )}
@@ -661,13 +679,43 @@ const FirmwareBuilder = () => {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Step Navigation */}
+                            <div className="flex justify-between pt-6 border-t border-gray-200">
+                                <button
+                                    onClick={prevStep}
+                                    className="btn-secondary flex items-center space-x-2"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                    <span>Previous: Device Setup</span>
+                                </button>
+                                <button
+                                    onClick={nextStep}
+                                    disabled={!config.wifi_ssid || !config.wifi_password}
+                                    className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <span>Next: Sensor Selection</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     )}
 
-                    {/* Sensor Configuration */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold text-gray-900">Sensor Configuration</h2>
+                    {/* Step 2: Sensor Selection */}
+                    {currentStep === 2 && (
+                        <div>
+                            <div className="card-header">
+                                <h2 className="card-title">
+                                    <Activity className="w-6 h-6 text-primary" />
+                                    <span>Sensor Selection</span>
+                                </h2>
+                            </div>
+                            <div>
+
+                        {/* Sensor Configuration */}
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Available Sensors</h3>
                             <div className="flex items-center space-x-4 text-sm text-gray-600">
                                 <span>{enabledSensorsCount} sensors enabled</span>
                                 {pinConflicts.length > 0 && (
@@ -706,7 +754,40 @@ const FirmwareBuilder = () => {
                                 ))}
                             </div>
                         </div>
-                    </div>
+
+                            {/* Step Navigation */}
+                            <div className="flex justify-between pt-6 border-t border-gray-200">
+                                <button
+                                    onClick={prevStep}
+                                    className="btn-secondary flex items-center space-x-2"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                    <span>Previous: Network Config</span>
+                                </button>
+                                <button
+                                    onClick={nextStep}
+                                    disabled={enabledSensorsCount === 0 || pinConflicts.length > 0}
+                                    className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <span>Next: Review & Build</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 3: Review & Build */}
+                    {currentStep === 3 && (
+                        <div>
+                            <div className="card-header">
+                                <h2 className="card-title">
+                                    <BarChart3 className="w-6 h-6 text-primary" />
+                                    <span>Review & Build</span>
+                                </h2>
+                            </div>
+                            <div className="space-y-6">
 
                     {/* Build Actions */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
@@ -779,6 +860,21 @@ const FirmwareBuilder = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Step Navigation */}
+                        <div className="flex justify-between pt-6 border-t border-gray-200">
+                            <button
+                                onClick={prevStep}
+                                className="btn-secondary flex items-center space-x-2"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                <span>Previous: Sensor Selection</span>
+                            </button>
+                            <div className="text-sm text-gray-600">
+                                Final step - Build your firmware above
+                            </div>
+                        </div>
+                    </div>
                     )}
                 </div>
             </div>

@@ -127,7 +127,7 @@ function App() {
             <QueryClientProvider client={queryClient}>
                 <div className="min-h-screen bg-gray-50">
                     <div className="absolute top-4 right-4">
-                        <LanguageSelector />
+                        <LanguageSelector compact={true} />
                     </div>
                     <InitialSetup onSetupComplete={handleSetupComplete} />
                     <Toaster position="top-right" />
@@ -327,7 +327,7 @@ function AuthenticatedApp({ user, onLogout }) {
                             <div className={`transition-all duration-300 ${
                                 isHeaderMinimal ? 'scale-90' : 'scale-100'
                             }`}>
-                                <LanguageSelector />
+                                <LanguageSelector compact={true} />
                             </div>
                             {!isHeaderMinimal && (
                                 <span className="badge badge-primary text-xs">
@@ -359,8 +359,8 @@ function AuthenticatedApp({ user, onLogout }) {
                                             onClick={() => handleDropdownToggle(index)}
                                             className={`flex items-center space-x-2 px-4 py-4 text-sm font-medium transition-all duration-200 rounded-t-lg ${
                                                 isPathActive(item.path, item.items)
-                                                    ? 'text-white bg-white/20 backdrop-blur-sm shadow-lg'
-                                                    : 'text-gray-200 hover:text-white hover:bg-white/10'
+                                                    ? 'text-white bg-gray-600 shadow-lg'
+                                                    : 'text-white hover:text-gray-200 hover:bg-gray-700'
                                             }`}
                                         >
                                             <span className="text-base">{item.icon}</span>
@@ -370,7 +370,7 @@ function AuthenticatedApp({ user, onLogout }) {
                                             }`} />
                                         </button>
                                         {dropdownOpen === index && (
-                                            <div className="absolute top-full left-0 w-56 glass rounded-b-xl border-t-0 shadow-xl z-[60] animate-fade-in">
+                                            <div className="absolute top-full left-0 w-56 bg-white rounded-b-xl border border-gray-200 border-t-0 shadow-xl z-[60] animate-fade-in">
                                                 {item.items.map((subItem) => (
                                                     <button
                                                         key={subItem.path}
@@ -397,7 +397,7 @@ function AuthenticatedApp({ user, onLogout }) {
                                         className={`flex items-center space-x-2 px-4 py-4 text-sm font-medium transition-all duration-200 rounded-lg ${
                                             currentPath === item.path
                                                 ? 'text-white bg-primary shadow-lg border-b-2 border-primary-hover'
-                                                : 'text-gray-200 hover:text-white hover:bg-white/10'
+                                                : 'text-white hover:text-gray-200 hover:bg-gray-700'
                                         }`}
                                     >
                                         <span className="text-base">{item.icon}</span>
@@ -442,7 +442,7 @@ function UnauthenticatedApp({ onLogin }) {
     return (
         <div className="min-h-screen">
             <div className="absolute top-4 right-4">
-                <LanguageSelector />
+                <LanguageSelector compact={true} />
             </div>
             <Routes>
                 <Route path="/login" element={<Login onLogin={onLogin} />} />

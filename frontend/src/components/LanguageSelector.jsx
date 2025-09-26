@@ -34,7 +34,7 @@ function LanguageSelector({ showLabel = true, compact = false }) {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="btn-ghost p-2 flex items-center space-x-2 rounded-lg"
-          title={t('settings.language')}
+          title="Change Language"
         >
           <Globe className="h-4 w-4" />
           <span className="text-lg">{currentLanguage.flag}</span>
@@ -77,7 +77,7 @@ function LanguageSelector({ showLabel = true, compact = false }) {
     <div className="relative">
       {showLabel && (
         <label className="form-label">
-          {t('settings.language')}
+          Language
         </label>
       )}
 

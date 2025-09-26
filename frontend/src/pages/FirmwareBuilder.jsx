@@ -202,45 +202,43 @@ const FirmwareBuilder = () => {
 
     const createDeviceFromConfig = async () => {
         try {
+            console.log('Creating device from config...');
+            console.log('Available locations:', locations);
+            console.log('Config device_location:', config.device_location);
+
             // Find location by name or create/use first available location
             let locationId = null;
             if (config.device_location && locations.length > 0) {
                 const location = locations.find(loc => loc.name === config.device_location);
                 locationId = location?.id || null;
+                console.log('Found location:', location, 'locationId:', locationId);
             }
 
-            // Create device configuration object
+            // Create device configuration object that matches backend API
             const deviceData = {
+                id: config.device_id,           // Backend expects 'id', not 'device_id'
                 name: config.device_name,
-                device_id: config.device_id,
                 device_type: 'esp8266',
                 location_id: locationId,
-                description: `Device created via firmware builder. WiFi: ${config.wifi_ssid}${config.open_wifi ? ' (open)' : ''}. ${config.sensors.length} sensors configured.`,
-                api_key: config.api_key,
-                config: {
-                    wifi_ssid: config.wifi_ssid,
-                    wifi_password: config.open_wifi ? '' : config.wifi_password,
-                    open_wifi: config.open_wifi,
-                    server_url: config.server_url,
-                    heartbeat_interval: config.heartbeat_interval,
-                    sensor_read_interval: config.sensor_read_interval,
-                    debug_mode: config.debug_mode,
-                    ota_enabled: config.ota_enabled,
-                    device_armed: config.device_armed,
-                    sensors: config.sensors.map(sensor => ({
-                        type: sensor.type,
-                        name: sensor.name,
-                        pin: sensor.pin
-                    }))
-                },
-                status: 'offline',
-                firmware_version: '1.0.0'
+                wifi_ssid: config.wifi_ssid,
+                wifi_password: config.open_wifi ? '' : config.wifi_password,
+                // Note: Backend doesn't handle these extra fields, so removing them
+                // description, api_key, config, status, firmware_version are not part of device creation API
             };
 
+            console.log('Device data to be created:', deviceData);
+
             const response = await apiService.createDevice(deviceData);
+            console.log('Device creation response:', response);
             return response;
         } catch (error) {
             console.error('Failed to create device:', error);
+            console.error('Error details:', {
+                message: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data
+            });
             throw error;
         }
     };

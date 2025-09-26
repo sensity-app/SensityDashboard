@@ -283,7 +283,7 @@ function AuthenticatedApp({ user, onLogout }) {
     return (
         <div className="min-h-screen">
             {/* Modern Header */}
-            <header className={`nav-modern transition-all duration-300 sticky top-0 z-40 ${
+            <header className={`nav-modern transition-all duration-300 sticky top-0 z-50 ${
                 isHeaderMinimal ? 'py-2' : 'py-4'
             }`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -370,7 +370,7 @@ function AuthenticatedApp({ user, onLogout }) {
                                             }`} />
                                         </button>
                                         {dropdownOpen === index && (
-                                            <div className="absolute top-full left-0 w-56 bg-white rounded-b-xl border border-gray-200 border-t-0 shadow-xl z-[60] animate-fade-in">
+                                            <div className="absolute top-full left-0 w-56 bg-white rounded-b-xl border border-gray-200 border-t-0 shadow-xl z-[70] animate-fade-in">
                                                 {item.items.map((subItem) => (
                                                     <button
                                                         key={subItem.path}

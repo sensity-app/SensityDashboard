@@ -2,6 +2,7 @@ const express = require('express');
 const os = require('os');
 const { promisify } = require('util');
 const exec = promisify(require('child_process').exec);
+const { spawn } = require('child_process');
 const db = require('../models/database');
 const logger = require('../utils/logger');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
@@ -154,6 +155,136 @@ router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
     } catch (error) {
         logger.error('Get system stats error:', error);
         res.status(500).json({ error: 'Failed to get system statistics' });
+    }
+});
+
+// GET /api/system/version - Get current git commit version
+router.get('/version', authenticateToken, async (req, res) => {
+    try {
+        let gitInfo = {
+            commit: 'unknown',
+            branch: 'unknown',
+            date: 'unknown',
+            author: 'unknown'
+        };
+
+        try {
+            // Get current commit hash
+            const { stdout: commit } = await exec('git rev-parse HEAD', { cwd: process.cwd() });
+            gitInfo.commit = commit.trim().substring(0, 8);
+
+            // Get current branch
+            const { stdout: branch } = await exec('git rev-parse --abbrev-ref HEAD', { cwd: process.cwd() });
+            gitInfo.branch = branch.trim();
+
+            // Get commit date
+            const { stdout: date } = await exec('git log -1 --format=%cd --date=iso', { cwd: process.cwd() });
+            gitInfo.date = date.trim();
+
+            // Get commit author
+            const { stdout: author } = await exec('git log -1 --format=%an', { cwd: process.cwd() });
+            gitInfo.author = author.trim();
+        } catch (gitError) {
+            logger.warn('Git information not available:', gitError.message);
+        }
+
+        res.json({
+            success: true,
+            version: gitInfo
+        });
+    } catch (error) {
+        logger.error('Get version error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get version information'
+        });
+    }
+});
+
+// POST /api/system/update - Update the platform (admin only)
+router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        logger.info('Platform update requested by user:', req.user.email);
+
+        res.json({
+            success: true,
+            message: 'Update started in background'
+        });
+
+        // Run update-system command in background
+        setTimeout(async () => {
+            try {
+                logger.info('Starting platform update...');
+
+                const updateProcess = spawn('bash', ['-c', 'update-system'], {
+                    detached: true,
+                    stdio: 'pipe'
+                });
+
+                updateProcess.stdout.on('data', (data) => {
+                    logger.info('Update stdout:', data.toString());
+                });
+
+                updateProcess.stderr.on('data', (data) => {
+                    logger.error('Update stderr:', data.toString());
+                });
+
+                updateProcess.on('close', (code) => {
+                    if (code === 0) {
+                        logger.info('Platform update completed successfully');
+                    } else {
+                        logger.error(`Platform update failed with code ${code}`);
+                    }
+                });
+
+                updateProcess.unref();
+            } catch (error) {
+                logger.error('Failed to start update process:', error);
+            }
+        }, 1000);
+
+    } catch (error) {
+        logger.error('Update platform error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to start platform update'
+        });
+    }
+});
+
+// GET /api/system/update-status - Check if update command exists
+router.get('/update-status', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        let updateAvailable = false;
+        let updateScript = '';
+
+        try {
+            // Check if update-system command exists
+            await exec('which update-system');
+            updateAvailable = true;
+            updateScript = 'update-system';
+        } catch (error) {
+            // Check if there's a local update script
+            try {
+                await exec('ls update-system.sh');
+                updateAvailable = true;
+                updateScript = './update-system.sh';
+            } catch (localError) {
+                logger.info('No update script found');
+            }
+        }
+
+        res.json({
+            success: true,
+            updateAvailable,
+            updateScript
+        });
+    } catch (error) {
+        logger.error('Update status error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to check update status'
+        });
     }
 });
 

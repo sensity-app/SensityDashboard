@@ -18,7 +18,10 @@ import {
     X,
     Code,
     Eye,
-    EyeOff
+    EyeOff,
+    GitBranch,
+    Update,
+    Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -308,6 +311,7 @@ function Settings() {
 
     const tabs = [
         { id: 'system', label: t('settings.tabs.system', 'System'), icon: Server },
+        { id: 'platform', label: 'Platform Update', icon: Update },
         { id: 'branding', label: t('settings.tabs.branding', 'Branding'), icon: Image },
         { id: 'environment', label: t('settings.tabs.environment', 'Environment'), icon: Code },
         { id: 'database', label: t('settings.tabs.database', 'Database'), icon: Database },
@@ -446,6 +450,11 @@ function Settings() {
                                     </div>
                                 </div>
                             </div>
+                        )}
+
+                        {/* Platform Update Tab */}
+                        {activeTab === 'platform' && (
+                            <PlatformUpdateTab />
                         )}
 
                         {/* Branding Tab */}
@@ -1128,6 +1137,213 @@ function Settings() {
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Platform Update Tab Component
+function PlatformUpdateTab() {
+    const { t } = useTranslation();
+    const [updating, setUpdating] = useState(false);
+
+    // Query system version
+    const { data: versionData, isLoading: versionLoading, refetch: refetchVersion } = useQuery(
+        'system-version',
+        apiService.getSystemVersion,
+        {
+            refetchInterval: 30000,
+            onError: (error) => {
+                console.error('Failed to load version info:', error);
+            }
+        }
+    );
+
+    // Query update status
+    const { data: updateStatus, isLoading: updateLoading } = useQuery(
+        'update-status',
+        apiService.getUpdateStatus,
+        {
+            onError: (error) => {
+                console.error('Failed to check update status:', error);
+            }
+        }
+    );
+
+    // Update platform mutation
+    const updatePlatformMutation = useMutation(
+        apiService.updatePlatform,
+        {
+            onSuccess: () => {
+                toast.success('Platform update started successfully! The system will restart automatically.');
+                setUpdating(false);
+            },
+            onError: (error) => {
+                const message = error.response?.data?.error || 'Failed to start platform update';
+                toast.error(message);
+                setUpdating(false);
+            }
+        }
+    );
+
+    const handleUpdate = async () => {
+        if (!updateStatus?.updateAvailable) {
+            toast.error('Update script is not available on this system');
+            return;
+        }
+
+        const confirmed = window.confirm(
+            'Are you sure you want to update the platform? This will restart the system and may take several minutes. Make sure no critical operations are running.'
+        );
+
+        if (confirmed) {
+            setUpdating(true);
+            updatePlatformMutation.mutate();
+        }
+    };
+
+    const version = versionData?.version || {};
+
+    return (
+        <div className="p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center">
+                <Update className="w-5 h-5 mr-2 text-blue-600" />
+                Platform Update
+            </h3>
+
+            <div className="space-y-6">
+                {/* Current Version Info */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                        <GitBranch className="w-4 h-4 mr-2" />
+                        Current Version
+                    </h4>
+
+                    {versionLoading ? (
+                        <div className="animate-pulse">
+                            <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                            <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div className="flex justify-between">
+                                <span className="font-medium text-gray-700">Commit:</span>
+                                <span className="font-mono text-gray-900">{version.commit || 'unknown'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="font-medium text-gray-700">Branch:</span>
+                                <span className="text-gray-900">{version.branch || 'unknown'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="font-medium text-gray-700">Author:</span>
+                                <span className="text-gray-900">{version.author || 'unknown'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="font-medium text-gray-700">Date:</span>
+                                <span className="text-gray-900 flex items-center">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    {version.date ? new Date(version.date).toLocaleDateString() : 'unknown'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                        <button
+                            onClick={() => refetchVersion()}
+                            disabled={versionLoading}
+                            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            <RefreshCw className={`w-4 h-4 mr-2 ${versionLoading ? 'animate-spin' : ''}`} />
+                            Refresh Version Info
+                        </button>
+                    </div>
+                </div>
+
+                {/* Update Section */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                    <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
+                        <Update className="w-4 h-4 mr-2" />
+                        Platform Update
+                    </h4>
+
+                    {updateLoading ? (
+                        <div className="animate-pulse">
+                            <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
+                            <div className="h-10 bg-gray-200 rounded w-32"></div>
+                        </div>
+                    ) : updateStatus?.updateAvailable ? (
+                        <div>
+                            <div className="mb-4">
+                                <div className="flex items-center text-green-600 mb-2">
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    <span className="text-sm font-medium">Update script available</span>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Script: <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">{updateStatus.updateScript}</code>
+                                </p>
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+                                    <div className="flex">
+                                        <AlertTriangle className="w-5 h-5 text-yellow-400 mr-2" />
+                                        <div className="text-sm">
+                                            <p className="text-yellow-800 font-medium">Important:</p>
+                                            <ul className="text-yellow-700 mt-2 list-disc list-inside space-y-1">
+                                                <li>The update process will restart the entire system</li>
+                                                <li>All users will be disconnected temporarily</li>
+                                                <li>The process may take several minutes to complete</li>
+                                                <li>Make sure no critical operations are running</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleUpdate}
+                                disabled={updating}
+                                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                                    updating
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                                }`}
+                            >
+                                {updating ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                        Updating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Update className="w-4 h-4 mr-2" />
+                                        Update Platform
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    ) : (
+                        <div>
+                            <div className="flex items-center text-red-600 mb-2">
+                                <X className="w-4 h-4 mr-2" />
+                                <span className="text-sm font-medium">Update script not available</span>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-4">
+                                The <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">update-system</code> command
+                                was not found on this system. Platform updates are not available.
+                            </p>
+                            <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                                <div className="text-sm">
+                                    <p className="text-gray-800 font-medium">To enable platform updates:</p>
+                                    <ul className="text-gray-600 mt-2 list-disc list-inside space-y-1">
+                                        <li>Create an <code className="bg-white px-1 py-0.5 rounded text-xs">update-system</code> script</li>
+                                        <li>Make it executable and place it in your system PATH</li>
+                                        <li>Or create <code className="bg-white px-1 py-0.5 rounded text-xs">update-system.sh</code> in the project directory</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

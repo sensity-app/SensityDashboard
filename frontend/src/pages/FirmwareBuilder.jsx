@@ -199,6 +199,51 @@ const FirmwareBuilder = () => {
         return errors;
     };
 
+    const createDeviceFromConfig = async () => {
+        try {
+            // Find location by name or create/use first available location
+            let locationId = null;
+            if (config.device_location && locations.length > 0) {
+                const location = locations.find(loc => loc.name === config.device_location);
+                locationId = location?.id || null;
+            }
+
+            // Create device configuration object
+            const deviceData = {
+                name: config.device_name,
+                device_id: config.device_id,
+                device_type: 'esp8266',
+                location_id: locationId,
+                description: `Device created via firmware builder. WiFi: ${config.wifi_ssid}${config.open_wifi ? ' (open)' : ''}. ${config.sensors.length} sensors configured.`,
+                api_key: config.api_key,
+                config: {
+                    wifi_ssid: config.wifi_ssid,
+                    wifi_password: config.open_wifi ? '' : config.wifi_password,
+                    open_wifi: config.open_wifi,
+                    server_url: config.server_url,
+                    heartbeat_interval: config.heartbeat_interval,
+                    sensor_read_interval: config.sensor_read_interval,
+                    debug_mode: config.debug_mode,
+                    ota_enabled: config.ota_enabled,
+                    device_armed: config.device_armed,
+                    sensors: config.sensors.map(sensor => ({
+                        type: sensor.type,
+                        name: sensor.name,
+                        pin: sensor.pin
+                    }))
+                },
+                status: 'offline',
+                firmware_version: '1.0.0'
+            };
+
+            const response = await apiService.createDevice(deviceData);
+            return response;
+        } catch (error) {
+            console.error('Failed to create device:', error);
+            throw error;
+        }
+    };
+
     const buildFirmware = async () => {
         const errors = validateConfig();
         if (errors.length > 0) {
@@ -208,6 +253,7 @@ const FirmwareBuilder = () => {
 
         setLoading(true);
         try {
+            // First, build the firmware
             const response = await fetch('/api/firmware-builder/build', {
                 method: 'POST',
                 headers: {
@@ -228,6 +274,15 @@ const FirmwareBuilder = () => {
                 document.body.removeChild(a);
 
                 setDownloadUrl(url);
+
+                // After successful firmware build, create the device in database
+                try {
+                    await createDeviceFromConfig();
+                    alert('Firmware built successfully and device created in database!');
+                } catch (deviceError) {
+                    console.warn('Firmware built but failed to create device:', deviceError);
+                    alert('Firmware built successfully, but failed to create device in database. You can create it manually in the devices section.');
+                }
             } else {
                 const error = await response.json();
                 alert('Failed to build firmware: ' + (error.error || 'Unknown error'));
@@ -289,7 +344,7 @@ const FirmwareBuilder = () => {
     const canProceed = () => {
         switch (currentStep) {
             case 0: // Device setup
-                return config.device_name.trim();
+                return config.device_name.trim() && config.device_location.trim();
             case 1: // Network config
                 return config.wifi_ssid.trim() && (config.open_wifi || config.wifi_password.trim()) && config.server_url.trim();
             case 2: // Sensors

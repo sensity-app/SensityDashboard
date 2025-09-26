@@ -17,16 +17,18 @@ import {
     Activity,
     Clock,
     RefreshCw,
-    X
+    X,
+    Cpu
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { apiService } from '../services/api';
 
 function DeviceManagement() {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [editingDevice, setEditingDevice] = useState(null);
     const [filterStatus, setFilterStatus] = useState('all');
@@ -129,14 +131,11 @@ function DeviceManagement() {
                             <span>Refresh</span>
                         </button>
                         <button
-                            onClick={() => {
-                                setEditingDevice(null);
-                                setShowCreateForm(true);
-                            }}
+                            onClick={() => navigate('/firmware-builder')}
                             className="btn-primary flex items-center space-x-2"
                         >
-                            <Plus className="h-4 w-4" />
-                            <span>{t('devices.addDevice')}</span>
+                            <Cpu className="h-4 w-4" />
+                            <span>Build & Add Device</span>
                         </button>
                     </div>
                 </div>
@@ -298,14 +297,11 @@ function DeviceManagement() {
                             {t('devices.addFirstDevice', 'Add your first IoT device to get started.')}
                         </p>
                         <button
-                            onClick={() => {
-                                setEditingDevice(null);
-                                setShowCreateForm(true);
-                            }}
+                            onClick={() => navigate('/firmware-builder')}
                             className="btn-primary"
                         >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add First Device
+                            <Cpu className="w-4 h-4 mr-2" />
+                            Build & Add First Device
                         </button>
                     </div>
                 ) : (

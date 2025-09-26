@@ -192,6 +192,9 @@ export const apiService = {
     // System
     getSystemInfo: () => apiClient.get('/system/info'),
     getSystemHealth: () => apiClient.get('/system/health'),
+    getSystemVersion: () => apiClient.get('/system/version'),
+    getUpdateStatus: () => apiClient.get('/system/update-status'),
+    updatePlatform: () => apiClient.post('/system/update'),
 
     // Export data
     exportTelemetryData: (deviceId, startDate, endDate, format = 'csv') =>

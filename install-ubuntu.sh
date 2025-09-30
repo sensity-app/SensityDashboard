@@ -387,6 +387,116 @@ install_redis() {
     print_success "Redis installed and configured"
 }
 
+# Function to install MQTT broker (optional)
+install_mqtt_broker() {
+    print_status "MQTT Protocol Support"
+    echo
+    echo "MQTT is an optional lightweight messaging protocol for device communication."
+    echo "Benefits:"
+    echo "  • Lower bandwidth usage (~95% less than HTTP)"
+    echo "  • Better for battery-powered devices"
+    echo "  • Real-time bidirectional communication"
+    echo "  • Works well behind NAT/firewalls"
+    echo
+    echo "You can skip this and devices will use HTTP instead."
+    echo
+
+    # Check if running interactively
+    if [[ ! -t 0 ]]; then
+        # Non-interactive mode - check environment variable
+        if [[ "$INSTALL_MQTT" == "true" ]]; then
+            print_status "Installing MQTT broker (configured via INSTALL_MQTT=true)..."
+        else
+            print_status "Skipping MQTT broker installation (set INSTALL_MQTT=true to enable)"
+            MQTT_ENABLED="false"
+            return 0
+        fi
+    else
+        # Interactive mode - ask user
+        read -p "Install Mosquitto MQTT broker? (y/N): " -n 1 -r < /dev/tty
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_status "Skipping MQTT broker installation"
+            MQTT_ENABLED="false"
+            return 0
+        fi
+    fi
+
+    print_status "Installing Mosquitto MQTT broker..."
+
+    # Install mosquitto
+    apt-get install -y mosquitto mosquitto-clients
+
+    # Create MQTT configuration directory
+    mkdir -p /etc/mosquitto/conf.d
+
+    # Create ESP8266 platform configuration
+    cat > /etc/mosquitto/conf.d/esp8266-platform.conf << 'EOF'
+# ESP8266 Platform MQTT Configuration
+listener 1883 0.0.0.0
+protocol mqtt
+
+# Authentication
+allow_anonymous false
+password_file /etc/mosquitto/passwd
+
+# Logging
+log_dest file /var/log/mosquitto/mosquitto.log
+log_type error
+log_type warning
+log_type notice
+
+# Connection limits
+max_connections -1
+max_queued_messages 1000
+
+# Persistence
+persistence true
+persistence_location /var/lib/mosquitto/
+
+# Message size limit (allow larger payloads for sensor data)
+message_size_limit 10240
+EOF
+
+    # Create password file with default credentials
+    print_status "Creating default MQTT user 'iot' with password 'iot123'..."
+    touch /etc/mosquitto/passwd
+    mosquitto_passwd -b /etc/mosquitto/passwd iot iot123
+
+    # Set proper permissions
+    chown mosquitto:mosquitto /etc/mosquitto/passwd
+    chmod 600 /etc/mosquitto/passwd
+
+    # Create and set permissions for log directory
+    mkdir -p /var/log/mosquitto
+    chown mosquitto:mosquitto /var/log/mosquitto
+
+    # Ensure persistence directory exists
+    mkdir -p /var/lib/mosquitto
+    chown mosquitto:mosquitto /var/lib/mosquitto
+
+    # Restart mosquitto to apply configuration
+    systemctl restart mosquitto
+    systemctl enable mosquitto
+
+    # Verify mosquitto is running
+    if systemctl is-active --quiet mosquitto; then
+        MQTT_ENABLED="true"
+        MQTT_BROKER_URL="mqtt://localhost:1883"
+        MQTT_USERNAME="iot"
+        MQTT_PASSWORD="iot123"
+
+        print_success "Mosquitto MQTT broker installed and running"
+        print_warning "Default MQTT credentials: iot / iot123"
+        print_status "To add more users: sudo mosquitto_passwd /etc/mosquitto/passwd <username>"
+        print_status "To change password: sudo mosquitto_passwd -b /etc/mosquitto/passwd iot <new_password>"
+    else
+        print_error "Mosquitto failed to start. Check logs: journalctl -u mosquitto"
+        MQTT_ENABLED="false"
+        return 1
+    fi
+}
+
 # Function to create application user
 create_app_user() {
     print_status "Creating application user..."
@@ -594,6 +704,14 @@ LOG_FILE=/var/log/esp8266-platform/app.log
 USE_HTTPS=true
 SSL_CERT_PATH=/etc/letsencrypt/live/$DOMAIN/fullchain.pem
 SSL_KEY_PATH=/etc/letsencrypt/live/$DOMAIN/privkey.pem
+
+# MQTT Configuration (Optional)
+MQTT_ENABLED=${MQTT_ENABLED:-false}
+MQTT_BROKER_URL=${MQTT_BROKER_URL:-mqtt://localhost:1883}
+MQTT_USERNAME=${MQTT_USERNAME:-}
+MQTT_PASSWORD=${MQTT_PASSWORD:-}
+MQTT_TOPIC_PREFIX=iot
+MQTT_DEFAULT_QOS=1
 EOF
 
     # Frontend environment
@@ -931,6 +1049,12 @@ setup_firewall() {
     else
         ufw allow 'Nginx Full'
         print_status "Production mode: HTTPS access configured"
+    fi
+
+    # Open MQTT port if MQTT is enabled
+    if [[ "$MQTT_ENABLED" == "true" ]]; then
+        ufw allow 1883/tcp comment 'MQTT'
+        print_status "MQTT port 1883 opened in firewall"
     fi
 
     ufw --force enable
@@ -1271,6 +1395,7 @@ main() {
     install_nodejs
     install_postgresql
     install_redis
+    install_mqtt_broker  # New: Optional MQTT broker installation
     create_app_user
     setup_application
     install_app_dependencies

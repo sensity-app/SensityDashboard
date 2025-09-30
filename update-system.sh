@@ -43,8 +43,77 @@ check_root() {
     fi
 }
 
+check_services() {
+    print_status "🔍 Checking system services..."
+
+    local failed=0
+
+    # Check PostgreSQL
+    if systemctl is-active --quiet postgresql; then
+        print_success "PostgreSQL: ✓ running"
+    else
+        print_error "PostgreSQL: ✗ NOT running"
+        failed=1
+    fi
+
+    # Check Redis
+    if systemctl is-active --quiet redis-server; then
+        print_success "Redis: ✓ running"
+    else
+        print_warning "Redis: ⚠ not running (optional but recommended)"
+    fi
+
+    # Check Nginx
+    if systemctl is-active --quiet nginx; then
+        print_success "Nginx: ✓ running"
+    else
+        print_error "Nginx: ✗ NOT running"
+        failed=1
+    fi
+
+    # Check PM2
+    if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "online"; then
+        print_success "Application (PM2): ✓ online"
+    else
+        print_warning "Application (PM2): ⚠ may not be running correctly"
+    fi
+
+    # Check MQTT (optional)
+    if systemctl is-enabled --quiet mosquitto 2>/dev/null; then
+        if systemctl is-active --quiet mosquitto; then
+            print_success "MQTT (Mosquitto): ✓ running"
+        else
+            print_warning "MQTT (Mosquitto): ⚠ installed but not running"
+        fi
+    else
+        print_status "MQTT (Mosquitto): ℹ not installed (optional)"
+    fi
+
+    echo
+
+    if [[ $failed -eq 1 ]]; then
+        print_error "Some critical services are down!"
+        print_status "Fix them before updating:"
+        echo "  sudo systemctl start postgresql"
+        echo "  sudo systemctl start nginx"
+        echo "  sudo -u $APP_USER pm2 restart all"
+        return 1
+    fi
+
+    print_success "All critical services are healthy"
+    return 0
+}
+
 update_system() {
     print_status "🔄 Updating ESP8266 IoT Platform..."
+    echo
+
+    # Check services health before updating
+    if ! check_services; then
+        print_error "Cannot proceed with update while critical services are down"
+        print_status "Please fix the services and try again"
+        exit 1
+    fi
 
     # Stop PM2 processes
     print_status "Stopping services..."

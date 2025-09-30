@@ -32,6 +32,7 @@ const systemRoutes = require('./src/routes/system');
 const WebSocketService = require('./src/services/websocketService');
 const AlertEscalationService = require('./src/services/alertEscalationService');
 const TelemetryProcessor = require('./src/services/telemetryProcessor');
+const MQTTService = require('./src/services/mqttService');
 const logger = require('./src/utils/logger');
 const db = require('./src/models/database');
 
@@ -57,6 +58,7 @@ const redis = new Redis({
 const websocketService = new WebSocketService(io, redis);
 const alertEscalationService = new AlertEscalationService();
 const telemetryProcessor = new TelemetryProcessor(redis, websocketService);
+const mqttService = new MQTTService(telemetryProcessor);
 
 const PORT = process.env.PORT || 3000;
 
@@ -137,7 +139,10 @@ app.get('/health', (req, res) => {
         status: 'OK',
         timestamp: new Date().toISOString(),
         version: '2.0.0',
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        services: {
+            mqtt: mqttService.getStatus()
+        }
     });
 });
 
@@ -150,6 +155,7 @@ app.use((err, req, res, next) => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
     logger.info('SIGTERM received, shutting down gracefully');
+    await mqttService.shutdown();
     server.close(() => {
         redis.disconnect();
         process.exit(0);
@@ -165,6 +171,19 @@ server.listen(PORT, async () => {
         logger.info('Database initialization completed');
     } catch (error) {
         logger.error('Database initialization failed:', error);
+    }
+
+    // Initialize MQTT service if enabled
+    if (process.env.MQTT_ENABLED !== 'false') {
+        try {
+            await mqttService.initialize();
+            logger.info('MQTT service initialized successfully');
+        } catch (error) {
+            logger.warn('MQTT service initialization failed (this is optional):', error.message);
+            logger.info('HTTP protocol will continue to work normally');
+        }
+    } else {
+        logger.info('MQTT service disabled via configuration');
     }
 });
 

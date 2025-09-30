@@ -214,36 +214,252 @@ class OTAService {
     }
 
     async generateFirmwareBinary(deviceId, baseVersion) {
-        // This would generate a custom firmware binary with device-specific configuration
-        // For now, this is a placeholder that returns the base firmware
+        /**
+         * Generate device-specific firmware binary with injected configuration
+         *
+         * This implementation uses a config injection approach:
+         * 1. Get device-specific configuration
+         * 2. Get protocol settings (HTTP/MQTT)
+         * 3. Inject configuration into firmware binary at reserved memory location
+         * 4. Return path to customized binary
+         */
 
-        const device = await db.query(`
-            SELECT d.*, dc.*, l.timezone
-            FROM devices d
-            INNER JOIN device_config dc ON d.id = dc.device_id
-            LEFT JOIN locations l ON d.location_id = l.id
-            WHERE d.id = $1
-        `, [deviceId]);
+        try {
+            // Fetch device configuration with all related data
+            const deviceResult = await db.query(`
+                SELECT
+                    d.*,
+                    dc.*,
+                    l.timezone,
+                    l.name as location_name,
+                    ps.protocol,
+                    ps.mqtt_broker_host,
+                    ps.mqtt_broker_port,
+                    ps.mqtt_username,
+                    ps.mqtt_password,
+                    ps.mqtt_topic_prefix,
+                    ps.mqtt_qos,
+                    ps.http_endpoint,
+                    ps.heartbeat_interval as protocol_heartbeat_interval
+                FROM devices d
+                LEFT JOIN device_config dc ON d.id = dc.device_id
+                LEFT JOIN locations l ON d.location_id = l.id
+                LEFT JOIN protocol_settings ps ON d.id = ps.device_id
+                WHERE d.id = $1
+            `, [deviceId]);
 
-        if (device.rows.length === 0) {
-            throw new Error('Device not found');
+            if (deviceResult.rows.length === 0) {
+                throw new Error(`Device ${deviceId} not found`);
+            }
+
+            const deviceConfig = deviceResult.rows[0];
+
+            // Get device sensors
+            const sensorsResult = await db.query(`
+                SELECT ds.*, st.name as sensor_type, st.unit
+                FROM device_sensors ds
+                JOIN sensor_types st ON ds.sensor_type_id = st.id
+                WHERE ds.device_id = $1 AND ds.enabled = true
+                ORDER BY ds.pin
+            `, [deviceId]);
+
+            deviceConfig.sensors = sensorsResult.rows;
+
+            // Generate device configuration blob
+            const configData = this.generateDeviceConfigData(deviceConfig);
+
+            // Get base firmware path
+            const baseFirmwarePath = path.join(
+                this.firmwareDirectory,
+                `firmware_esp8266_${baseVersion}.bin`
+            );
+
+            // Check if base firmware exists
+            try {
+                await fs.access(baseFirmwarePath);
+            } catch (error) {
+                logger.warn(`Base firmware ${baseVersion} not found, using generic firmware`);
+                // Return generic firmware path - will be caught by caller
+                return {
+                    binaryPath: baseFirmwarePath,
+                    isCustomized: false,
+                    configData: configData
+                };
+            }
+
+            // Create customized firmware filename
+            const customFirmwareName = `firmware_${deviceId}_${baseVersion}_${Date.now()}.bin`;
+            const customFirmwarePath = path.join(this.firmwareDirectory, customFirmwareName);
+
+            // Read base firmware
+            const baseFirmware = await fs.readFile(baseFirmwarePath);
+
+            // Inject configuration into firmware binary
+            const customFirmware = await this.injectConfigIntoFirmware(
+                baseFirmware,
+                configData
+            );
+
+            // Write customized firmware
+            await fs.writeFile(customFirmwarePath, customFirmware);
+
+            logger.info(`Generated customized firmware for device ${deviceId}: ${customFirmwareName}`);
+
+            return {
+                binaryPath: customFirmwarePath,
+                binaryUrl: `/api/firmware/download/${customFirmwareName}`,
+                isCustomized: true,
+                configData: configData,
+                checksum: crypto.createHash('sha256').update(customFirmware).digest('hex'),
+                fileSize: customFirmware.length
+            };
+
+        } catch (error) {
+            logger.error(`Error generating firmware for device ${deviceId}:`, error);
+            throw error;
+        }
+    }
+
+    generateDeviceConfigData(deviceConfig) {
+        /**
+         * Generate device configuration data structure
+         * This creates a JSON configuration that will be injected into firmware
+         */
+
+        const config = {
+            version: 1,
+            device: {
+                id: deviceConfig.id || deviceConfig.device_id,
+                name: deviceConfig.name,
+                type: deviceConfig.device_type || 'ESP8266',
+                location: deviceConfig.location_name || deviceConfig.location_id || 'Unknown',
+                timezone: deviceConfig.timezone || 'UTC'
+            },
+            wifi: {
+                ssid: deviceConfig.wifi_ssid || '',
+                password: deviceConfig.wifi_password || '',
+                static_ip: deviceConfig.static_ip || null,
+                gateway: deviceConfig.gateway || null,
+                subnet: deviceConfig.subnet || null
+            },
+            protocol: {
+                type: deviceConfig.protocol || 'http',
+                heartbeat_interval: deviceConfig.protocol_heartbeat_interval ||
+                                   deviceConfig.heartbeat_interval || 300
+            },
+            settings: {
+                ota_enabled: deviceConfig.ota_enabled !== false,
+                debug_mode: deviceConfig.debug_mode || false,
+                armed: deviceConfig.armed !== false,
+                sensor_read_interval: deviceConfig.sensor_read_interval || 5000
+            },
+            sensors: (deviceConfig.sensors || []).map(sensor => ({
+                pin: sensor.pin,
+                type: sensor.sensor_type,
+                name: sensor.name || sensor.sensor_type,
+                unit: sensor.unit || '',
+                calibration_offset: parseFloat(sensor.calibration_offset) || 0,
+                calibration_multiplier: parseFloat(sensor.calibration_multiplier) || 1,
+                min_threshold: parseFloat(sensor.min_threshold) || null,
+                max_threshold: parseFloat(sensor.max_threshold) || null
+            }))
+        };
+
+        // Add protocol-specific configuration
+        if (config.protocol.type === 'mqtt') {
+            config.protocol.mqtt = {
+                broker_host: deviceConfig.mqtt_broker_host || 'localhost',
+                broker_port: deviceConfig.mqtt_broker_port || 1883,
+                username: deviceConfig.mqtt_username || '',
+                password: deviceConfig.mqtt_password || '',
+                topic_prefix: deviceConfig.mqtt_topic_prefix || 'iot',
+                qos: deviceConfig.mqtt_qos || 1
+            };
+        } else {
+            config.protocol.http = {
+                endpoint: deviceConfig.http_endpoint ||
+                         process.env.PUBLIC_URL ||
+                         'http://localhost:3000/api',
+                api_key: deviceConfig.api_key || ''
+            };
         }
 
-        const deviceConfig = device.rows[0];
+        return config;
+    }
 
-        // Generate configuration header file
-        const configHeader = this.generateConfigHeader(deviceConfig);
+    async injectConfigIntoFirmware(baseFirmware, configData) {
+        /**
+         * Inject configuration into firmware binary
+         *
+         * This uses a marker-based injection strategy:
+         * 1. Look for a magic marker in the firmware binary
+         * 2. Replace the marker section with actual configuration
+         * 3. Pad/truncate to fit the reserved space
+         *
+         * Note: The firmware must be compiled with a CONFIG_MARKER section
+         */
 
-        // In a real implementation, you would:
-        // 1. Take the base firmware binary
-        // 2. Inject the configuration
-        // 3. Recompile or patch the binary
-        // 4. Return the custom binary
+        const configJson = JSON.stringify(configData);
+        const configBuffer = Buffer.from(configJson, 'utf8');
 
-        return {
-            binaryPath: path.join(this.firmwareDirectory, `firmware_esp8266_${baseVersion}.bin`),
-            configHeader: configHeader
-        };
+        // Magic marker that should exist in the compiled firmware
+        // This needs to be added to the Arduino firmware code as a placeholder
+        const MAGIC_MARKER = Buffer.from('__CONFIG_START__', 'utf8');
+        const MAGIC_END = Buffer.from('__CONFIG_END__', 'utf8');
+
+        // Find the magic marker in firmware
+        const markerIndex = baseFirmware.indexOf(MAGIC_MARKER);
+        const endMarkerIndex = baseFirmware.indexOf(MAGIC_END);
+
+        if (markerIndex === -1 || endMarkerIndex === -1) {
+            logger.warn('Config markers not found in firmware, returning unmodified binary');
+            logger.info('Firmware must be compiled with CONFIG_MARKER placeholder for customization');
+
+            // Return original firmware - it will work but without injected config
+            // Device will need to fetch config via API on first boot
+            return baseFirmware;
+        }
+
+        // Calculate available config space
+        const configSpace = endMarkerIndex - markerIndex - MAGIC_MARKER.length;
+
+        if (configBuffer.length > configSpace) {
+            throw new Error(
+                `Configuration too large: ${configBuffer.length} bytes ` +
+                `(max ${configSpace} bytes). Reduce sensor count or simplify config.`
+            );
+        }
+
+        // Create new firmware buffer with injected config
+        const newFirmware = Buffer.alloc(baseFirmware.length);
+
+        // Copy everything before marker
+        baseFirmware.copy(newFirmware, 0, 0, markerIndex);
+
+        // Write magic marker
+        MAGIC_MARKER.copy(newFirmware, markerIndex);
+
+        // Write configuration
+        configBuffer.copy(newFirmware, markerIndex + MAGIC_MARKER.length);
+
+        // Pad remaining space with zeros
+        const paddingStart = markerIndex + MAGIC_MARKER.length + configBuffer.length;
+        const paddingEnd = endMarkerIndex;
+        newFirmware.fill(0, paddingStart, paddingEnd);
+
+        // Write end marker
+        MAGIC_END.copy(newFirmware, endMarkerIndex);
+
+        // Copy everything after end marker
+        baseFirmware.copy(
+            newFirmware,
+            endMarkerIndex + MAGIC_END.length,
+            endMarkerIndex + MAGIC_END.length
+        );
+
+        logger.info(`Injected ${configBuffer.length} bytes of configuration into firmware`);
+
+        return newFirmware;
     }
 
     generateConfigHeader(deviceConfig) {

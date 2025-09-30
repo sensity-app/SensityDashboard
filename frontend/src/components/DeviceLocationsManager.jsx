@@ -14,13 +14,14 @@ import {
     AlertCircle,
     CheckCircle
 } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 import { apiService } from '../services/api';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
 function DeviceLocationsManager() {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
+    const { handleError, showSuccess, createMutationHandlers } = useErrorHandler('Location Management');
 
     const [showForm, setShowForm] = useState(false);
     const [editingLocation, setEditingLocation] = useState(null);
@@ -37,61 +38,49 @@ function DeviceLocationsManager() {
         'locations',
         () => apiService.getLocations(),
         {
-            onError: (error) => {
-                console.error('Failed to fetch locations:', error);
-                toast.error('Failed to load locations');
-            }
+            onError: (error) => handleError(error, { customMessage: 'Failed to load locations' })
         }
     );
 
     // Create location mutation
     const createLocationMutation = useMutation(
         (locationData) => apiService.createLocation(locationData),
-        {
+        createMutationHandlers({
+            successMessage: t('locations.createSuccess', 'Location created successfully'),
+            errorMessage: 'Failed to create location',
             onSuccess: () => {
-                toast.success(t('locations.createSuccess', 'Location created successfully'));
                 queryClient.invalidateQueries('locations');
                 setShowForm(false);
                 resetForm();
-            },
-            onError: (error) => {
-                const message = error.response?.data?.error || 'Failed to create location';
-                toast.error(message);
             }
-        }
+        })
     );
 
     // Update location mutation
     const updateLocationMutation = useMutation(
         ({ id, locationData }) => apiService.updateLocation(id, locationData),
-        {
+        createMutationHandlers({
+            successMessage: t('locations.updateSuccess', 'Location updated successfully'),
+            errorMessage: 'Failed to update location',
             onSuccess: () => {
-                toast.success(t('locations.updateSuccess', 'Location updated successfully'));
                 queryClient.invalidateQueries('locations');
                 setEditingLocation(null);
                 setShowForm(false);
                 resetForm();
-            },
-            onError: (error) => {
-                const message = error.response?.data?.error || 'Failed to update location';
-                toast.error(message);
             }
-        }
+        })
     );
 
     // Delete location mutation
     const deleteLocationMutation = useMutation(
         (locationId) => apiService.deleteLocation(locationId),
-        {
+        createMutationHandlers({
+            successMessage: t('locations.deleteSuccess', 'Location deleted successfully'),
+            errorMessage: 'Failed to delete location',
             onSuccess: () => {
-                toast.success(t('locations.deleteSuccess', 'Location deleted successfully'));
                 queryClient.invalidateQueries('locations');
-            },
-            onError: (error) => {
-                const message = error.response?.data?.error || 'Failed to delete location';
-                toast.error(message);
             }
-        }
+        })
     );
 
     const locations = Array.isArray(locationsData?.locations) ? locationsData.locations : [];

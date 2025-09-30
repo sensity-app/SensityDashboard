@@ -26,6 +26,7 @@ import DeviceHealthDashboard from './components/DeviceHealthDashboard';
 import AlertRulesManager from './components/AlertRulesManager';
 import SilentModeManager from './components/SilentModeManager';
 import ProtocolSettingsManager from './components/ProtocolSettingsManager';
+import ErrorBoundary from './components/ErrorBoundary';
 import { apiService } from './services/api';
 
 // Utility function to adjust color brightness
@@ -137,18 +138,20 @@ function App() {
     }
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <Router>
-                <div className="min-h-screen bg-gray-50">
-                    {user ? (
-                        <AuthenticatedApp user={user} onLogout={handleLogout} />
-                    ) : (
-                        <UnauthenticatedApp onLogin={handleLogin} />
-                    )}
-                    <Toaster position="top-right" />
-                </div>
-            </Router>
-        </QueryClientProvider>
+        <ErrorBoundary context="Application Root">
+            <QueryClientProvider client={queryClient}>
+                <Router>
+                    <div className="min-h-screen bg-gray-50">
+                        {user ? (
+                            <AuthenticatedApp user={user} onLogout={handleLogout} />
+                        ) : (
+                            <UnauthenticatedApp onLogin={handleLogin} />
+                        )}
+                        <Toaster position="top-right" />
+                    </div>
+                </Router>
+            </QueryClientProvider>
+        </ErrorBoundary>
     );
 }
 

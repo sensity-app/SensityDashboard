@@ -214,8 +214,25 @@ function DeviceDetail() {
             </div>
 
             {/* Real-time Sensor Data */}
+            <div className="mb-4">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900">Sensors</h2>
+                    <button
+                        onClick={() => alert('Sensor management: Please use the Firmware Builder to configure sensors for your device. Sensors are defined during firmware compilation.')}
+                        className="btn-secondary px-4 py-2 text-sm"
+                    >
+                        <Settings className="w-4 h-4 mr-2 inline" />
+                        Manage Sensors
+                    </button>
+                </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sensors.map((sensor) => {
+                {sensors.length === 0 ? (
+                    <div className="col-span-full text-center py-12 bg-white rounded-lg shadow">
+                        <p className="text-gray-500 mb-4">No sensors configured for this device</p>
+                        <p className="text-sm text-gray-400">Use the Firmware Builder to add sensors to your device firmware</p>
+                    </div>
+                ) : sensors.map((sensor) => {
                     const realtimeValue = realtimeData[sensor.pin];
                     const stat = stats?.find(s => s.pin === sensor.pin);
 

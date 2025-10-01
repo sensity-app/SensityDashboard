@@ -550,22 +550,22 @@ router.get('/update-status', authenticateToken, requireAdmin, async (req, res) =
             // Check Git status to compare with remote
             try {
                 // Fetch latest from remote (without merging)
-                await execPromise('git fetch origin', { cwd: projectRoot });
+                await exec('git fetch origin', { cwd: projectRoot });
 
                 // Get current commit hash
-                const currentResult = await execPromise('git rev-parse HEAD', { cwd: projectRoot });
+                const currentResult = await exec('git rev-parse HEAD', { cwd: projectRoot });
                 currentCommit = currentResult.stdout.trim();
 
                 // Get current branch and remote commit
-                const branchResult = await execPromise('git rev-parse --abbrev-ref HEAD', { cwd: projectRoot });
+                const branchResult = await exec('git rev-parse --abbrev-ref HEAD', { cwd: projectRoot });
                 const currentBranch = branchResult.stdout.trim();
 
-                const remoteResult = await execPromise(`git rev-parse origin/${currentBranch}`, { cwd: projectRoot });
+                const remoteResult = await exec(`git rev-parse origin/${currentBranch}`, { cwd: projectRoot });
                 remoteCommit = remoteResult.stdout.trim();
 
                 // Check if remote is ahead
                 if (currentCommit !== remoteCommit) {
-                    const behindResult = await execPromise(`git rev-list --count ${currentCommit}..${remoteCommit}`, { cwd: projectRoot });
+                    const behindResult = await exec(`git rev-list --count ${currentCommit}..${remoteCommit}`, { cwd: projectRoot });
                     behindBy = parseInt(behindResult.stdout.trim()) || 0;
 
                     if (behindBy > 0) {

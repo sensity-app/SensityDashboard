@@ -177,7 +177,20 @@
     "lastUpdate": "Poslední aktualizace",
     "welcomeMessage": "Vítejte na vaší IoT platformě",
     "noData": "Žádná data k dispozici",
-    "loadError": "Nepodařilo se načíst data přehledu"
+    "loadError": "Nepodařilo se načíst data přehledu",
+    "buildAndAddDevice": "Sestavit a přidat první zařízení"
+  },
+  "firmwareBuilder": {
+    "title": "Sestavení firmwaru",
+    "buildFirmware": "Sestavit firmware",
+    "deviceConfiguration": "Konfigurace zařízení",
+    "wifiConfiguration": "Konfigurace Wi-Fi",
+    "sensorConfiguration": "Konfigurace senzorů",
+    "buildSuccess": "Firmware byl úspěšně sestaven",
+    "buildError": "Nepodařilo se sestavit firmware",
+    "downloadFirmware": "Stáhnout firmware",
+    "deviceCreatedSuccess": "Zařízení bylo vytvořeno v databázi",
+    "deviceCreatedError": "Firmware byl úspěšně sestaven, ale nepodařilo se vytvořit zařízení v databázi. Můžete ho vytvořit ručně v sekci zařízení."
   },
   "devices": {
     "title": "Zařízení",
@@ -193,6 +206,7 @@
     "firmwareVersion": "Verze firmwaru",
     "lastHeartbeat": "Poslední životní signál",
     "ipAddress": "IP adresa",
+    "ipAddressShort": "IP adresa",
     "macAddress": "MAC adresa",
     "uptime": "Doba provozu",
     "sensors": "Senzory",
@@ -489,6 +503,28 @@
       "strongPasswords": "Vyžadovat silná hesla",
       "sessions": "Správa relací",
       "sessionTimeout": "Časový limit relace (hodiny)"
+    },
+    "platformUpdate": {
+      "title": "Aktualizace platformy",
+      "updateAvailable": "Aktualizace k dispozici",
+      "upToDate": "Systém je aktuální",
+      "newCommits": "nový commit",
+      "newCommitsPlural": "nové commity",
+      "current": "Aktuální",
+      "remote": "Vzdálený",
+      "commitsAvailable": "{{count}} nový commit k dispozici",
+      "commitsAvailablePlural": "{{count}} nové commity k dispozici",
+      "latestVersion": "Používáte nejnovější verzi",
+      "synchronized": "Vaše platforma je synchronizována se vzdáleným repozitářem.",
+      "updateScript": "Skript",
+      "important": "Důležité:",
+      "updateWillRestart": "Proces aktualizace restartuje celý systém",
+      "usersDisconnected": "Všichni uživatelé budou dočasně odpojeni",
+      "severalMinutes": "Proces může trvat několik minut",
+      "noCriticalOps": "Ujistěte se, že neběží žádné kritické operace",
+      "updatePlatform": "Aktualizovat platformu",
+      "updating": "Aktualizace...",
+      "commit": "Commit"
     }
   },
   "errors": {

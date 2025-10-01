@@ -314,7 +314,7 @@ function DeviceManagement() {
                                         <th className="text-left">{t('common.status')}</th>
                                         <th className="text-left">{t('devices.deviceType')}</th>
                                         <th className="text-left">{t('devices.location')}</th>
-                                        <th className="text-left">IP Address</th>
+                                        <th className="text-left">{t('devices.ipAddress')}</th>
                                         <th className="text-left">{t('devices.lastHeartbeat')}</th>
                                         <th className="text-left">{t('devices.firmwareVersion')}</th>
                                         <th className="text-right">{t('common.actions')}</th>

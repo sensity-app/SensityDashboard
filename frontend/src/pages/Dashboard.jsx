@@ -30,6 +30,7 @@ function Dashboard() {
         {
             refetchInterval: 30000,
             retry: false,
+            select: (data) => data.devices || data || [],
             onError: (error) => {
                 console.error('Failed to fetch devices:', error);
             }
@@ -43,6 +44,7 @@ function Dashboard() {
         {
             refetchInterval: 10000,
             retry: false,
+            select: (data) => data.alerts || data || [],
             onError: (error) => {
                 console.error('Failed to fetch alerts:', error);
             }

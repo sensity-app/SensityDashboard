@@ -159,13 +159,13 @@ function DeviceDetail() {
             <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                        {getStatusIcon(device.current_status)}
+                        {getStatusIcon(device.status)}
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">{device.name}</h1>
                             <p className="text-gray-500">{device.location_name}</p>
                         </div>
-                        <span className={`px-2 py-1 text-sm font-medium rounded-full ${getStatusColor(device.current_status)}`}>
-                            {device.current_status.toUpperCase()}
+                        <span className={`px-2 py-1 text-sm font-medium rounded-full ${getStatusColor(device.status)}`}>
+                            {device.status.toUpperCase()}
                         </span>
                     </div>
 

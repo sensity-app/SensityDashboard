@@ -11,8 +11,7 @@ async function runMigrations() {
         // Initialize database (create tables if they don't exist)
         await db.initialize();
 
-        // Create default admin user if no users exist
-        await db.createDefaultUser();
+        // Note: No default user is created - use the first-user registration flow instead
 
         logger.info('Database migrations completed successfully');
         process.exit(0);

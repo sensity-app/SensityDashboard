@@ -25,7 +25,9 @@ const ProtocolSettingsManager = () => {
     const [testLoading, setTestLoading] = useState(false);
 
     // Fetch devices
-    const { data: devices = [] } = useQuery('devices', apiService.getDevices);
+    const { data: devices = [] } = useQuery('devices', apiService.getDevices, {
+        select: (data) => data.devices || data || []
+    });
 
     // Fetch MQTT configuration
     const { data: mqttConfig } = useQuery('mqttConfig', apiService.getMqttConfig);

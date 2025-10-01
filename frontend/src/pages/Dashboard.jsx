@@ -15,7 +15,8 @@ import {
     Zap,
     Eye,
     Check,
-    Tag
+    Tag,
+    Settings
 } from 'lucide-react';
 
 import { apiService } from '../services/api';
@@ -198,103 +199,131 @@ function Dashboard() {
                 </div>
             </div>
 
-            {/* Modern Devices Grid */}
-            <div className="card animate-slide-up">
-                <div className="card-header">
-                    <h2 className="card-title">
-                        <Activity className="w-6 h-6 text-primary" />
-                        <span>{t('dashboard.devices', 'Devices')}</span>
-                    </h2>
-                    <div className="flex items-center space-x-2">
-                        <span className="badge badge-primary">{devices.length} total</span>
-                        <Link to="/devices" className="btn-secondary px-4 py-2 text-sm">
-                            <Eye className="w-4 h-4 mr-1" />
-                            View All
-                        </Link>
+            {/* Recent Activity & Quick Actions */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Recent Device Activity */}
+                <div className="card animate-slide-up">
+                    <div className="card-header">
+                        <h2 className="card-title">
+                            <Activity className="w-6 h-6 text-primary" />
+                            <span>{t('dashboard.recentActivity', 'Recent Activity')}</span>
+                        </h2>
                     </div>
-                </div>
-
-                {devices.length === 0 ? (
-                    <div className="p-12 text-center">
-                        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-6">
-                            <Monitor className="h-12 w-12 text-gray-400" />
-                        </div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                            {t('dashboard.noDevices', 'No devices found')}
-                        </h3>
-                        <p className="text-gray-500 mb-6">
-                            {t('dashboard.addFirstDevice', 'Add your first IoT device to get started.')}
-                        </p>
-                        <Link to="/firmware-builder" className="btn-primary">
-                            <Zap className="w-4 h-4 mr-2" />
-                            Build First Device
-                        </Link>
-                    </div>
-                ) : (
                     <div className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {(devices || []).map((device, index) => (
-                                <Link
-                                    key={device.id}
-                                    to={`/devices/${device.id}`}
-                                    className="glass p-4 rounded-xl hover:bg-white/60 transition-all duration-200 group animate-scale-in"
-                                    style={{animationDelay: `${index * 50}ms`}}
-                                >
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center space-x-3">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        {devices.length === 0 ? (
+                            <div className="text-center py-8">
+                                <Monitor className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                                <p className="text-gray-500 text-sm">
+                                    {t('dashboard.noDevicesYet', 'No devices yet')}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {devices.slice(0, 5).map((device, index) => (
+                                    <Link
+                                        key={device.id}
+                                        to={`/devices/${device.id}`}
+                                        className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                                    >
+                                        <div className="flex items-center space-x-3 flex-1">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                                                 device.status === 'online' ? 'bg-green-100' :
                                                 device.status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
                                             }`}>
                                                 {getStatusIcon(device.status)}
                                             </div>
-                                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-primary transition-colors">
-                                                {device.name}
-                                            </h3>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium text-gray-900 group-hover:text-primary transition-colors truncate">
+                                                    {device.name}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    {device.location_name || 'No location'}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <span className={`badge ${
-                                            device.status === 'online' ? 'badge-success' :
-                                            device.status === 'alarm' ? 'badge-error' : 'badge-warning'
-                                        }`}>
-                                            {device.status.toUpperCase()}
-                                        </span>
-                                    </div>
+                                        <div className="flex items-center space-x-2">
+                                            <span className={`badge text-xs ${
+                                                device.status === 'online' ? 'badge-success' :
+                                                device.status === 'alarm' ? 'badge-error' : 'badge-warning'
+                                            }`}>
+                                                {device.status}
+                                            </span>
+                                        </div>
+                                    </Link>
+                                ))}
+                                {devices.length > 5 && (
+                                    <Link to="/devices" className="block text-center py-2 text-sm text-primary hover:underline">
+                                        View all {devices.length} devices →
+                                    </Link>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
 
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-500 flex items-center">
-                                                <Monitor className="w-3 h-3 mr-1" />ID:
-                                            </span>
-                                            <span className="font-mono text-xs text-gray-900">{device.id}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-500 flex items-center">
-                                                <MapPin className="w-3 h-3 mr-1" />Location:
-                                            </span>
-                                            <span className="text-gray-900">{device.location_name || 'Unknown'}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-500 flex items-center">
-                                                <TrendingUp className="w-3 h-3 mr-1" />Version:
-                                            </span>
-                                            <span className="text-gray-900">{device.firmware_version || 'Unknown'}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-500 flex items-center">
-                                                <Clock className="w-3 h-3 mr-1" />Last Seen:
-                                            </span>
-                                            <span className="text-gray-900 text-xs">{
-                                                device.last_heartbeat ?
-                                                    new Date(device.last_heartbeat).toLocaleDateString() :
-                                                    'Never'
-                                            }</span>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
+                {/* Quick Actions */}
+                <div className="card animate-slide-up" style={{animationDelay: '100ms'}}>
+                    <div className="card-header">
+                        <h2 className="card-title">
+                            <Zap className="w-6 h-6 text-primary" />
+                            <span>{t('dashboard.quickActions', 'Quick Actions')}</span>
+                        </h2>
+                    </div>
+                    <div className="p-6">
+                        <div className="grid grid-cols-1 gap-3">
+                            <Link
+                                to="/firmware-builder"
+                                className="flex items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg hover:from-blue-100 hover:to-blue-200 transition-all group"
+                            >
+                                <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center mr-4">
+                                    <Zap className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                        {t('dashboard.buildFirmware', 'Build New Firmware')}
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                        {t('dashboard.buildFirmwareDesc', 'Create and deploy firmware for new devices')}
+                                    </p>
+                                </div>
+                            </Link>
+
+                            <Link
+                                to="/devices"
+                                className="flex items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg hover:from-green-100 hover:to-green-200 transition-all group"
+                            >
+                                <div className="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center mr-4">
+                                    <Monitor className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                                        {t('dashboard.manageDevices', 'Manage Devices')}
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                        {t('dashboard.manageDevicesDesc', 'View and configure all your IoT devices')}
+                                    </p>
+                                </div>
+                            </Link>
+
+                            <Link
+                                to="/settings"
+                                className="flex items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg hover:from-purple-100 hover:to-purple-200 transition-all group"
+                            >
+                                <div className="w-10 h-10 rounded-lg bg-purple-500 flex items-center justify-center mr-4">
+                                    <Settings className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                                        {t('dashboard.systemSettings', 'System Settings')}
+                                    </p>
+                                    <p className="text-xs text-gray-600">
+                                        {t('dashboard.systemSettingsDesc', 'Configure platform and notifications')}
+                                    </p>
+                                </div>
+                            </Link>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
 
             {/* Unresolved Alerts */}

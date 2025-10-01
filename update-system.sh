@@ -123,6 +123,11 @@ update_system() {
     print_status "Creating backup..."
     cp -r "$APP_DIR" "$APP_DIR.backup.$(date +%Y%m%d-%H%M%S)" 2>/dev/null || true
 
+    # Clean up old backups (keep only the 3 most recent)
+    print_status "Cleaning up old backups (keeping 3 most recent)..."
+    cd /opt
+    ls -dt esp8266-platform.backup.* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+
     # Update from Git
     print_status "Fetching latest version from GitHub..."
     cd "$APP_DIR"

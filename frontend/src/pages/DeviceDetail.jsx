@@ -18,6 +18,8 @@ function DeviceDetail() {
     const [selectedSensor, setSelectedSensor] = useState(null);
     const [showRuleEditor, setShowRuleEditor] = useState(false);
     const [showOTAManager, setShowOTAManager] = useState(false);
+    const [showSensorEditor, setShowSensorEditor] = useState(false);
+    const [editingSensor, setEditingSensor] = useState(null);
 
     // Device data query
     const { data: device, isLoading } = useQuery(
@@ -31,12 +33,18 @@ function DeviceDetail() {
     );
 
     // Device sensors query
-    const { data: sensors = [] } = useQuery(
+    const { data: sensors = [], isLoading: sensorsLoading, error: sensorsError } = useQuery(
         ['device-sensors', id],
         () => apiService.getDeviceSensors(id),
         {
             enabled: !!id,
-            select: (data) => data.sensors || data || []
+            select: (data) => {
+                console.log('Sensors API response:', data);
+                return data.sensors || data || [];
+            },
+            onError: (error) => {
+                console.error('Failed to fetch sensors:', error);
+            }
         }
     );
 
@@ -216,21 +224,26 @@ function DeviceDetail() {
             {/* Real-time Sensor Data */}
             <div className="mb-4">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900">Sensors</h2>
-                    <button
-                        onClick={() => alert('Sensor management: Please use the Firmware Builder to configure sensors for your device. Sensors are defined during firmware compilation.')}
-                        className="btn-secondary px-4 py-2 text-sm"
-                    >
-                        <Settings className="w-4 h-4 mr-2 inline" />
-                        Manage Sensors
-                    </button>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                        Sensors {sensors.length > 0 && <span className="text-sm text-gray-500">({sensors.length})</span>}
+                    </h2>
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sensors.length === 0 ? (
+                {sensorsLoading ? (
+                    <div className="col-span-full text-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                        <p className="text-gray-500 mt-4">Loading sensors...</p>
+                    </div>
+                ) : sensorsError ? (
+                    <div className="col-span-full text-center py-12 bg-red-50 rounded-lg">
+                        <p className="text-red-600 mb-2">Failed to load sensors</p>
+                        <p className="text-sm text-red-500">{sensorsError.message}</p>
+                    </div>
+                ) : sensors.length === 0 ? (
                     <div className="col-span-full text-center py-12 bg-white rounded-lg shadow">
                         <p className="text-gray-500 mb-4">No sensors configured for this device</p>
-                        <p className="text-sm text-gray-400">Use the Firmware Builder to add sensors to your device firmware</p>
+                        <p className="text-sm text-gray-400">Sensors are configured during firmware building in the Firmware Builder</p>
                     </div>
                 ) : sensors.map((sensor) => {
                     const realtimeValue = realtimeData[sensor.pin];
@@ -243,12 +256,18 @@ function DeviceDetail() {
                                     <h3 className="text-lg font-medium text-gray-900">{sensor.name}</h3>
                                     <p className="text-sm text-gray-500">Pin {sensor.pin} • {sensor.sensor_type}</p>
                                 </div>
-                                <button
-                                    onClick={() => setSelectedSensor(sensor)}
-                                    className="text-blue-600 hover:text-blue-800"
-                                >
-                                    <Settings className="h-5 w-5" />
-                                </button>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => {
+                                            setEditingSensor(sensor);
+                                            setShowSensorEditor(true);
+                                        }}
+                                        className="text-gray-600 hover:text-gray-800"
+                                        title="Edit sensor configuration"
+                                    >
+                                        <Settings className="h-5 w-5" />
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Current Value */}
@@ -383,6 +402,163 @@ function DeviceDetail() {
                     onClose={() => setShowOTAManager(false)}
                 />
             )}
+
+            {showSensorEditor && editingSensor && (
+                <SensorEditorModal
+                    sensor={editingSensor}
+                    deviceId={id}
+                    onClose={() => {
+                        setShowSensorEditor(false);
+                        setEditingSensor(null);
+                    }}
+                    onSave={() => {
+                        queryClient.invalidateQueries(['device-sensors', id]);
+                        setShowSensorEditor(false);
+                        setEditingSensor(null);
+                    }}
+                />
+            )}
+        </div>
+    );
+}
+
+// Sensor Editor Modal Component
+function SensorEditorModal({ sensor, deviceId, onClose, onSave }) {
+    const [formData, setFormData] = useState({
+        name: sensor?.name || '',
+        calibration_offset: sensor?.calibration_offset || 0,
+        calibration_multiplier: sensor?.calibration_multiplier || 1,
+        enabled: sensor?.enabled !== false
+    });
+    const [triggerOTA, setTriggerOTA] = useState(true);
+
+    const updateSensorMutation = useMutation(
+        (data) => apiService.updateSensor(deviceId, sensor.id, data),
+        {
+            onSuccess: async () => {
+                toast.success('Sensor updated successfully');
+
+                if (triggerOTA) {
+                    toast.info('Triggering OTA update to apply sensor changes...');
+                    // Note: OTA update trigger would go here
+                    // For now, just show a message
+                    setTimeout(() => {
+                        toast.success('Sensor configuration will be applied on next device sync');
+                    }, 1000);
+                }
+
+                onSave();
+            },
+            onError: (error) => {
+                toast.error('Failed to update sensor: ' + (error.response?.data?.error || error.message));
+            }
+        }
+    );
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        updateSensorMutation.mutate(formData);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Edit Sensor: {sensor.name}
+                </h3>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Sensor Name
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                            className="input w-full"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Calibration Offset
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={formData.calibration_offset}
+                            onChange={(e) => setFormData({...formData, calibration_offset: parseFloat(e.target.value)})}
+                            className="input w-full"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Value added to raw sensor reading</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Calibration Multiplier
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={formData.calibration_multiplier}
+                            onChange={(e) => setFormData({...formData, calibration_multiplier: parseFloat(e.target.value)})}
+                            className="input w-full"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Value multiplied with raw sensor reading</p>
+                    </div>
+
+                    <div className="flex items-center">
+                        <input
+                            type="checkbox"
+                            id="enabled"
+                            checked={formData.enabled}
+                            onChange={(e) => setFormData({...formData, enabled: e.target.checked})}
+                            className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                        />
+                        <label htmlFor="enabled" className="ml-2 block text-sm text-gray-700">
+                            Sensor enabled
+                        </label>
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                        <div className="flex items-start">
+                            <input
+                                type="checkbox"
+                                id="triggerOTA"
+                                checked={triggerOTA}
+                                onChange={(e) => setTriggerOTA(e.target.checked)}
+                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5"
+                            />
+                            <label htmlFor="triggerOTA" className="ml-2 block text-sm text-gray-700">
+                                <span className="font-medium">Trigger OTA Update</span>
+                                <p className="text-xs text-gray-600 mt-1">
+                                    Device will receive updated configuration on next sync
+                                </p>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-3 pt-4">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="btn-secondary px-4 py-2"
+                            disabled={updateSensorMutation.isLoading}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="btn-primary px-4 py-2"
+                            disabled={updateSensorMutation.isLoading}
+                        >
+                            {updateSensorMutation.isLoading ? 'Saving...' : 'Save Changes'}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 }

@@ -25,7 +25,8 @@ function DeviceDetail() {
         () => apiService.getDevice(id),
         {
             refetchInterval: 30000,
-            enabled: !!id
+            enabled: !!id,
+            select: (data) => data.device
         }
     );
 
@@ -33,7 +34,10 @@ function DeviceDetail() {
     const { data: sensors = [] } = useQuery(
         ['device-sensors', id],
         () => apiService.getDeviceSensors(id),
-        { enabled: !!id }
+        {
+            enabled: !!id,
+            select: (data) => data.sensors || data || []
+        }
     );
 
     // Device stats query
@@ -42,7 +46,8 @@ function DeviceDetail() {
         () => apiService.getDeviceStats(id, '24h'),
         {
             enabled: !!id,
-            refetchInterval: 60000
+            refetchInterval: 60000,
+            select: (data) => data.stats
         }
     );
 
@@ -52,7 +57,8 @@ function DeviceDetail() {
         () => apiService.getDeviceAlerts(id),
         {
             enabled: !!id,
-            refetchInterval: 10000
+            refetchInterval: 10000,
+            select: (data) => data.alerts || data || []
         }
     );
 

@@ -68,9 +68,9 @@ function Dashboard() {
         }
     );
 
-    // Safely handle API responses
-    const devices = Array.isArray(devicesData) ? devicesData : [];
-    const alerts = Array.isArray(alertsData) ? alertsData : [];
+    // Data is already processed by select function
+    const devices = devicesData || [];
+    const alerts = alertsData || [];
 
     const handleAcknowledgeAlert = async (alertId, event) => {
         event.stopPropagation();

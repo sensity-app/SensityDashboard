@@ -23,6 +23,8 @@ struct DeviceConfig {
 
 // Sensor definitions
 #define MAX_SENSORS 8
+#define FILTER_WINDOW_SIZE 10  // Moving average window size
+
 struct SensorConfig {
     int pin;
     String type;
@@ -33,6 +35,18 @@ struct SensorConfig {
     float threshold_min;
     float threshold_max;
 };
+
+// Sensor filtering data structures
+struct SensorFilter {
+    float readings[FILTER_WINDOW_SIZE];
+    int readIndex;
+    float total;
+    int count;
+    float lastFiltered;
+    bool initialized;
+};
+
+SensorFilter sensorFilters[MAX_SENSORS];
 
 // Global variables
 DeviceConfig config;
@@ -235,6 +249,84 @@ void initializeSensors() {
     }
 }
 
+/**
+ * Initialize sensor filter for moving average
+ */
+void initializeSensorFilter(int sensorIndex) {
+    SensorFilter* filter = &sensorFilters[sensorIndex];
+    filter->readIndex = 0;
+    filter->total = 0;
+    filter->count = 0;
+    filter->lastFiltered = 0;
+    filter->initialized = true;
+
+    for (int i = 0; i < FILTER_WINDOW_SIZE; i++) {
+        filter->readings[i] = 0;
+    }
+}
+
+/**
+ * Apply moving average filter to sensor reading
+ * This smooths out short-term spikes and noise
+ */
+float applyMovingAverageFilter(int sensorIndex, float newValue) {
+    SensorFilter* filter = &sensorFilters[sensorIndex];
+
+    if (!filter->initialized) {
+        initializeSensorFilter(sensorIndex);
+    }
+
+    // Subtract the oldest reading from the total
+    filter->total -= filter->readings[filter->readIndex];
+
+    // Add the new reading to the array
+    filter->readings[filter->readIndex] = newValue;
+    filter->total += newValue;
+
+    // Advance to the next position in the array
+    filter->readIndex = (filter->readIndex + 1) % FILTER_WINDOW_SIZE;
+
+    // Increment count until window is full
+    if (filter->count < FILTER_WINDOW_SIZE) {
+        filter->count++;
+    }
+
+    // Calculate and store the average
+    filter->lastFiltered = filter->total / filter->count;
+    return filter->lastFiltered;
+}
+
+/**
+ * Apply median filter for spike rejection
+ * Takes 5 quick readings and returns the median
+ */
+float applyMedianFilter(int pin, bool isAnalog) {
+    float readings[5];
+
+    for (int i = 0; i < 5; i++) {
+        if (isAnalog) {
+            readings[i] = analogRead(pin);
+        } else {
+            readings[i] = digitalRead(pin);
+        }
+        delay(10); // Small delay between readings
+    }
+
+    // Simple bubble sort
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4 - i; j++) {
+            if (readings[j] > readings[j + 1]) {
+                float temp = readings[j];
+                readings[j] = readings[j + 1];
+                readings[j + 1] = temp;
+            }
+        }
+    }
+
+    // Return median (middle value)
+    return readings[2];
+}
+
 void readAndProcessSensors() {
     StaticJsonDocument<1024> telemetryDoc;
     JsonArray sensorData = telemetryDoc.createNestedArray("sensors");
@@ -243,62 +335,70 @@ void readAndProcessSensors() {
         if (!sensors[i].enabled) continue;
 
         float rawValue = 0;
+        float filteredValue = 0;
         float processedValue = 0;
         bool hasReading = false;
 
-        // Read sensor based on type
+        // Read sensor based on type with median filtering for analog sensors
         if (sensors[i].type == "light") {
-            rawValue = analogRead(sensors[i].pin);
-            processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+            rawValue = applyMedianFilter(sensors[i].pin, true);
+            filteredValue = applyMovingAverageFilter(i, rawValue);
+            processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
 
         } else if (sensors[i].type == "photodiode") {
-            rawValue = analogRead(sensors[i].pin);
-            processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+            rawValue = applyMedianFilter(sensors[i].pin, true);
+            filteredValue = applyMovingAverageFilter(i, rawValue);
+            processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
 
         } else if (sensors[i].type == "temperature" && dht != nullptr) {
             rawValue = dht->readTemperature();
             if (!isnan(rawValue)) {
-                processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+                filteredValue = applyMovingAverageFilter(i, rawValue);
+                processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
                 hasReading = true;
             }
 
         } else if (sensors[i].type == "humidity" && dht != nullptr) {
             rawValue = dht->readHumidity();
             if (!isnan(rawValue)) {
-                processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+                filteredValue = applyMovingAverageFilter(i, rawValue);
+                processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
                 hasReading = true;
             }
 
         } else if (sensors[i].type == "motion") {
             rawValue = digitalRead(sensors[i].pin);
-            processedValue = rawValue;
+            processedValue = rawValue;  // No filtering for binary sensors
             hasReading = true;
 
         } else if (sensors[i].type == "distance" && ultrasonic != nullptr) {
             rawValue = ultrasonic->read();
-            processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+            filteredValue = applyMovingAverageFilter(i, rawValue);
+            processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
 
         } else if (sensors[i].type == "sound") {
-            rawValue = analogRead(sensors[i].pin);
-            processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+            rawValue = applyMedianFilter(sensors[i].pin, true);
+            filteredValue = applyMovingAverageFilter(i, rawValue);
+            processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
 
         } else if (sensors[i].type == "magnetic") {
             rawValue = digitalRead(sensors[i].pin);
-            processedValue = rawValue;
+            processedValue = rawValue;  // No filtering for binary sensors
             hasReading = true;
 
         } else if (sensors[i].type == "vibration") {
             rawValue = digitalRead(sensors[i].pin);
-            processedValue = rawValue;
+            processedValue = rawValue;  // No filtering for binary sensors
             hasReading = true;
 
         } else if (sensors[i].type == "gas") {
-            rawValue = analogRead(sensors[i].pin);
-            processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+            rawValue = applyMedianFilter(sensors[i].pin, true);
+            filteredValue = applyMovingAverageFilter(i, rawValue);
+            processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
         }
 
@@ -308,10 +408,11 @@ void readAndProcessSensors() {
             sensor["type"] = sensors[i].type;
             sensor["name"] = sensors[i].name;
             sensor["raw_value"] = rawValue;
+            sensor["filtered_value"] = filteredValue;
             sensor["processed_value"] = processedValue;
             sensor["timestamp"] = WiFi.getTime();
 
-            // Check for alarm conditions
+            // Check for alarm conditions using filtered/processed value
             if (config.armed &&
                 (processedValue < sensors[i].threshold_min ||
                  processedValue > sensors[i].threshold_max)) {
@@ -319,7 +420,11 @@ void readAndProcessSensors() {
             }
 
             if (config.debug_mode) {
-                Serial.println("Sensor " + sensors[i].name + ": " + String(processedValue));
+                Serial.print("Sensor " + sensors[i].name + " - Raw: " + String(rawValue));
+                if (filteredValue > 0) {
+                    Serial.print(" | Filtered: " + String(filteredValue));
+                }
+                Serial.println(" | Processed: " + String(processedValue));
             }
         }
     }

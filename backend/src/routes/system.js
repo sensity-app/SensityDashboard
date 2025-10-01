@@ -1,6 +1,7 @@
 const express = require('express');
 const os = require('os');
 const path = require('path');
+const fs = require('fs').promises;
 const { promisify } = require('util');
 const exec = promisify(require('child_process').exec);
 const { spawn } = require('child_process');
@@ -19,6 +20,80 @@ let updateStatus = {
     startTime: null,
     error: null
 };
+
+// GitHub repository configuration
+const GITHUB_REPO = 'martinkadlcek/ESP-Management-Platform';
+const GITHUB_RAW_URL = `https://raw.githubusercontent.com/${GITHUB_REPO}/main`;
+
+/**
+ * Download update script from GitHub
+ * @param {string} scriptName - Name of the script to download
+ * @param {string} targetPath - Path where to save the script
+ * @returns {Promise<boolean>} - True if successful
+ */
+async function downloadUpdateScriptFromGitHub(scriptName, targetPath) {
+    try {
+        logger.info(`Downloading ${scriptName} from GitHub...`);
+
+        const scriptUrl = `${GITHUB_RAW_URL}/${scriptName}`;
+        const curlCommand = `curl -fsSL "${scriptUrl}" -o "${targetPath}"`;
+
+        await exec(curlCommand);
+
+        // Make script executable
+        await exec(`chmod +x "${targetPath}"`);
+
+        logger.info(`Successfully downloaded and made executable: ${targetPath}`);
+        return true;
+    } catch (error) {
+        logger.error(`Failed to download ${scriptName} from GitHub:`, error.message);
+        return false;
+    }
+}
+
+/**
+ * Ensure update script exists, download from GitHub if missing
+ * @param {string} scriptPath - Path to the script
+ * @param {string} scriptName - Name of the script
+ * @returns {Promise<boolean>} - True if script exists or was downloaded
+ */
+async function ensureUpdateScript(scriptPath, scriptName) {
+    try {
+        // Check if script exists
+        await fs.access(scriptPath, fs.constants.F_OK);
+        logger.info(`Update script found: ${scriptPath}`);
+        return true;
+    } catch (error) {
+        // Script doesn't exist, try to download from GitHub
+        logger.warn(`Update script not found: ${scriptPath}`);
+        logger.info(`Attempting to download ${scriptName} from GitHub...`);
+
+        updateStatus.currentStep = `Downloading ${scriptName} from GitHub...`;
+        updateStatus.logs.push({
+            timestamp: new Date(),
+            type: 'info',
+            message: `Update script not found locally, downloading from GitHub repository...`
+        });
+
+        const downloaded = await downloadUpdateScriptFromGitHub(scriptName, scriptPath);
+
+        if (downloaded) {
+            updateStatus.logs.push({
+                timestamp: new Date(),
+                type: 'success',
+                message: `Successfully downloaded ${scriptName} from GitHub`
+            });
+            return true;
+        } else {
+            updateStatus.logs.push({
+                timestamp: new Date(),
+                type: 'error',
+                message: `Failed to download ${scriptName} from GitHub`
+            });
+            return false;
+        }
+    }
+}
 
 // GET /api/system/info - Get system information
 router.get('/info', authenticateToken, async (req, res) => {
@@ -273,24 +348,45 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
                     path.join(process.cwd(), '..') : process.cwd();
 
                 let updateCommand;
+                let scriptPath;
+                let scriptName;
+
                 if (isDevelopment) {
                     // Development: use development-friendly script
-                    const devScript = path.join(projectRoot, 'update-system-dev.sh');
-                    updateCommand = `bash "${devScript}"`;
-                    logger.info(`Development mode: Using development update script: ${devScript}`);
-                } else {
-                    // Production: use system-wide command or production script
-                    const prodScript = path.join(projectRoot, 'update-system.sh');
-                    try {
-                        // Try production script first
-                        await exec(`ls "${prodScript}"`);
-                        updateCommand = `sudo bash "${prodScript}"`;
-                        logger.info(`Production mode: Using production update script: ${prodScript}`);
-                    } catch (e) {
-                        // Fallback to system command
-                        updateCommand = 'update-system';
-                        logger.info('Production mode: Using system update-system command');
+                    scriptName = 'update-system-dev.sh';
+                    scriptPath = path.join(projectRoot, scriptName);
+
+                    // Ensure script exists, download from GitHub if missing
+                    const scriptExists = await ensureUpdateScript(scriptPath, scriptName);
+
+                    if (!scriptExists) {
+                        // Try fallback to production script
+                        logger.warn('Development script unavailable, trying production script...');
+                        scriptName = 'update-system.sh';
+                        scriptPath = path.join(projectRoot, scriptName);
+
+                        const prodScriptExists = await ensureUpdateScript(scriptPath, scriptName);
+                        if (!prodScriptExists) {
+                            throw new Error('Unable to find or download update script');
+                        }
                     }
+
+                    updateCommand = `bash "${scriptPath}"`;
+                    logger.info(`Development mode: Using update script: ${scriptPath}`);
+                } else {
+                    // Production: use production script
+                    scriptName = 'update-system.sh';
+                    scriptPath = path.join(projectRoot, scriptName);
+
+                    // Ensure script exists, download from GitHub if missing
+                    const scriptExists = await ensureUpdateScript(scriptPath, scriptName);
+
+                    if (!scriptExists) {
+                        throw new Error('Unable to find or download update script');
+                    }
+
+                    updateCommand = `sudo bash "${scriptPath}"`;
+                    logger.info(`Production mode: Using production update script: ${scriptPath}`);
                 }
 
                 const updateProcess = spawn('bash', ['-c', updateCommand], {
@@ -426,28 +522,43 @@ router.get('/update-status', authenticateToken, requireAdmin, async (req, res) =
             if (isDevelopment) {
                 // Development: check for development script
                 const devScript = path.join(projectRoot, 'update-system-dev.sh');
-                await exec(`ls "${devScript}"`);
-                updateAvailable = true;
-                updateScript = devScript;
-                logger.info(`Development mode: Found development update script: ${devScript}`);
-            } else {
-                // Production: try production script first, then system command
                 try {
+                    await fs.access(devScript, fs.constants.F_OK);
+                    updateAvailable = true;
+                    updateScript = devScript;
+                    logger.info(`Development mode: Found development update script: ${devScript}`);
+                } catch (devError) {
+                    // Try production script as fallback
                     const prodScript = path.join(projectRoot, 'update-system.sh');
-                    await exec(`ls "${prodScript}"`);
+                    try {
+                        await fs.access(prodScript, fs.constants.F_OK);
+                        updateAvailable = true;
+                        updateScript = prodScript;
+                        logger.info(`Development mode: Found production update script as fallback: ${prodScript}`);
+                    } catch (prodError) {
+                        // Scripts not found locally, but we can download from GitHub
+                        updateAvailable = true;
+                        updateScript = 'Available for download from GitHub';
+                        logger.info('Development mode: Update scripts not found locally but available on GitHub');
+                    }
+                }
+            } else {
+                // Production: check for production script
+                const prodScript = path.join(projectRoot, 'update-system.sh');
+                try {
+                    await fs.access(prodScript, fs.constants.F_OK);
                     updateAvailable = true;
                     updateScript = prodScript;
                     logger.info(`Production mode: Found production update script: ${prodScript}`);
                 } catch (prodError) {
-                    // Fallback to system command
-                    await exec('which update-system');
+                    // Script not found locally, but we can download from GitHub
                     updateAvailable = true;
-                    updateScript = 'update-system';
-                    logger.info('Production mode: Found system update-system command');
+                    updateScript = 'Available for download from GitHub';
+                    logger.info('Production mode: Update script not found locally but available on GitHub');
                 }
             }
         } catch (error) {
-            logger.info(`No update script found for ${isDevelopment ? 'development' : 'production'} mode:`, error.message);
+            logger.info(`Error checking update script for ${isDevelopment ? 'development' : 'production'} mode:`, error.message);
         }
 
         res.json({

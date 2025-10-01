@@ -599,6 +599,55 @@ setup_database() {
 
     # Fix database permissions after schema creation
     fix_database_permissions
+
+    # Run database migrations
+    run_database_migrations
+}
+
+# Function to run database migrations
+run_database_migrations() {
+    print_status "Running database migrations..."
+
+    cd "$APP_DIR/backend"
+
+    # Run Telegram support migration
+    if [[ -f "migrations/add_telegram_support.js" ]]; then
+        print_status "Running Telegram support migration..."
+        sudo -u $APP_USER NODE_ENV=production node migrations/add_telegram_support.js
+        if [[ $? -eq 0 ]]; then
+            print_success "Telegram support migration completed"
+        else
+            print_warning "Telegram support migration failed - you may need to run it manually"
+        fi
+    fi
+
+    # Run auto-calibration migration
+    if [[ -f "migrations/add_auto_calibration.js" ]]; then
+        print_status "Running auto-calibration migration..."
+        sudo -u $APP_USER NODE_ENV=production node migrations/add_auto_calibration.js
+        if [[ $? -eq 0 ]]; then
+            print_success "Auto-calibration migration completed"
+        else
+            print_warning "Auto-calibration migration failed - you may need to run it manually"
+        fi
+    fi
+
+    # Run any other migrations in the migrations directory
+    for migration_file in migrations/*.js; do
+        if [[ -f "$migration_file" ]] && [[ "$migration_file" != *"add_telegram_support.js"* ]] && [[ "$migration_file" != *"add_auto_calibration.js"* ]]; then
+            migration_name=$(basename "$migration_file")
+            print_status "Running migration: $migration_name..."
+            sudo -u $APP_USER NODE_ENV=production node "$migration_file"
+            if [[ $? -eq 0 ]]; then
+                print_success "Migration $migration_name completed"
+            else
+                print_warning "Migration $migration_name failed - you may need to run it manually"
+            fi
+        fi
+    done
+
+    cd - > /dev/null
+    print_success "Database migrations completed"
 }
 
 # Function to fix database permissions
@@ -687,6 +736,10 @@ SMTP_FROM="ESP8266 Platform <your-email@gmail.com>"
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=
+
+# Telegram Configuration (optional, for Telegram alerts)
+# Get your bot token from @BotFather on Telegram
+TELEGRAM_BOT_TOKEN=
 
 # File Upload Configuration
 MAX_FILE_SIZE=50mb
@@ -779,6 +832,8 @@ module.exports = {
       // JWT Configuration
       JWT_SECRET: '$JWT_SECRET',
       JWT_EXPIRES_IN: '7d',
+      // Telegram Configuration (optional)
+      TELEGRAM_BOT_TOKEN: '',
       // Additional Configuration
       FRONTEND_URL: '$([ "$DEVELOPMENT_MODE" == "true" ] && echo "http://localhost" || echo "https://$DOMAIN")',
       MAX_FILE_SIZE: '50mb',

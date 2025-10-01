@@ -28,6 +28,8 @@ const settingsRoutes = require('./src/routes/settings');
 const silentModeRoutes = require('./src/routes/silentMode');
 const protocolSettingsRoutes = require('./src/routes/protocolSettings');
 const systemRoutes = require('./src/routes/system');
+const telegramRoutes = require('./src/routes/telegram');
+const thresholdCalibrationRoutes = require('./src/routes/thresholdCalibration');
 
 const WebSocketService = require('./src/services/websocketService');
 const AlertEscalationService = require('./src/services/alertEscalationService');
@@ -96,6 +98,8 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/silent-mode', silentModeRoutes);
 app.use('/api/protocol-settings', protocolSettingsRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/telegram', telegramRoutes);
+app.use('/api/threshold-calibration', thresholdCalibrationRoutes);
 
 // WebSocket authentication middleware
 io.use(websocketService.authenticateSocket);

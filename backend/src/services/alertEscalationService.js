@@ -1,6 +1,7 @@
 const db = require('../models/database');
 const emailService = require('./emailService');
 const smsService = require('./smsService');
+const telegramService = require('./telegramService');
 const logger = require('../utils/logger');
 const { isInSilentMode } = require('../routes/silentMode');
 
@@ -114,6 +115,9 @@ class AlertEscalationService {
                     case 'sms':
                         await this.sendEscalationSMS(escalatedAlert, recipients);
                         break;
+                    case 'telegram':
+                        await this.sendEscalationTelegram(escalatedAlert, recipients);
+                        break;
                     case 'push':
                         await this.sendEscalationPush(escalatedAlert, recipients);
                         break;
@@ -214,6 +218,53 @@ class AlertEscalationService {
 
         for (const phone of phoneNumbers) {
             await smsService.sendSMS(phone, message);
+        }
+    }
+
+    async sendEscalationTelegram(alert, recipients) {
+        const escalationEmoji = {
+            1: '⚠️',
+            2: '🚨',
+            3: '🆘'
+        };
+
+        const emoji = escalationEmoji[alert.escalation_level] || '🔴';
+
+        const message = `
+${emoji} <b>ALERT ESCALATION - Level ${alert.escalation_level}</b>
+
+<b>${alert.escalation_message}</b>
+
+<b>Alert Details:</b>
+• Alert ID: #${alert.id}
+• Device: ${alert.device_name}
+• Location: ${alert.location_name || 'Unknown'}
+• Type: ${alert.alert_type}
+• Severity: ${alert.severity.toUpperCase()}
+
+<b>Message:</b>
+${alert.message}
+
+<b>Alert Duration:</b> ${this.getAlertDuration(alert.created_at)}
+<b>Created:</b> ${new Date(alert.created_at).toLocaleString()}
+
+⏰ <i>This alert has been escalated due to lack of acknowledgment. Please take immediate action!</i>
+        `.trim();
+
+        // Get all Telegram recipients
+        const chatIds = recipients.filter(r => r.type === 'telegram').map(r => r.address);
+
+        for (const chatId of chatIds) {
+            const success = await telegramService.sendMessage(chatId, message);
+
+            // Log notification attempt
+            await db.query(`
+                INSERT INTO telegram_notifications (user_id, chat_id, message_text, notification_type, alert_id, device_id, success)
+                VALUES (
+                    (SELECT id FROM users WHERE telegram_chat_id = $1 LIMIT 1),
+                    $1, $2, 'escalation', $3, $4, $5
+                )
+            `, [chatId, message, alert.id, alert.device_id, success]);
         }
     }
 

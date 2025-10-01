@@ -44,13 +44,13 @@ class AlertEscalationService {
                 (er.severity = a.severity OR er.severity = 'all') AND
                 (er.location_id = d.location_id OR er.location_id IS NULL)
             )
-            WHERE a.status = 'OPEN'
+            WHERE a.status = 'active'
                 AND er.enabled = true
                 AND (
                     a.last_escalated IS NULL OR
                     a.last_escalated < NOW() - INTERVAL '1 minute' * er.escalation_delay_minutes
                 )
-                AND a.escalation_level < er.max_escalation_level
+                AND COALESCE(a.escalation_level, 0) < er.max_escalation_level
             ORDER BY a.severity DESC, a.created_at ASC
         `);
 
@@ -75,7 +75,7 @@ class AlertEscalationService {
                 return;
             }
 
-            const nextLevel = alert.escalation_level + 1;
+            const nextLevel = (alert.escalation_level || 0) + 1;
 
             // Update alert escalation level
             await db.query(`

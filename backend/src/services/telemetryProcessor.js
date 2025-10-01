@@ -94,7 +94,12 @@ class TelemetryProcessor {
     }
 
     async getSensorRules(deviceId, pin, sensorType) {
-        const cacheKey = `rules:${deviceId}:${pin}:${sensorType}`;
+        const sensorTypeAliases = {
+            light: 'Photodiode'
+        };
+
+        const normalizedSensorType = sensorTypeAliases[sensorType?.toLowerCase?.()] || sensorType;
+        const cacheKey = `rules:${deviceId}:${pin}:${normalizedSensorType}`;
 
         // Check cache first (refresh every 5 minutes)
         if (this.ruleCache.has(cacheKey) &&
@@ -107,8 +112,8 @@ class TelemetryProcessor {
             FROM sensor_rules sr
             INNER JOIN device_sensors ds ON sr.device_sensor_id = ds.id
             INNER JOIN sensor_types st ON ds.sensor_type_id = st.id
-            WHERE ds.device_id = $1 AND ds.pin = $2 AND st.name = $3 AND sr.enabled = true
-        `, [deviceId, pin, sensorType]);
+            WHERE ds.device_id = $1 AND ds.pin = $2 AND LOWER(st.name) = LOWER($3) AND sr.enabled = true
+        `, [deviceId, pin, normalizedSensorType]);
 
         const rules = result.rows;
         this.ruleCache.set(cacheKey, rules);

@@ -195,9 +195,19 @@ const createTables = async () => {
             free_heap_bytes INTEGER,
             wifi_quality_percent FLOAT,
             reset_reason VARCHAR(100),
+            boot_time TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS memory_usage_percent FLOAT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS wifi_signal_strength INTEGER;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS battery_level FLOAT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS cpu_temperature FLOAT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS free_heap_bytes INTEGER;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS wifi_quality_percent FLOAT;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS reset_reason VARCHAR(100);
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS boot_time TIMESTAMP;
 
         -- Device health history for trend analysis
         CREATE TABLE IF NOT EXISTS device_health_history (
@@ -305,6 +315,8 @@ const createTables = async () => {
             sensor_value NUMERIC,
             threshold_value NUMERIC,
             status VARCHAR(20) DEFAULT 'active',
+            escalation_level INTEGER DEFAULT 0,
+            last_escalated TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             acknowledged_at TIMESTAMP,
@@ -313,6 +325,32 @@ const createTables = async () => {
             resolved_by INTEGER REFERENCES users(id),
             notes TEXT,
             resolution_notes TEXT
+        );
+
+        ALTER TABLE alerts ADD COLUMN IF NOT EXISTS device_sensor_id INTEGER REFERENCES device_sensors(id);
+        ALTER TABLE alerts ADD COLUMN IF NOT EXISTS sensor_rule_id INTEGER REFERENCES sensor_rules(id);
+        ALTER TABLE alerts ADD COLUMN IF NOT EXISTS escalation_level INTEGER DEFAULT 0;
+        ALTER TABLE alerts ADD COLUMN IF NOT EXISTS last_escalated TIMESTAMP;
+        ALTER TABLE alerts ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+        -- Password reset tokens
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            token VARCHAR(255) UNIQUE NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            used_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- User location access permissions
+        CREATE TABLE IF NOT EXISTS user_location_access (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
+            granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            granted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            UNIQUE(user_id, location_id)
         );
 
         -- Escalation rules
@@ -468,6 +506,7 @@ const createTables = async () => {
         CREATE INDEX IF NOT EXISTS idx_alerts_device_status ON alerts(device_id, status);
         CREATE INDEX IF NOT EXISTS idx_alerts_severity_status ON alerts(severity, status);
         CREATE INDEX IF NOT EXISTS idx_alerts_created_desc ON alerts(triggered_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_alerts_escalation ON alerts(status, escalation_level);
         CREATE INDEX IF NOT EXISTS idx_websocket_user ON websocket_connections(user_id);
         CREATE INDEX IF NOT EXISTS idx_ota_device_status ON ota_updates(device_id, status);
         CREATE INDEX IF NOT EXISTS idx_escalation_history_alert ON escalation_history(alert_id);
@@ -481,6 +520,9 @@ const createTables = async () => {
         CREATE INDEX IF NOT EXISTS idx_device_group_members_device ON device_group_members(device_id);
         CREATE INDEX IF NOT EXISTS idx_device_tag_assignments_tag ON device_tag_assignments(tag_id);
         CREATE INDEX IF NOT EXISTS idx_device_tag_assignments_device ON device_tag_assignments(device_id);
+        CREATE INDEX IF NOT EXISTS idx_device_health_history_device_time ON device_health_history(device_id, timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_user_location_access_user ON user_location_access(user_id);
+        CREATE INDEX IF NOT EXISTS idx_user_location_access_location ON user_location_access(location_id);
     `;
 
     await query(createTablesSQL);

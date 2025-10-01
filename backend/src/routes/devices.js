@@ -287,6 +287,14 @@ router.post('/:id/telemetry', [
 
         // Process telemetry data using TelemetryProcessor service from request
         const telemetryProcessor = req.telemetryProcessor;
+        if (!telemetryProcessor) {
+            logger.error('Telemetry processor not available on request context');
+            return res.status(500).json({ error: 'Telemetry processor unavailable' });
+        }
+
+        const SENSOR_TYPE_ALIASES = {
+            light: 'Photodiode'
+        };
 
         for (const sensorData of sensors) {
             try {
@@ -299,10 +307,11 @@ router.post('/:id/telemetry', [
                 `, [id, sensorData.pin]);
 
                 if (deviceSensor.rows.length === 0) {
+                    const sensorTypeName = SENSOR_TYPE_ALIASES[sensorData.type] || sensorData.type;
                     // Auto-create device sensor if it doesn't exist
                     const sensorType = await db.query(
-                        'SELECT id FROM sensor_types WHERE name = $1',
-                        [sensorData.type]
+                        'SELECT id FROM sensor_types WHERE LOWER(name) = LOWER($1)',
+                        [sensorTypeName]
                     );
 
                     if (sensorType.rows.length > 0) {
@@ -355,6 +364,12 @@ router.post('/:id/telemetry', [
             } catch (sensorError) {
                 logger.error(`Error processing sensor data for device ${id}, pin ${sensorData.pin}:`, sensorError);
             }
+        }
+
+        try {
+            await telemetryProcessor.cacheRecentTelemetry(id, sensors);
+        } catch (cacheError) {
+            logger.warn('Failed to cache recent telemetry:', cacheError.message);
         }
 
         // Log system metrics if provided (store as metadata)
@@ -1090,12 +1105,34 @@ router.delete('/:deviceId/sensors/:sensorId', authenticateToken, async (req, res
     }
 });
 
-// Telemetry proxy routes for frontend compatibility
-// GET /api/devices/:id/telemetry/latest - Proxy to telemetry service
-router.get('/:id/telemetry/latest', authenticateToken, (req, res, next) => {
-    req.url = `/devices/${req.params.id}`;
-    req.baseUrl = '/api/telemetry';
-    next('route');
+// Telemetry helper routes for frontend compatibility
+// GET /api/devices/:id/telemetry/latest - Latest readings per sensor
+router.get('/:id/telemetry/latest', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const result = await db.query(`
+            SELECT DISTINCT ON (ds.id)
+                t.timestamp,
+                t.raw_value,
+                t.processed_value as value,
+                ds.pin as sensor_pin,
+                ds.name as sensor_name,
+                st.name as sensor_type,
+                st.unit,
+                t.metadata
+            FROM telemetry t
+            JOIN device_sensors ds ON t.device_sensor_id = ds.id
+            JOIN sensor_types st ON ds.sensor_type_id = st.id
+            WHERE t.device_id = $1
+            ORDER BY ds.id, t.timestamp DESC
+        `, [id]);
+
+        res.json({ telemetry: result.rows });
+    } catch (error) {
+        logger.error('Get latest telemetry error:', error);
+        res.status(500).json({ error: 'Failed to fetch latest telemetry' });
+    }
 });
 
 // GET /api/devices/:id/telemetry/history - Proxy to telemetry service
@@ -1105,11 +1142,17 @@ router.get('/:id/telemetry/history', authenticateToken, async (req, res) => {
         const { sensor_pin, start_date, end_date, aggregation = 'raw' } = req.query;
 
         const telemetryProcessor = req.telemetryProcessor;
+        if (!sensor_pin) {
+            return res.status(400).json({ error: 'sensor_pin query parameter is required' });
+        }
+        const safeStart = start_date ? new Date(start_date) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const safeEnd = end_date ? new Date(end_date) : new Date();
+
         const data = await telemetryProcessor.getHistoricalTelemetry(
             deviceId,
             sensor_pin,
-            new Date(start_date),
-            new Date(end_date),
+            safeStart,
+            safeEnd,
             aggregation
         );
 

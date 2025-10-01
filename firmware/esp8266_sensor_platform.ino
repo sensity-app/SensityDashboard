@@ -4,6 +4,7 @@
 #include <ArduinoJson.h>
 #include <WiFiClientSecure.h>
 #include <EEPROM.h>
+#include <cstring>
 #include <DHT.h>
 #include <Ultrasonic.h>
 #include "device_config.h"
@@ -55,6 +56,9 @@ int sensorCount = 0;
 unsigned long lastHeartbeat = 0;
 unsigned long lastSensorRead = 0;
 WiFiClient wifiClient;
+#if USE_HTTPS
+WiFiClientSecure secureClient;
+#endif
 
 // Hardware instances (initialize based on configuration)
 DHT* dht = nullptr;
@@ -437,7 +441,17 @@ void readAndProcessSensors() {
 
 void sendTelemetryData(const JsonDocument& telemetryDoc) {
     HTTPClient http;
-    http.begin(wifiClient, String(config.server_url) + "/api/devices/" + config.device_id + "/telemetry");
+    String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/telemetry";
+#if USE_HTTPS
+    if (strlen(SERVER_FINGERPRINT) > 0) {
+        secureClient.setFingerprint(SERVER_FINGERPRINT);
+    } else {
+        secureClient.setInsecure();
+    }
+    http.begin(secureClient, endpoint);
+#else
+    http.begin(wifiClient, endpoint);
+#endif
     http.addHeader("Content-Type", "application/json");
 
     String payload;
@@ -453,7 +467,17 @@ void sendTelemetryData(const JsonDocument& telemetryDoc) {
 
 void sendHeartbeat() {
     HTTPClient http;
-    http.begin(wifiClient, String(config.server_url) + "/api/devices/" + config.device_id + "/heartbeat");
+    String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/heartbeat";
+#if USE_HTTPS
+    if (strlen(SERVER_FINGERPRINT) > 0) {
+        secureClient.setFingerprint(SERVER_FINGERPRINT);
+    } else {
+        secureClient.setInsecure();
+    }
+    http.begin(secureClient, endpoint);
+#else
+    http.begin(wifiClient, endpoint);
+#endif
     http.addHeader("Content-Type", "application/json");
 
     StaticJsonDocument<512> doc;
@@ -623,7 +647,17 @@ void performOTAUpdate(const String& firmwareUrl, const String& expectedChecksum)
 
 void notifyOTAStatus(const String& status, int progress, const String& errorMessage = "") {
     HTTPClient http;
-    http.begin(wifiClient, String(config.server_url) + "/api/devices/" + config.device_id + "/ota-status");
+    String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/ota-status";
+#if USE_HTTPS
+    if (strlen(SERVER_FINGERPRINT) > 0) {
+        secureClient.setFingerprint(SERVER_FINGERPRINT);
+    } else {
+        secureClient.setInsecure();
+    }
+    http.begin(secureClient, endpoint);
+#else
+    http.begin(wifiClient, endpoint);
+#endif
     http.addHeader("Content-Type", "application/json");
 
     StaticJsonDocument<256> doc;
@@ -642,7 +676,17 @@ void notifyOTAStatus(const String& status, int progress, const String& errorMess
 
 void sendAlarmEvent(int sensorIndex, float value) {
     HTTPClient http;
-    http.begin(wifiClient, String(config.server_url) + "/api/devices/" + config.device_id + "/alarm");
+    String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/alarm";
+#if USE_HTTPS
+    if (strlen(SERVER_FINGERPRINT) > 0) {
+        secureClient.setFingerprint(SERVER_FINGERPRINT);
+    } else {
+        secureClient.setInsecure();
+    }
+    http.begin(secureClient, endpoint);
+#else
+    http.begin(wifiClient, endpoint);
+#endif
     http.addHeader("Content-Type", "application/json");
 
     StaticJsonDocument<384> doc;
@@ -702,7 +746,17 @@ void connectToWiFi() {
 
 void checkForFirmwareUpdate() {
     HTTPClient http;
-    http.begin(wifiClient, String(config.server_url) + "/api/devices/" + config.device_id + "/ota-check");
+    String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/ota-check";
+#if USE_HTTPS
+    if (strlen(SERVER_FINGERPRINT) > 0) {
+        secureClient.setFingerprint(SERVER_FINGERPRINT);
+    } else {
+        secureClient.setInsecure();
+    }
+    http.begin(secureClient, endpoint);
+#else
+    http.begin(wifiClient, endpoint);
+#endif
     http.addHeader("Content-Type", "application/json");
 
     StaticJsonDocument<256> doc;
@@ -740,7 +794,17 @@ void checkForFirmwareUpdate() {
 void handleOTAUpdates() {
     // Check for pending OTA updates in Redis cache
     HTTPClient http;
-    http.begin(wifiClient, String(config.server_url) + "/api/devices/" + config.device_id + "/ota-pending");
+    String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/ota-pending";
+#if USE_HTTPS
+    if (strlen(SERVER_FINGERPRINT) > 0) {
+        secureClient.setFingerprint(SERVER_FINGERPRINT);
+    } else {
+        secureClient.setInsecure();
+    }
+    http.begin(secureClient, endpoint);
+#else
+    http.begin(wifiClient, endpoint);
+#endif
     http.addHeader("Content-Type", "application/json");
 
     int httpCode = http.GET();

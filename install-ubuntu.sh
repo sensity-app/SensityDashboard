@@ -1454,8 +1454,8 @@ main() {
     create_app_user
     setup_application
     install_app_dependencies
+    create_env_files     # Must be before setup_database so migrations can connect
     setup_database
-    create_env_files
     build_frontend
     install_pm2
     install_nginx

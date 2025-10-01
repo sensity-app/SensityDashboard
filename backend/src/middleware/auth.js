@@ -21,7 +21,11 @@ const authenticateToken = async (req, res, next) => {
             return res.status(401).json({ error: 'User not found' });
         }
 
-        req.user = result.rows[0];
+        // Store full user object but also add userId for backward compatibility
+        req.user = {
+            ...result.rows[0],
+            userId: result.rows[0].id
+        };
         next();
     } catch (error) {
         logger.error('Authentication error:', error);
@@ -40,7 +44,7 @@ const requireRole = (roles) => {
         const allowedRoles = Array.isArray(roles) ? roles : [roles];
 
         if (!allowedRoles.includes(userRole)) {
-            logger.logSecurityEvent('Insufficient permissions', {
+            logger.logSecurity('Insufficient permissions', {
                 userId: req.user.id,
                 userRole,
                 requiredRoles: allowedRoles,
@@ -75,12 +79,12 @@ const requireDeviceAccess = async (req, res, next) => {
             SELECT d.id
             FROM devices d
             INNER JOIN locations l ON d.location_id = l.id
-            INNER JOIN user_locations ul ON l.id = ul.location_id
+            INNER JOIN user_location_access ul ON l.id = ul.location_id
             WHERE d.id = $1 AND ul.user_id = $2
         `, [deviceId, userId]);
 
         if (result.rows.length === 0) {
-            logger.logSecurityEvent('Unauthorized device access attempt', {
+            logger.logSecurity('Unauthorized device access attempt', {
                 userId,
                 deviceId,
                 endpoint: req.originalUrl,
@@ -111,7 +115,7 @@ const authenticateDevice = async (req, res, next) => {
         const result = await db.query('SELECT * FROM devices WHERE id = $1', [deviceId]);
 
         if (result.rows.length === 0) {
-            logger.logSecurityEvent('Unknown device authentication attempt', {
+            logger.logSecurity('Unknown device authentication attempt', {
                 deviceId,
                 apiKey: apiKey.substring(0, 8) + '...',
                 ip: req.ip,

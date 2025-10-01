@@ -79,6 +79,14 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Attach services to request object for use in routes
+app.use((req, res, next) => {
+    req.telemetryProcessor = telemetryProcessor;
+    req.websocketService = websocketService;
+    req.alertEscalationService = alertEscalationService;
+    next();
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/devices', deviceRoutes);

@@ -138,11 +138,26 @@ const createTables = async () => {
             password_hash VARCHAR(255) NOT NULL,
             role VARCHAR(20) NOT NULL DEFAULT 'viewer',
             phone VARCHAR(20),
+            full_name VARCHAR(255),
             notification_email BOOLEAN DEFAULT true,
             notification_sms BOOLEAN DEFAULT false,
             notification_push BOOLEAN DEFAULT true,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- User invitations table
+        CREATE TABLE IF NOT EXISTS user_invitations (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) NOT NULL,
+            role VARCHAR(20) NOT NULL,
+            full_name VARCHAR(255) NOT NULL,
+            token VARCHAR(255) UNIQUE NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            used_at TIMESTAMP,
+            used_by INTEGER REFERENCES users(id),
+            invited_by INTEGER REFERENCES users(id),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         -- Locations table
@@ -173,8 +188,32 @@ const createTables = async () => {
             ip_address INET,
             mac_address MACADDR,
             uptime_seconds INTEGER DEFAULT 0,
+            memory_usage_percent FLOAT,
+            wifi_signal_strength INTEGER,
+            battery_level FLOAT,
+            cpu_temperature FLOAT,
+            free_heap_bytes INTEGER,
+            wifi_quality_percent FLOAT,
+            reset_reason VARCHAR(100),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Device health history for trend analysis
+        CREATE TABLE IF NOT EXISTS device_health_history (
+            id BIGSERIAL PRIMARY KEY,
+            device_id VARCHAR(50) REFERENCES devices(id) ON DELETE CASCADE,
+            memory_usage_percent FLOAT,
+            wifi_signal_strength INTEGER,
+            battery_level FLOAT,
+            cpu_temperature FLOAT,
+            free_heap_bytes INTEGER,
+            wifi_quality_percent FLOAT,
+            uptime_seconds INTEGER,
+            reset_reason VARCHAR(100),
+            ping_response_time INTEGER,
+            packet_loss_percent FLOAT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         -- Sensor types definition
@@ -257,6 +296,8 @@ const createTables = async () => {
         CREATE TABLE IF NOT EXISTS alerts (
             id SERIAL PRIMARY KEY,
             device_id VARCHAR(50) REFERENCES devices(id) ON DELETE CASCADE,
+            device_sensor_id INTEGER REFERENCES device_sensors(id),
+            sensor_rule_id INTEGER REFERENCES sensor_rules(id),
             alert_type VARCHAR(100) NOT NULL,
             severity VARCHAR(20) NOT NULL,
             message TEXT NOT NULL,
@@ -264,6 +305,7 @@ const createTables = async () => {
             sensor_value NUMERIC,
             threshold_value NUMERIC,
             status VARCHAR(20) DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             acknowledged_at TIMESTAMP,
             acknowledged_by INTEGER REFERENCES users(id),

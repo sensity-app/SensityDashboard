@@ -399,8 +399,8 @@ function generateSensorConfig(sensors) {
 #define SENSOR_DHT_ENABLED true
 #define SENSOR_DHT_PIN ${s.pin || 'D4'}
 #define SENSOR_DHT_TYPE DHT22
-#define TEMP_THRESHOLD_MIN ${s.temp_min || -10.0}
-#define TEMP_THRESHOLD_MAX ${s.temp_max || 40.0}
+#define TEMP_THRESHOLD_MIN ${s.temperature_min || -10.0}
+#define TEMP_THRESHOLD_MAX ${s.temperature_max || 40.0}
 #define HUMIDITY_THRESHOLD_MIN ${s.humidity_min || 20.0}
 #define HUMIDITY_THRESHOLD_MAX ${s.humidity_max || 80.0}
 `;

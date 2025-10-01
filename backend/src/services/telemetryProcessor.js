@@ -353,7 +353,7 @@ class TelemetryProcessor {
                 WHERE device_id = $1
                     AND device_sensor_id = $2
                     AND sensor_rule_id = $3
-                    AND status IN ('OPEN', 'ACK')
+                    AND status = 'active'
                     AND created_at > NOW() - INTERVAL '5 minutes'
             `, [deviceId, rule.device_sensor_id, rule.id]);
 
@@ -363,7 +363,7 @@ class TelemetryProcessor {
 
             const alertResult = await db.query(`
                 INSERT INTO alerts (device_id, device_sensor_id, sensor_rule_id, alert_type, severity, message, status, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, 'OPEN', NOW())
+                VALUES ($1, $2, $3, $4, $5, $6, 'active', NOW())
                 RETURNING id
             `, [
                 deviceId,
@@ -441,7 +441,7 @@ class TelemetryProcessor {
                 // Create offline alert
                 await db.query(`
                     INSERT INTO alerts (device_id, alert_type, severity, message, status, created_at)
-                    VALUES ($1, 'OFFLINE', 'medium', $2, 'OPEN', NOW())
+                    VALUES ($1, 'OFFLINE', 'medium', $2, 'active', NOW())
                 `, [device.id, `Device ${device.name} has gone offline`]);
 
                 // Broadcast status change

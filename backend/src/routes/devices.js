@@ -285,9 +285,8 @@ router.post('/:id/telemetry', [
             WHERE id = $3
         `, [uptime, req.ip, id]);
 
-        // Process telemetry data using TelemetryProcessor service
-        const TelemetryProcessor = require('../services/telemetryProcessor');
-        const telemetryProcessor = new TelemetryProcessor();
+        // Process telemetry data using TelemetryProcessor service from request
+        const telemetryProcessor = req.telemetryProcessor;
 
         for (const sensorData of sensors) {
             try {
@@ -343,13 +342,13 @@ router.post('/:id/telemetry', [
                     })
                 ]);
 
-                // Process sensor data for alerts using the telemetry processor
-                await telemetryProcessor.processSensorData({
-                    device_id: id,
-                    device_sensor_id: sensor.id,
+                // Process sensor rules for alerts using the telemetry processor
+                await telemetryProcessor.processRulesForSensor(id, {
+                    pin: sensorData.pin,
+                    type: sensorData.type,
+                    name: sensor.name,
                     raw_value: rawValue,
                     processed_value: processedValue,
-                    sensor,
                     timestamp: sensorData.timestamp || new Date().toISOString()
                 });
 
@@ -1006,5 +1005,198 @@ function generateHealthRecommendations(device, healthScore) {
 
     return recommendations;
 }
+
+// Sensor CRUD routes for frontend compatibility
+// GET /api/devices/:id/sensors - Get device sensors
+router.get('/:id/sensors', authenticateToken, async (req, res) => {
+    try {
+        const deviceId = req.params.id;
+        const result = await db.query(`
+            SELECT ds.*, st.name as sensor_type, st.unit, st.icon
+            FROM device_sensors ds
+            INNER JOIN sensor_types st ON ds.sensor_type_id = st.id
+            WHERE ds.device_id = $1
+            ORDER BY ds.pin
+        `, [deviceId]);
+
+        res.json({ sensors: result.rows });
+    } catch (error) {
+        logger.error('Get device sensors error:', error);
+        res.status(500).json({ error: 'Failed to fetch device sensors' });
+    }
+});
+
+// POST /api/devices/:id/sensors - Create sensor
+router.post('/:id/sensors', authenticateToken, async (req, res) => {
+    try {
+        const deviceId = req.params.id;
+        const { sensor_type_id, pin, name, calibration_offset, calibration_multiplier } = req.body;
+
+        const result = await db.query(`
+            INSERT INTO device_sensors (device_id, sensor_type_id, pin, name, calibration_offset, calibration_multiplier)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *
+        `, [deviceId, sensor_type_id, pin, name, calibration_offset || 0, calibration_multiplier || 1]);
+
+        res.json({ sensor: result.rows[0] });
+    } catch (error) {
+        logger.error('Create sensor error:', error);
+        res.status(500).json({ error: 'Failed to create sensor' });
+    }
+});
+
+// PUT /api/devices/:deviceId/sensors/:sensorId - Update sensor
+router.put('/:deviceId/sensors/:sensorId', authenticateToken, async (req, res) => {
+    try {
+        const { sensorId } = req.params;
+        const { name, calibration_offset, calibration_multiplier, enabled } = req.body;
+
+        const result = await db.query(`
+            UPDATE device_sensors
+            SET name = COALESCE($1, name),
+                calibration_offset = COALESCE($2, calibration_offset),
+                calibration_multiplier = COALESCE($3, calibration_multiplier),
+                enabled = COALESCE($4, enabled)
+            WHERE id = $5
+            RETURNING *
+        `, [name, calibration_offset, calibration_multiplier, enabled, sensorId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Sensor not found' });
+        }
+
+        res.json({ sensor: result.rows[0] });
+    } catch (error) {
+        logger.error('Update sensor error:', error);
+        res.status(500).json({ error: 'Failed to update sensor' });
+    }
+});
+
+// DELETE /api/devices/:deviceId/sensors/:sensorId - Delete sensor
+router.delete('/:deviceId/sensors/:sensorId', authenticateToken, async (req, res) => {
+    try {
+        const { sensorId } = req.params;
+
+        const result = await db.query('DELETE FROM device_sensors WHERE id = $1 RETURNING id', [sensorId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Sensor not found' });
+        }
+
+        res.json({ message: 'Sensor deleted successfully' });
+    } catch (error) {
+        logger.error('Delete sensor error:', error);
+        res.status(500).json({ error: 'Failed to delete sensor' });
+    }
+});
+
+// Telemetry proxy routes for frontend compatibility
+// GET /api/devices/:id/telemetry/latest - Proxy to telemetry service
+router.get('/:id/telemetry/latest', authenticateToken, (req, res, next) => {
+    req.url = `/devices/${req.params.id}`;
+    req.baseUrl = '/api/telemetry';
+    next('route');
+});
+
+// GET /api/devices/:id/telemetry/history - Proxy to telemetry service
+router.get('/:id/telemetry/history', authenticateToken, async (req, res) => {
+    try {
+        const deviceId = req.params.id;
+        const { sensor_pin, start_date, end_date, aggregation = 'raw' } = req.query;
+
+        const telemetryProcessor = req.telemetryProcessor;
+        const data = await telemetryProcessor.getHistoricalTelemetry(
+            deviceId,
+            sensor_pin,
+            new Date(start_date),
+            new Date(end_date),
+            aggregation
+        );
+
+        res.json({ telemetry: data });
+    } catch (error) {
+        logger.error('Get historical telemetry error:', error);
+        res.status(500).json({ error: 'Failed to fetch telemetry history' });
+    }
+});
+
+// GET /api/devices/:id/telemetry/stats - Get telemetry statistics
+router.get('/:id/telemetry/stats', authenticateToken, async (req, res) => {
+    try {
+        const deviceId = req.params.id;
+        const { range = '24h' } = req.query;
+
+        const telemetryProcessor = req.telemetryProcessor;
+        const stats = await telemetryProcessor.getDeviceStats(deviceId, range);
+
+        res.json({ stats });
+    } catch (error) {
+        logger.error('Get telemetry stats error:', error);
+        res.status(500).json({ error: 'Failed to fetch telemetry statistics' });
+    }
+});
+
+// GET /api/devices/:id/alerts - Get device-specific alerts
+router.get('/:id/alerts', authenticateToken, async (req, res) => {
+    try {
+        const deviceId = req.params.id;
+        const { limit = 10 } = req.query;
+
+        const result = await db.query(`
+            SELECT a.*, ds.name as sensor_name, st.name as sensor_type
+            FROM alerts a
+            LEFT JOIN device_sensors ds ON a.device_sensor_id = ds.id
+            LEFT JOIN sensor_types st ON ds.sensor_type_id = st.id
+            WHERE a.device_id = $1
+            ORDER BY a.created_at DESC
+            LIMIT $2
+        `, [deviceId, limit]);
+
+        res.json({ alerts: result.rows });
+    } catch (error) {
+        logger.error('Get device alerts error:', error);
+        res.status(500).json({ error: 'Failed to fetch device alerts' });
+    }
+});
+
+// GET /api/devices/:id/stats - Get device statistics
+router.get('/:id/stats', authenticateToken, async (req, res) => {
+    try {
+        const deviceId = req.params.id;
+        const { range = '24h' } = req.query;
+
+        // Get sensor statistics
+        const telemetryProcessor = req.telemetryProcessor;
+        const sensorStats = await telemetryProcessor.getDeviceStats(deviceId, range);
+
+        // Get alert counts
+        const alertsResult = await db.query(`
+            SELECT
+                COUNT(*) FILTER (WHERE status = 'active') as active_alerts,
+                COUNT(*) FILTER (WHERE status = 'acknowledged') as acknowledged_alerts,
+                COUNT(*) as total_alerts
+            FROM alerts
+            WHERE device_id = $1
+            AND created_at > NOW() - INTERVAL '${range === '24h' ? '24 hours' : range}'
+        `, [deviceId]);
+
+        const deviceResult = await db.query(`
+            SELECT status, last_heartbeat, uptime_seconds
+            FROM devices
+            WHERE id = $1
+        `, [deviceId]);
+
+        res.json({
+            stats: {
+                sensors: sensorStats,
+                alerts: alertsResult.rows[0],
+                device: deviceResult.rows[0]
+            }
+        });
+    } catch (error) {
+        logger.error('Get device stats error:', error);
+        res.status(500).json({ error: 'Failed to fetch device statistics' });
+    }
+});
 
 module.exports = router;

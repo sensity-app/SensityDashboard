@@ -507,11 +507,14 @@ router.get('/update-progress', authenticateToken, requireAdmin, async (req, res)
     }
 });
 
-// GET /api/system/update-status - Check if update command exists
+// GET /api/system/update-status - Check if update is available by comparing with remote
 router.get('/update-status', authenticateToken, requireAdmin, async (req, res) => {
     try {
         let updateAvailable = false;
         let updateScript = '';
+        let currentCommit = '';
+        let remoteCommit = '';
+        let behindBy = 0;
 
         // Check if we're running in development or production
         const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -519,52 +522,73 @@ router.get('/update-status', authenticateToken, requireAdmin, async (req, res) =
             path.join(process.cwd(), '..') : process.cwd();
 
         try {
+            // Check for update script
             if (isDevelopment) {
-                // Development: check for development script
                 const devScript = path.join(projectRoot, 'update-system-dev.sh');
                 try {
                     await fs.access(devScript, fs.constants.F_OK);
-                    updateAvailable = true;
                     updateScript = devScript;
-                    logger.info(`Development mode: Found development update script: ${devScript}`);
-                } catch (devError) {
-                    // Try production script as fallback
+                } catch {
                     const prodScript = path.join(projectRoot, 'update-system.sh');
                     try {
                         await fs.access(prodScript, fs.constants.F_OK);
-                        updateAvailable = true;
                         updateScript = prodScript;
-                        logger.info(`Development mode: Found production update script as fallback: ${prodScript}`);
-                    } catch (prodError) {
-                        // Scripts not found locally, but we can download from GitHub
-                        updateAvailable = true;
-                        updateScript = 'Available for download from GitHub';
-                        logger.info('Development mode: Update scripts not found locally but available on GitHub');
+                    } catch {
+                        updateScript = 'update-system.sh';
                     }
                 }
             } else {
-                // Production: check for production script
                 const prodScript = path.join(projectRoot, 'update-system.sh');
                 try {
                     await fs.access(prodScript, fs.constants.F_OK);
-                    updateAvailable = true;
                     updateScript = prodScript;
-                    logger.info(`Production mode: Found production update script: ${prodScript}`);
-                } catch (prodError) {
-                    // Script not found locally, but we can download from GitHub
-                    updateAvailable = true;
-                    updateScript = 'Available for download from GitHub';
-                    logger.info('Production mode: Update script not found locally but available on GitHub');
+                } catch {
+                    updateScript = 'update-system.sh';
                 }
             }
+
+            // Check Git status to compare with remote
+            try {
+                // Fetch latest from remote (without merging)
+                await execPromise('git fetch origin', { cwd: projectRoot });
+
+                // Get current commit hash
+                const currentResult = await execPromise('git rev-parse HEAD', { cwd: projectRoot });
+                currentCommit = currentResult.stdout.trim();
+
+                // Get current branch and remote commit
+                const branchResult = await execPromise('git rev-parse --abbrev-ref HEAD', { cwd: projectRoot });
+                const currentBranch = branchResult.stdout.trim();
+
+                const remoteResult = await execPromise(`git rev-parse origin/${currentBranch}`, { cwd: projectRoot });
+                remoteCommit = remoteResult.stdout.trim();
+
+                // Check if remote is ahead
+                if (currentCommit !== remoteCommit) {
+                    const behindResult = await execPromise(`git rev-list --count ${currentCommit}..${remoteCommit}`, { cwd: projectRoot });
+                    behindBy = parseInt(behindResult.stdout.trim()) || 0;
+
+                    if (behindBy > 0) {
+                        updateAvailable = true;
+                        logger.info(`Update available: ${behindBy} commits behind remote`);
+                    }
+                } else {
+                    logger.info('System is up to date with remote');
+                }
+            } catch (gitError) {
+                logger.warn('Could not check Git status for updates:', gitError.message);
+            }
         } catch (error) {
-            logger.info(`Error checking update script for ${isDevelopment ? 'development' : 'production'} mode:`, error.message);
+            logger.error(`Error checking update status:`, error.message);
         }
 
         res.json({
             success: true,
             updateAvailable,
-            updateScript
+            updateScript: updateScript ? path.basename(updateScript) : null,
+            currentCommit: currentCommit ? currentCommit.substring(0, 7) : 'unknown',
+            remoteCommit: remoteCommit ? remoteCommit.substring(0, 7) : 'unknown',
+            behindBy
         });
     } catch (error) {
         logger.error('Update status error:', error);

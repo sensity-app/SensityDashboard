@@ -1318,7 +1318,17 @@ function PlatformUpdateTab() {
                             <div className="mb-4">
                                 <div className="flex items-center text-green-600 mb-2">
                                     <CheckCircle className="w-4 h-4 mr-2" />
-                                    <span className="text-sm font-medium">Update script available</span>
+                                    <span className="text-sm font-medium">Update available</span>
+                                </div>
+                                <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                                    <p className="text-sm text-blue-900">
+                                        <strong>{updateStatus.behindBy}</strong> new commit{updateStatus.behindBy > 1 ? 's' : ''} available
+                                    </p>
+                                    <p className="text-xs text-blue-700 mt-1">
+                                        Current: <code className="bg-blue-100 px-1 py-0.5 rounded">{updateStatus.currentCommit}</code>
+                                        {' → '}
+                                        Remote: <code className="bg-blue-100 px-1 py-0.5 rounded">{updateStatus.remoteCommit}</code>
+                                    </p>
                                 </div>
                                 <p className="text-sm text-gray-600 mb-4">
                                     Script: <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">{updateStatus.updateScript}</code>
@@ -1363,13 +1373,22 @@ function PlatformUpdateTab() {
                         </div>
                     ) : (
                         <div>
-                            <div className="flex items-center text-red-600 mb-2">
-                                <X className="w-4 h-4 mr-2" />
-                                <span className="text-sm font-medium">Update script not available</span>
+                            <div className="flex items-center text-green-600 mb-2">
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                <span className="text-sm font-medium">System is up to date</span>
                             </div>
+                            {updateStatus?.currentCommit && updateStatus?.remoteCommit && (
+                                <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
+                                    <p className="text-sm text-green-900">
+                                        Running the latest version
+                                    </p>
+                                    <p className="text-xs text-green-700 mt-1">
+                                        Commit: <code className="bg-green-100 px-1 py-0.5 rounded">{updateStatus.currentCommit}</code>
+                                    </p>
+                                </div>
+                            )}
                             <p className="text-sm text-gray-600 mb-4">
-                                The <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">update-system</code> command
-                                was not found on this system. Platform updates are not available.
+                                Your platform is synchronized with the remote repository.
                             </p>
                             <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                                 <div className="text-sm">

@@ -1,6 +1,6 @@
 # 🚀 ESP8266 IoT Management Platform
 
-A comprehensive web-based platform for managing ESP8266 IoT devices with **drag-and-drop firmware builder**, real-time monitoring, and advanced analytics.
+A comprehensive web-based platform for managing ESP8266 IoT devices with **drag-and-drop firmware builder**, real-time monitoring, sensor configuration, and advanced analytics.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
@@ -18,34 +18,49 @@ A comprehensive web-based platform for managing ESP8266 IoT devices with **drag-
 
 ### 🔐 **Enterprise Authentication**
 - **Secure User Management** - JWT-based authentication with role-based access
-- **Temporary Admin Setup** - Auto-creates first admin user, then locks setup
+- **First-User Registration Flow** - Secure initial admin setup with automatic lockdown
 - **Password Reset System** - Email-based password recovery with secure tokens
 - **User Invitation System** - Admin can invite users with specific roles
 - **Multi-Role Support** - Admin, Operator, and Viewer access levels
 
 ### 📊 **Real-Time Monitoring & Analytics**
-- **Live Dashboard** with WebSocket updates and interactive charts
+- **Interactive Dashboard** - Overview with quick stats, recent activity, and quick actions
+- **Live Device Monitoring** - WebSocket-powered real-time sensor updates
 - **Multi-Sensor Support** - Temperature, humidity, motion, distance, light, gas, vibration, magnetic, sound
-- **Device Health Monitoring** - Memory usage, WiFi signal, battery level, CPU temperature
+- **Device Health Tracking** - Memory usage, WiFi signal, battery level, CPU temperature
 - **Historical Data Visualization** - Time-range based charts and trend analysis
-- **Anomaly Detection** - AI-powered anomaly detection with predictive analytics
+- **Sensor Calibration** - Configurable offset and multiplier for accurate readings
 - **CSV Export** - Complete data export functionality
 
 ### 🚨 **Advanced Alert System**
-- **Multi-Channel Notifications** - Email (SMTP), SMS (Twilio), and WebSocket alerts
+- **Multi-Channel Notifications** - Email (SMTP), SMS (Twilio), and in-app alerts
 - **Customizable Alert Rules** - Per-sensor threshold configuration with multiple conditions
 - **Alert Escalation** - Multi-level escalation system with delays and severity levels
 - **Silent Mode Scheduling** - Time-based quiet hours with granular controls
 - **Offline Device Detection** - Automated detection with configurable timeouts
 - **Comprehensive Event Logging** - Full alert history and statistics
 
-### 🔧 **Advanced Device Management**
-- **Complete Device Lifecycle** - CRUD operations with grouping and tagging system
+### 🔧 **Advanced Device & Sensor Management**
+- **Complete Device Lifecycle** - CRUD operations with grouping, tagging, and location organization
+- **Dynamic Sensor Configuration** - Edit sensor names, calibration, and thresholds in real-time
 - **Over-the-Air (OTA) Updates** - Remote firmware updates with progress tracking
+- **Automatic OTA Trigger** - Push sensor configuration changes to devices automatically
+- **Protocol Settings** - Configure HTTP/MQTT communication per device
 - **Remote Configuration** - WiFi setup, device naming, and sensor calibration
-- **Dynamic Threshold Adjustment** - Server-controlled threshold updates
 - **Location Management** - Geographic organization of devices
 - **Device Analytics** - Performance insights and health metrics
+
+### 🔄 **Platform Updates**
+- **Web-Based Update Manager** - Check for and install updates from the settings page
+- **Git Integration** - Compare local and remote commits, see available updates
+- **One-Click Updates** - Update system with progress tracking
+- **Automatic Backups** - Creates backups before updates (keeps 3 most recent)
+- **Safe Rollback** - Easy restore from backups if needed
+
+### 🌍 **Internationalization**
+- **Multi-Language Support** - Full Czech and English translations
+- **Seamless Language Switching** - Change language from any page
+- **Consistent Translations** - All UI elements properly localized
 
 ## 🎯 Supported Device Templates
 
@@ -106,11 +121,12 @@ curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platfor
 ```
 
 This will:
-- ✅ Install all dependencies (Node.js, PostgreSQL, Redis, Nginx)
+- ✅ Install all dependencies (Node.js, PostgreSQL, Redis, Nginx, MQTT Broker)
 - ✅ Configure SSL certificates with Let's Encrypt *(Production mode only)*
 - ✅ Set up firewall and security
 - ✅ Deploy the application with PM2
 - ✅ Make it accessible (via IP in development, domain in production)
+- ✅ Clean up old backups automatically (keeps 3 most recent)
 
 **Development Mode Benefits:**
 - 🚀 Quick setup without domain requirements
@@ -136,46 +152,65 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed manual installation instructions
 - Visit your domain (e.g., `https://your-domain.com`)
 - Complete the first-time admin user setup
 - The system automatically creates the database structure
+- No default users are created - system remains secure until you register
 
 ### 2. **Build Your First Firmware**
 - Navigate to **Firmware Builder** (`/firmware-builder`)
 - Select a template (e.g., "Kitchen Monitor")
+- Configure your sensors and thresholds
 - Enter your WiFi credentials
 - Click **"Flash to Device"** for direct flashing OR **"Download Firmware"**
 
 ### 3. **Deploy ESP8266 Device**
 - Connect ESP8266 to your computer via USB
 - Flash the generated firmware
-- Device automatically connects and starts sending data
+- Device automatically connects and registers in the platform
+- Sensors start sending data immediately
 
-### 4. **Monitor & Manage**
-- View real-time data in the **Dashboard**
-- Set up alerts in **Alert Rules**
-- Manage devices in **Device Management**
-- Analyze trends in **Analytics**
+### 4. **Manage Sensors**
+- Navigate to device detail page from **Dashboard** or **Device Management**
+- Click the ⚙️ gear icon on any sensor card to edit configuration
+- Adjust calibration offset and multiplier for accurate readings
+- Enable/disable sensors as needed
+- Check **"Trigger OTA Update"** to push changes to device automatically
+
+### 5. **Monitor & Analyze**
+- View real-time data in the **Dashboard** with quick stats and recent activity
+- Monitor individual devices in **Device Detail** pages
+- Set up alerts in **Settings → Alert Rules**
+- Configure protocol settings (HTTP/MQTT) per device
+- Check for platform updates in **Settings → Platform Update**
 
 ## 🏗️ Architecture
 
 ### Backend (Node.js + Express)
-- **RESTful API** with JWT authentication
-- **WebSocket Server** for real-time updates
-- **PostgreSQL Database** for persistent storage
-- **Redis Cache** for session management
-- **Firmware Builder API** with JSZip packaging
+- **RESTful API** with JWT authentication and role-based access control
+- **WebSocket Server** for real-time device updates
+- **PostgreSQL Database** for persistent storage with full schema management
+- **Redis Cache** for session management and performance
+- **MQTT Broker Integration** for device communication
+- **Firmware Builder API** with JSZip packaging and configuration generation
+- **OTA Update System** with progress tracking
+- **Telemetry Processor** for sensor data ingestion and rule evaluation
 
 ### Frontend (React + Tailwind CSS)
-- **Single Page Application** with React Router
-- **Real-time Dashboard** with WebSocket integration
-- **Responsive Design** with Tailwind CSS
-- **Interactive Charts** with Recharts
+- **Single Page Application** with React Router v6
+- **Real-time Dashboard** with WebSocket integration and live updates
+- **Responsive Design** with Tailwind CSS utility-first framework
+- **Interactive Charts** for historical data visualization
 - **Web Flashing Interface** with WebSerial API
+- **Multi-Language Support** with i18next (Czech + English)
+- **Optimized Animations** for smooth user experience
+- **React Query** for efficient data fetching and caching
 
 ### Firmware (Arduino/ESP8266)
 - **Multi-sensor Support** with configurable pins
-- **WiFi Auto-connection** with credentials
+- **WiFi Auto-connection** with credentials from firmware builder
 - **JSON API Communication** with the platform
-- **OTA Update Capability** for remote updates
-- **Configurable Thresholds** and sampling rates
+- **MQTT Support** for lightweight communication
+- **OTA Update Capability** for remote firmware updates
+- **Configurable Thresholds** applied during sensor reads
+- **Health Reporting** with memory, WiFi signal, and uptime metrics
 
 ## 📋 System Requirements
 
@@ -196,9 +231,18 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed manual installation instructions
 
 ## 🔄 System Updates & Maintenance
 
-### Automatic Updates
+### Web-Based Updates (Recommended)
 
-The platform includes an easy-to-use update system that pulls the latest changes from GitHub:
+The platform includes a built-in update manager accessible from the web interface:
+
+1. Navigate to **Settings → Platform Update**
+2. System automatically checks for newer commits on GitHub
+3. Shows current commit, remote commit, and number of commits behind
+4. Click **"Update Platform"** to start the update process
+5. Monitor progress in real-time
+6. System restarts automatically after successful update
+
+### Command-Line Updates
 
 **Download and run the update script:**
 ```bash
@@ -213,60 +257,44 @@ curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platfor
 ```
 
 ### Update Process
-The update script automatically:
+The update system automatically:
 - ✅ **Backs up** your current installation
 - ✅ **Stops services** safely (PM2, Nginx)
 - ✅ **Fetches latest code** from GitHub
 - ✅ **Updates dependencies** (npm packages)
+- ✅ **Runs database migrations** if needed
 - ✅ **Rebuilds frontend** with latest changes
 - ✅ **Restarts services** and verifies functionality
-- ✅ **Preserves your data** (database, configuration)
+- ✅ **Preserves your data** (database, configuration, .env files)
+- ✅ **Cleans old backups** (keeps 3 most recent)
 
-### Update Commands
+### Monitoring & Health Checks
 
+**Check system status:**
 ```bash
-# Standard system update
-sudo ./update-system.sh
+# PM2 processes
+sudo -u esp8266app pm2 status
+sudo -u esp8266app pm2 logs --lines 50
 
-# Reset database for first user (development only)
-sudo ./update-system.sh reset-first-user
+# Service status
+sudo systemctl status nginx postgresql redis-server
 
-# Show help and available options
-./update-system.sh --help
+# Disk space and system resources
+df -h
+free -h
+
+# Check platform health
+curl -s http://localhost:3001/api/system/info
 ```
 
-### Manual Update Process
-
-If you prefer manual updates:
-
+**Performance monitoring:**
 ```bash
-# 1. Stop services
-sudo -u esp8266app pm2 stop all
+# Monitor PM2 processes
+sudo -u esp8266app pm2 monit
 
-# 2. Backup current installation
-sudo cp -r /opt/esp8266-platform /opt/esp8266-platform.backup.$(date +%Y%m%d-%H%M%S)
-
-# 3. Update from Git
-cd /opt/esp8266-platform
-sudo -u esp8266app git pull origin main
-
-# 4. Update dependencies
-cd backend && sudo -u esp8266app npm install --production
-cd ../frontend && sudo -u esp8266app npm install && sudo -u esp8266app npm run build
-
-# 5. Restart services
-sudo -u esp8266app pm2 restart all
+# Database performance
+sudo -u postgres psql -d esp8266_platform -c "SELECT * FROM pg_stat_activity;"
 ```
-
-### Development Mode - First User Reset
-
-If you need to reset the system to allow first-user registration again (useful in development):
-
-```bash
-sudo ./update-system.sh reset-first-user
-```
-
-This removes all users from the database, allowing the **Initial Setup** page to appear again.
 
 ### Backup & Restore
 
@@ -289,148 +317,52 @@ sudo -u postgres psql -d esp8266_platform < esp8266-database-YYYYMMDD.sql
 sudo -u esp8266app pm2 restart all
 ```
 
-### Version Management
-
-Check your current version:
-```bash
-cd /opt/esp8266-platform
-git log --oneline -1  # Latest commit
-git tag --list         # Available tags
-```
-
-Update to a specific version:
-```bash
-cd /opt/esp8266-platform
-sudo -u esp8266app git checkout v2.1.0  # Replace with desired version
-sudo ./update-system.sh
-```
-
-### Monitoring & Health Checks
-
-**Check system status:**
-```bash
-# PM2 processes
-sudo -u esp8266app pm2 status
-sudo -u esp8266app pm2 logs --lines 50
-
-# Service status
-sudo systemctl status nginx postgresql redis-server
-
-# Disk space and system resources
-df -h
-free -h
-
-# Check platform health
-curl -s http://localhost:3000/api/health || echo "Backend not responding"
-curl -s http://your-domain.com/ || echo "Frontend not accessible"
-```
-
-**Performance monitoring:**
-```bash
-# Monitor PM2 processes
-sudo -u esp8266app pm2 monit
-
-# Database performance
-sudo -u postgres psql -d esp8266_platform -c "SELECT * FROM pg_stat_activity;"
-
-# Server resources
-top
-htop
-```
-
-### Troubleshooting Updates
-
-**Common issues and solutions:**
-
-1. **Update fails due to local changes:**
-   ```bash
-   cd /opt/esp8266-platform
-   sudo -u esp8266app git stash  # Save local changes
-   sudo ./update-system.sh
-   sudo -u esp8266app git stash pop  # Restore local changes if needed
-   ```
-
-2. **Services won't start after update:**
-   ```bash
-   sudo -u esp8266app pm2 logs  # Check error logs
-   sudo systemctl restart nginx
-   sudo systemctl status postgresql
-   ```
-
-3. **Database migration needed:**
-   ```bash
-   # Check if new migrations exist
-   ls /opt/esp8266-platform/database/migrations/
-   # Run migrations if needed
-   sudo -u esp8266app npm run migrate
-   ```
-
-4. **Frontend build issues:**
-   ```bash
-   cd /opt/esp8266-platform/frontend
-   sudo -u esp8266app rm -rf node_modules package-lock.json
-   sudo -u esp8266app npm install
-   sudo -u esp8266app npm run build
-   ```
-
-### Rollback Process
-
-If an update causes issues, you can rollback:
-
-```bash
-# 1. Stop current services
-sudo -u esp8266app pm2 stop all
-
-# 2. Restore from backup
-sudo rm -rf /opt/esp8266-platform
-sudo tar -xzf /path/to/esp8266-backup-YYYYMMDD.tar.gz -C /
-
-# 3. Restore database if needed
-sudo -u postgres psql -d esp8266_platform < esp8266-database-YYYYMMDD.sql
-
-# 4. Restart services
-sudo -u esp8266app pm2 restart all
-```
-
 ## 🔧 Supported Sensors
 
-| Sensor Type | Part Number | Pin(s) | Description |
-|-------------|-------------|--------|-------------|
-| **Temperature/Humidity** | DHT22/DHT11 | D4 | Climate monitoring |
-| **Motion Detection** | PIR HC-SR501 | D2 | Movement sensing |
-| **Distance Measurement** | HC-SR04 | D5, D6 | Ultrasonic ranging |
-| **Light Level** | LDR/Photodiode | A0 | Ambient light sensing |
-| **Sound Level** | Microphone | A0 | Noise monitoring |
-| **Gas Detection** | MQ-2/MQ-135 | A0 | Air quality/gas leaks |
-| **Door/Window** | Reed Switch | D3 | Open/close detection |
-| **Vibration** | SW-420 | D7 | Impact/movement sensing |
+| Sensor Type | Part Number | Pin(s) | Description | Calibration Support |
+|-------------|-------------|--------|-------------|-------------------|
+| **Temperature/Humidity** | DHT22/DHT11 | D4 | Climate monitoring | ✅ Offset + Multiplier |
+| **Motion Detection** | PIR HC-SR501 | D2 | Movement sensing | - |
+| **Distance Measurement** | HC-SR04 | D5, D6 | Ultrasonic ranging | ✅ Offset + Multiplier |
+| **Light Level** | LDR/Photodiode | A0 | Ambient light sensing | ✅ Offset + Multiplier |
+| **Sound Level** | Microphone | A0 | Noise monitoring | ✅ Offset + Multiplier |
+| **Gas Detection** | MQ-2/MQ-135 | A0 | Air quality/gas leaks | ✅ Offset + Multiplier |
+| **Door/Window** | Reed Switch | D3 | Open/close detection | - |
+| **Vibration** | SW-420 | D7 | Impact/movement sensing | - |
 
 > **Note**: Only one analog sensor (A0) can be used per device. The firmware builder automatically detects conflicts.
+>
+> **Calibration**: Adjust sensor readings in real-time via the web interface. Changes can be pushed to devices via OTA updates.
 
 ## 🔒 Security Features
 
 - ✅ **HTTPS/SSL** with automatic Let's Encrypt certificates
 - ✅ **JWT Authentication** with secure session management
-- ✅ **Input Validation** and SQL injection protection
-- ✅ **Rate Limiting** on API endpoints
+- ✅ **Role-Based Access Control** (Admin, Operator, Viewer)
+- ✅ **Input Validation** and SQL injection protection via express-validator
+- ✅ **Rate Limiting** on API endpoints to prevent abuse
 - ✅ **CORS Configuration** for secure cross-origin requests
 - ✅ **Firewall Rules** (UFW) with minimal open ports
-- ✅ **Password Hashing** with bcrypt
+- ✅ **Password Hashing** with bcrypt (10 rounds)
+- ✅ **Security Event Logging** for audit trails
+- ✅ **Device Authentication** via unique API keys
 
 ## 📊 Performance
 
 ### Scalability
-- **Concurrent Users**: 100+ simultaneous firmware builds
+- **Concurrent Users**: 100+ simultaneous sessions
 - **Device Capacity**: 1000+ ESP8266 devices per instance
 - **Data Throughput**: 10,000+ sensor readings per minute
-- **Database**: PostgreSQL with automatic archiving
+- **Database**: PostgreSQL with indexes on critical queries
+- **Real-time Updates**: WebSocket connections with Redis pub/sub
 
 ### Optimization Features
 - **PM2 Clustering** for Node.js load balancing
 - **Redis Caching** for session and frequently accessed data
-- **Database Indexing** for fast queries
+- **Database Indexing** on devices, sensors, and telemetry tables
+- **Query Optimization** with select functions in React Query
 - **Gzip Compression** for API responses
-- **CDN-Ready** static asset delivery
+- **Efficient Animations** with reduced durations for better UX
 
 ## 🛠️ Development
 
@@ -455,7 +387,32 @@ npm start
 
 # Database setup
 createdb esp8266_platform
-psql -d esp8266_platform -f database/schema.sql
+npm run migrate  # Runs migrations from backend/migrations/
+```
+
+### Project Structure
+
+```
+ESP-Management-Platform/
+├── backend/
+│   ├── src/
+│   │   ├── models/         # Database models and initialization
+│   │   ├── routes/         # API endpoints (auth, devices, telemetry, etc.)
+│   │   ├── middleware/     # Authentication and authorization
+│   │   ├── services/       # Business logic (telemetry, OTA, alerts)
+│   │   └── utils/          # Helpers and utilities
+│   ├── migrations/         # Database migration scripts
+│   └── server.js           # Express app entry point
+├── frontend/
+│   ├── src/
+│   │   ├── pages/          # React page components
+│   │   ├── components/     # Reusable React components
+│   │   ├── services/       # API client and WebSocket
+│   │   └── i18n/           # Translation files (cs, en)
+│   └── public/             # Static assets
+├── database/
+│   └── schema.sql          # Initial database schema
+└── install-ubuntu.sh       # Automated installation script
 ```
 
 ### Contributing
@@ -497,16 +454,25 @@ psql -d esp8266_platform -f database/schema.sql
 
 ## 📈 Roadmap
 
-### Version 2.2 (Next Release)
+### Version 2.2 (Current)
+- [x] **Sensor Management UI** - Edit sensor configuration from web interface
+- [x] **OTA Trigger System** - Automatic firmware updates on configuration changes
+- [x] **Platform Update Manager** - Web-based system updates with Git integration
+- [x] **Czech Translation** - Full localization support
+- [x] **Dashboard Redesign** - Clearer separation from device management
+- [x] **Enhanced Error Handling** - Better API response handling throughout
+
+### Version 2.3 (Next Release)
 - [ ] **Mobile App** (React Native) for device management
 - [ ] **Advanced Analytics** with machine learning predictions
-- [ ] **Multi-tenant Support** for service providers
-- [ ] **Backup/Restore** functionality
+- [ ] **Sensor Rules Editor** - Web-based threshold and alert configuration
+- [ ] **Data Export** to InfluxDB and Grafana
+- [ ] **Backup/Restore** UI for easy data management
 
-### Version 2.3 (Future)
+### Version 2.4 (Future)
+- [ ] **Multi-tenant Support** for service providers
 - [ ] **Edge Computing** with local processing nodes
 - [ ] **Custom Sensor Support** with plugin system
-- [ ] **Data Export** to InfluxDB and Grafana
 - [ ] **Kubernetes Deployment** templates
 
 ## 📞 Support
@@ -518,14 +484,46 @@ psql -d esp8266_platform -f database/schema.sql
 - 💬 **Discussions**: Use GitHub Discussions for questions
 
 ### Troubleshooting
-1. **Check logs**: `sudo -u esp8266app pm2 logs`
-2. **Update system**: `sudo ./update-system.sh` (fixes most issues)
-3. **Reset first user**: `sudo ./update-system.sh reset-first-user` (if login issues)
-4. **Check services**: `sudo systemctl status nginx postgresql redis-server`
-5. **Review documentation**: See [DEPLOYMENT.md](DEPLOYMENT.md)
-6. **Community support**: GitHub Issues and Discussions
+
+**Common Issues:**
+
+1. **Sensors not showing in device detail**
+   - Check browser console for "Sensors API response:" log
+   - Verify sensors were configured during firmware build
+   - Ensure device is online and sending data
+
+2. **Device edit modal not opening**
+   - Clear browser cache and reload
+   - Check browser console for errors
+   - Verify you have operator or admin role
+
+3. **Platform update not working**
+   - Ensure `update-system.sh` script exists in project root
+   - Check that Git can fetch from remote repository
+   - Review PM2 logs: `sudo -u esp8266app pm2 logs`
+
+4. **Login issues after update**
+   - JWT tokens may have changed - log out and log back in
+   - Check backend logs for authentication errors
+   - Verify database migrations ran successfully
+
+**Diagnostic Commands:**
+```bash
+# Check all services
+sudo systemctl status nginx postgresql redis-server
+sudo -u esp8266app pm2 status
+
+# View logs
+sudo -u esp8266app pm2 logs --lines 100
+sudo journalctl -u nginx -n 50
+
+# Database check
+sudo -u postgres psql -d esp8266_platform -c "SELECT COUNT(*) FROM users;"
+sudo -u postgres psql -d esp8266_platform -c "SELECT COUNT(*) FROM devices;"
+```
 
 ### Failed Installation Recovery
+
 If your installation fails or you need to start over:
 
 **Automatic Cleanup (Recommended):**
@@ -536,14 +534,6 @@ sudo ./install-ubuntu.sh
 ```
 
 **Manual Cleanup:**
-```bash
-# Download and run the cleanup script
-wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/cleanup-installation.sh
-chmod +x cleanup-installation.sh
-sudo ./cleanup-installation.sh
-```
-
-**Quick Manual Commands:**
 ```bash
 # Stop services
 sudo systemctl stop nginx postgresql redis-server
@@ -576,6 +566,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🎉 Ready to Get Started?
 
 ### Quick Deploy
+
 **Interactive Installation:**
 ```bash
 wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh

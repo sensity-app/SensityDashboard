@@ -206,12 +206,31 @@ const FirmwareBuilder = () => {
             console.log('Available locations:', locations);
             console.log('Config device_location:', config.device_location);
 
-            // Find location by name or create/use first available location
+            // Find location by name or create new location
             let locationId = null;
-            if (config.device_location && locations.length > 0) {
+            if (config.device_location) {
                 const location = locations.find(loc => loc.name === config.device_location);
-                locationId = location?.id || null;
-                console.log('Found location:', location, 'locationId:', locationId);
+
+                if (location) {
+                    locationId = location.id;
+                    console.log('Found existing location:', location);
+                } else {
+                    // Location doesn't exist, create it
+                    console.log('Location not found, creating new location:', config.device_location);
+                    try {
+                        const newLocation = await apiService.createLocation({
+                            name: config.device_location,
+                            description: `Auto-created from firmware builder for ${config.device_name}`
+                        });
+                        locationId = newLocation.location.id;
+                        console.log('Created new location:', newLocation);
+
+                        // Update locations list to include the new location
+                        setLocations(prev => [...prev, newLocation.location]);
+                    } catch (locationError) {
+                        console.warn('Failed to create location, device will be created without location:', locationError);
+                    }
+                }
             }
 
             // Create device configuration object that matches backend API
@@ -219,12 +238,14 @@ const FirmwareBuilder = () => {
                 id: config.device_id,           // Backend expects 'id', not 'device_id'
                 name: config.device_name,
                 device_type: 'esp8266',
-                location_id: locationId,
                 wifi_ssid: config.wifi_ssid,
                 wifi_password: config.open_wifi ? '' : config.wifi_password,
-                // Note: Backend doesn't handle these extra fields, so removing them
-                // description, api_key, config, status, firmware_version are not part of device creation API
             };
+
+            // Only include location_id if it's valid (backend validator requires it to be an integer if present)
+            if (locationId) {
+                deviceData.location_id = locationId;
+            }
 
             console.log('Device data to be created:', deviceData);
 

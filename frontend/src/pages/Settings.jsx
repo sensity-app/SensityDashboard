@@ -1193,6 +1193,7 @@ function PlatformUpdateTab() {
             enabled: updating,
             refetchInterval: 1000, // Poll every second when updating
             onSuccess: (data) => {
+                console.log('Update progress data:', data);
                 const status = data?.status;
                 if (status && !status.isRunning && updating) {
                     setUpdating(false);
@@ -1227,7 +1228,7 @@ function PlatformUpdateTab() {
     );
 
     const handleUpdate = async () => {
-        if (!updateStatus?.updateAvailable) {
+        if (!updateStatus?.updateScript) {
             toast.error('Update script is not available on this system');
             return;
         }

@@ -110,16 +110,21 @@ function DeviceDetail() {
             toast.success(`Configuration updated by ${data.updatedBy}`);
         };
 
-        websocketService.subscribe('device', id);
-        websocketService.on(`device:${id}:telemetry`, handleTelemetryUpdate);
-        websocketService.on(`device:${id}:updated`, handleDeviceUpdate);
-        websocketService.on(`device:${id}:config_updated`, handleConfigUpdate);
+        // Initialize WebSocket connection only if service is available
+        if (websocketService && typeof websocketService.subscribe === 'function') {
+            websocketService.subscribe('device', id);
+            websocketService.on(`device:${id}:telemetry`, handleTelemetryUpdate);
+            websocketService.on(`device:${id}:updated`, handleDeviceUpdate);
+            websocketService.on(`device:${id}:config_updated`, handleConfigUpdate);
+        }
 
         return () => {
-            websocketService.unsubscribe('device', id);
-            websocketService.off(`device:${id}:telemetry`, handleTelemetryUpdate);
-            websocketService.off(`device:${id}:updated`, handleDeviceUpdate);
-            websocketService.off(`device:${id}:config_updated`, handleConfigUpdate);
+            if (websocketService && typeof websocketService.unsubscribe === 'function') {
+                websocketService.unsubscribe('device', id);
+                websocketService.off(`device:${id}:telemetry`, handleTelemetryUpdate);
+                websocketService.off(`device:${id}:updated`, handleDeviceUpdate);
+                websocketService.off(`device:${id}:config_updated`, handleConfigUpdate);
+            }
         };
     }, [id, queryClient]);
 

@@ -1142,20 +1142,34 @@ router.get('/:id/alerts', authenticateToken, async (req, res) => {
         const deviceId = req.params.id;
         const { limit = 10 } = req.query;
 
-        const result = await db.query(`
-            SELECT a.*, ds.name as sensor_name, st.name as sensor_type
-            FROM alerts a
-            LEFT JOIN device_sensors ds ON a.device_sensor_id = ds.id
-            LEFT JOIN sensor_types st ON ds.sensor_type_id = st.id
-            WHERE a.device_id = $1
-            ORDER BY a.created_at DESC
-            LIMIT $2
-        `, [deviceId, limit]);
+        // Try with joins first, fall back to simple query if tables don't exist
+        let result;
+        try {
+            result = await db.query(`
+                SELECT a.*, ds.name as sensor_name, st.name as sensor_type
+                FROM alerts a
+                LEFT JOIN device_sensors ds ON a.device_sensor_id = ds.id
+                LEFT JOIN sensor_types st ON ds.sensor_type_id = st.id
+                WHERE a.device_id = $1
+                ORDER BY a.created_at DESC
+                LIMIT $2
+            `, [deviceId, limit]);
+        } catch (joinError) {
+            logger.warn('Failed to join sensor tables, trying simple query:', joinError.message);
+            // Fallback: just get alerts without sensor info
+            result = await db.query(`
+                SELECT a.*
+                FROM alerts a
+                WHERE a.device_id = $1
+                ORDER BY a.created_at DESC
+                LIMIT $2
+            `, [deviceId, limit]);
+        }
 
-        res.json({ alerts: result.rows });
+        res.json({ alerts: result.rows || [] });
     } catch (error) {
         logger.error('Get device alerts error:', error);
-        res.status(500).json({ error: 'Failed to fetch device alerts' });
+        res.status(500).json({ error: 'Failed to fetch device alerts', details: error.message });
     }
 });
 
@@ -1165,9 +1179,22 @@ router.get('/:id/stats', authenticateToken, async (req, res) => {
         const deviceId = req.params.id;
         const { range = '24h' } = req.query;
 
-        // Get sensor statistics
+        // Get sensor statistics (handle if method doesn't exist)
+        let sensorStats = [];
         const telemetryProcessor = req.telemetryProcessor;
-        const sensorStats = await telemetryProcessor.getDeviceStats(deviceId, range);
+        if (telemetryProcessor && typeof telemetryProcessor.getDeviceStats === 'function') {
+            try {
+                sensorStats = await telemetryProcessor.getDeviceStats(deviceId, range);
+            } catch (err) {
+                logger.warn('Failed to get sensor stats:', err.message);
+                sensorStats = [];
+            }
+        }
+
+        // Convert range to proper interval
+        const interval = range === '24h' ? '24 hours' :
+                        range === '7d' ? '7 days' :
+                        range === '30d' ? '30 days' : '24 hours';
 
         // Get alert counts
         const alertsResult = await db.query(`
@@ -1177,7 +1204,7 @@ router.get('/:id/stats', authenticateToken, async (req, res) => {
                 COUNT(*) as total_alerts
             FROM alerts
             WHERE device_id = $1
-            AND created_at > NOW() - INTERVAL '${range === '24h' ? '24 hours' : range}'
+            AND created_at > NOW() - INTERVAL '${interval}'
         `, [deviceId]);
 
         const deviceResult = await db.query(`
@@ -1188,14 +1215,14 @@ router.get('/:id/stats', authenticateToken, async (req, res) => {
 
         res.json({
             stats: {
-                sensors: sensorStats,
-                alerts: alertsResult.rows[0],
-                device: deviceResult.rows[0]
+                sensors: sensorStats || [],
+                alerts: alertsResult.rows[0] || { active_alerts: 0, acknowledged_alerts: 0, total_alerts: 0 },
+                device: deviceResult.rows[0] || {}
             }
         });
     } catch (error) {
         logger.error('Get device stats error:', error);
-        res.status(500).json({ error: 'Failed to fetch device statistics' });
+        res.status(500).json({ error: 'Failed to fetch device statistics', details: error.message });
     }
 });
 

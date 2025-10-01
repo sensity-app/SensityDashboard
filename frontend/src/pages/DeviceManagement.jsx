@@ -48,7 +48,9 @@ function DeviceManagement() {
     );
 
     // Query locations for dropdown
-    const { data: locations = [] } = useQuery('locations', apiService.getLocations);
+    const { data: locations = [] } = useQuery('locations', apiService.getLocations, {
+        select: (data) => data.locations || data || []
+    });
 
     // Delete device mutation
     const deleteDeviceMutation = useMutation(

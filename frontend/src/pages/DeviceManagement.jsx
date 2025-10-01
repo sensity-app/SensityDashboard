@@ -314,6 +314,7 @@ function DeviceManagement() {
                                         <th className="text-left">{t('common.status')}</th>
                                         <th className="text-left">{t('devices.deviceType')}</th>
                                         <th className="text-left">{t('devices.location')}</th>
+                                        <th className="text-left">IP Address</th>
                                         <th className="text-left">{t('devices.lastHeartbeat')}</th>
                                         <th className="text-left">{t('devices.firmwareVersion')}</th>
                                         <th className="text-right">{t('common.actions')}</th>
@@ -354,6 +355,11 @@ function DeviceManagement() {
                                                     <MapPin className="w-3 h-3 text-gray-400" />
                                                     <span>{device.location_name || t('common.unknown')}</span>
                                                 </div>
+                                            </td>
+                                            <td>
+                                                <span className="font-mono text-xs text-gray-600">
+                                                    {device.ip_address || '-'}
+                                                </span>
                                             </td>
                                             <td>
                                                 <div className="flex items-center space-x-1 text-sm text-gray-500">
@@ -484,12 +490,22 @@ function DeviceFormModal({ device, locations, onClose }) {
         };
 
         if (isEditing) {
+            // For update, only send the fields that can be updated
+            const updateData = {
+                name: deviceData.name,
+                location_id: deviceData.location_id
+            };
             updateDeviceMutation.mutate({
                 deviceId: device.id,
-                deviceData
+                deviceData: updateData
             });
         } else {
-            createDeviceMutation.mutate(deviceData);
+            // For create, need to generate a unique device ID
+            const createData = {
+                ...deviceData,
+                id: `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            };
+            createDeviceMutation.mutate(createData);
         }
     };
 

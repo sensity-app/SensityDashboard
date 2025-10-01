@@ -1,3 +1,6 @@
+// Load environment variables
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+
 const db = require('../src/models/database');
 const logger = require('../src/utils/logger');
 

@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { apiService } from '../services/api';
 
 function InitialSetup({ onSetupComplete }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [formData, setFormData] = useState({
         email: '',
         fullName: '',
@@ -39,7 +39,11 @@ function InitialSetup({ onSetupComplete }) {
         setLoading(true);
 
         try {
-            const response = await apiService.initialSetup(formData);
+            const { confirmPassword, ...payload } = formData;
+            const response = await apiService.initialSetup({
+                ...payload,
+                preferredLanguage: i18n.language
+            });
             toast.success(t('setup.setupComplete', 'Initial setup completed successfully!'));
             onSetupComplete(response.user, response.token);
         } catch (error) {

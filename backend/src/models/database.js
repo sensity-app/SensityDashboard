@@ -142,6 +142,7 @@ const createTables = async () => {
             notification_email BOOLEAN DEFAULT true,
             notification_sms BOOLEAN DEFAULT false,
             notification_push BOOLEAN DEFAULT true,
+            preferred_language VARCHAR(5) DEFAULT 'en',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -159,6 +160,8 @@ const createTables = async () => {
             invited_by INTEGER REFERENCES users(id),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5) DEFAULT 'en';
 
         -- Locations table
         CREATE TABLE IF NOT EXISTS locations (
@@ -640,9 +643,9 @@ const createDefaultUser = async () => {
             const passwordHash = await bcrypt.hash(defaultPassword, 12);
 
             await query(`
-                INSERT INTO users (email, password_hash, role)
-                VALUES ($1, $2, $3)
-            `, ['admin@example.com', passwordHash, 'admin']);
+                INSERT INTO users (email, password_hash, role, preferred_language)
+                VALUES ($1, $2, $3, $4)
+            `, ['admin@example.com', passwordHash, 'admin', process.env.DEFAULT_ADMIN_LANGUAGE || 'en']);
 
             logger.warn('Default admin user created:', {
                 email: 'admin@example.com',

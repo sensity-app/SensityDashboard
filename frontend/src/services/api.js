@@ -67,6 +67,8 @@ export const apiService = {
 
     // User profile
     getCurrentUser: () => apiClient.get('/auth/me'),
+    updatePreferredLanguage: (preferredLanguage) =>
+        apiClient.put('/auth/profile', { preferred_language: preferredLanguage }),
 
     // Devices
     getDevices: () => apiClient.get('/devices'),

@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { apiService } from '../services/api';
 
 function Register() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const token = searchParams.get('token');
@@ -74,9 +74,11 @@ function Register() {
         setLoading(true);
 
         try {
+            const { confirmPassword, ...payload } = formData;
             await apiService.register({
-                ...formData,
-                inviteToken: token
+                ...payload,
+                inviteToken: token,
+                preferredLanguage: i18n.language
             });
 
             toast.success(t('auth.registrationSuccess', 'Account created successfully! You can now log in.'));

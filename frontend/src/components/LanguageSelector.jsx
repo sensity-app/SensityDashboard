@@ -17,14 +17,22 @@ const languages = [
   }
 ];
 
-function LanguageSelector({ showLabel = true, compact = false }) {
+function LanguageSelector({ showLabel = true, compact = false, onLanguageChange }) {
   const { i18n, t } = useTranslation();
   const [isOpen, setIsOpen] = React.useState(false);
 
   const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
 
-  const changeLanguage = (languageCode) => {
-    i18n.changeLanguage(languageCode);
+  const changeLanguage = async (languageCode) => {
+    if (languageCode === i18n.language) {
+      setIsOpen(false);
+      return;
+    }
+
+    await i18n.changeLanguage(languageCode);
+    if (onLanguageChange) {
+      await onLanguageChange(languageCode);
+    }
     setIsOpen(false);
   };
 
@@ -34,7 +42,7 @@ function LanguageSelector({ showLabel = true, compact = false }) {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="btn-ghost p-2 flex items-center space-x-2 rounded-lg"
-          title="Change Language"
+          title={t('navigation.language', 'Change language')}
         >
           <Globe className="h-4 w-4" />
           <span className="text-lg">{currentLanguage.flag}</span>
@@ -77,7 +85,7 @@ function LanguageSelector({ showLabel = true, compact = false }) {
     <div className="relative">
       {showLabel && (
         <label className="form-label">
-          Language
+          {t('navigation.language', 'Language')}
         </label>
       )}
 

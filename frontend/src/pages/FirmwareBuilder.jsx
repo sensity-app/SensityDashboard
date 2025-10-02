@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Download,
     Cpu,
@@ -28,8 +28,23 @@ import {
 } from 'lucide-react';
 import WebFlasher from '../components/WebFlasher';
 import { apiService } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const FirmwareBuilder = () => {
+    const { t } = useTranslation();
+    const copy = useMemo(() => {
+        const result = t('firmwareBuilder', { returnObjects: true });
+        return typeof result === 'string' ? {} : result;
+    }, [t]);
+
+    const getCopy = (path, fallback) => {
+        return path.split('.').reduce((acc, key) => {
+            if (acc && typeof acc === 'object' && key in acc) {
+                return acc[key];
+            }
+            return undefined;
+        }, copy) ?? fallback;
+    };
     const [sensorOptions, setSensorOptions] = useState({});
     const [pinMapping, setPinMapping] = useState({});
     const [availablePins, setAvailablePins] = useState({ digital: [], analog: [] });
@@ -328,12 +343,12 @@ const FirmwareBuilder = () => {
 
     const [currentStep, setCurrentStep] = useState(0);
 
-    const steps = [
-        { id: 'device', title: 'Device Setup', icon: Smartphone, description: 'Configure device identity and location' },
-        { id: 'network', title: 'Network Config', icon: Wifi, description: 'Set up WiFi and server connection' },
-        { id: 'sensors', title: 'Sensor Selection', icon: Activity, description: 'Choose and configure sensors' },
-        { id: 'review', title: 'Review & Build', icon: BarChart3, description: 'Review configuration and build firmware' }
-    ];
+    const steps = useMemo(() => ([
+        { id: 'device', title: getCopy('steps.device.title', 'Device Setup'), icon: Smartphone, description: getCopy('steps.device.description', 'Configure device identity and location') },
+        { id: 'network', title: getCopy('steps.network.title', 'Network Config'), icon: Wifi, description: getCopy('steps.network.description', 'Set up Wi-Fi and server connection') },
+        { id: 'sensors', title: getCopy('steps.sensors.title', 'Sensor Selection'), icon: Activity, description: getCopy('steps.sensors.description', 'Choose and configure sensors') },
+        { id: 'review', title: getCopy('steps.review.title', 'Review & Build'), icon: BarChart3, description: getCopy('steps.review.description', 'Review configuration and build firmware') }
+    ]), [copy]);
 
     const enabledSensorsCount = config.sensors.length;
 
@@ -399,9 +414,9 @@ const FirmwareBuilder = () => {
                                 <Cpu className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-900">Custom Firmware Builder</h1>
+                                <h1 className="text-3xl font-bold text-gray-900">{getCopy('header.title', 'Custom Firmware Builder')}</h1>
                                 <p className="text-gray-600 mt-1">
-                                    Configure your ESP8266 device step by step and generate custom firmware
+                                    {getCopy('header.subtitle', 'Configure your ESP8266 device step by step and generate custom firmware')}
                                 </p>
                             </div>
                         </div>
@@ -466,28 +481,28 @@ const FirmwareBuilder = () => {
                             <div className="card-header">
                                 <h2 className="card-title">
                                     <Smartphone className="w-6 h-6 text-primary" />
-                                    <span>Device Setup</span>
+                                    <span>{getCopy('sections.device.title', 'Device Setup')}</span>
                                 </h2>
                             </div>
                             <div className="space-y-6">
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <div className="form-group">
                                         <label className="form-label">
-                                            Device Name *
+                                            {getCopy('sections.device.fields.name.label', 'Device Name *')}
                                         </label>
                                         <input
                                             type="text"
                                             value={config.device_name}
                                             onChange={(e) => handleConfigChange('device_name', e.target.value)}
                                             className="input-field"
-                                            placeholder="e.g., Kitchen Sensor Hub"
+                                            placeholder={getCopy('sections.device.fields.name.placeholder', 'e.g., Kitchen Sensor Hub')}
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">Choose a descriptive name for easy identification</p>
+                                        <p className="text-xs text-gray-500 mt-1">{getCopy('sections.device.fields.name.helper', 'Choose a descriptive name for easy identification')}</p>
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label">
                                             <MapPin className="w-4 h-4 inline mr-1" />
-                                            Location
+                                            {getCopy('sections.device.fields.location.label', 'Location')}
                                         </label>
                                         <div className="relative">
                                             <input
@@ -495,7 +510,7 @@ const FirmwareBuilder = () => {
                                                 value={config.device_location}
                                                 onChange={(e) => handleConfigChange('device_location', e.target.value)}
                                                 className="input-field"
-                                                placeholder="Enter or select location..."
+                                                placeholder={getCopy('sections.device.fields.location.placeholder', 'Enter or select location...')}
                                                 list="locations-list"
                                             />
                                             <datalist id="locations-list">
@@ -505,7 +520,7 @@ const FirmwareBuilder = () => {
                                             </datalist>
                                         </div>
                                         <p className="text-xs text-gray-500 mt-1">
-                                            Choose from existing locations or type a new one
+                                            {getCopy('sections.device.fields.location.helper', 'Choose from existing locations or type a new one')}
                                         </p>
                                     </div>
                                 </div>
@@ -513,11 +528,11 @@ const FirmwareBuilder = () => {
                                 <div className="glass p-4 rounded-lg">
                                     <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
                                         <Key className="w-4 h-4 mr-2" />
-                                        Auto-Generated Identifiers
+                                        {getCopy('sections.device.auto.title', 'Auto-generated identifiers')}
                                     </h3>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                         <div className="form-group">
-                                            <label className="form-label">Device ID</label>
+                                            <label className="form-label">{getCopy('sections.device.auto.deviceId.label', 'Device ID')}</label>
                                             <div className="flex items-center space-x-2">
                                                 <input
                                                     type="text"
@@ -530,12 +545,12 @@ const FirmwareBuilder = () => {
                                                     onClick={regenerateDeviceId}
                                                     className="btn-secondary px-3 py-2 text-xs"
                                                 >
-                                                    Regenerate
+                                                    {getCopy('sections.device.auto.deviceId.regenerate', 'Regenerate')}
                                                 </button>
                                             </div>
                                         </div>
                                         <div className="form-group">
-                                            <label className="form-label">API Key</label>
+                                            <label className="form-label">{getCopy('sections.device.auto.apiKey.label', 'API Key')}</label>
                                             <div className="flex items-center space-x-2">
                                                 <input
                                                     type="text"
@@ -548,7 +563,7 @@ const FirmwareBuilder = () => {
                                                     onClick={regenerateApiKey}
                                                     className="btn-secondary px-3 py-2 text-xs"
                                                 >
-                                                    Regenerate
+                                                    {getCopy('sections.device.auto.apiKey.regenerate', 'Regenerate')}
                                                 </button>
                                             </div>
                                         </div>
@@ -563,7 +578,7 @@ const FirmwareBuilder = () => {
                                     disabled={!config.device_name || !config.device_location}
                                     className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <span>Next: Network Config</span>
+                                    <span>{getCopy('navigation.nextNetwork', 'Next: Network Config')}</span>
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
                             </div>

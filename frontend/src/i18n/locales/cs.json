@@ -80,7 +80,8 @@
     "telemetry": "Telemetrie",
     "users": "Uživatelé",
     "settings": "Nastavení",
-    "help": "Nápověda"
+    "help": "Nápověda",
+    "language": "Jazyk"
   },
   "silentMode": {
     "title": "Tichý režim upozornění",
@@ -160,6 +161,61 @@
       "medium": "střední",
       "high": "vysoká",
       "critical": "kritická"
+    }
+  },
+  "firmwareBuilder": {
+    "header": {
+      "title": "Stavitel vlastního firmwaru",
+      "subtitle": "Nakonfigurujte zařízení ESP8266 krok za krokem a vytvořte vlastní firmware"
+    },
+    "steps": {
+      "device": {
+        "title": "Nastavení zařízení",
+        "description": "Nastavte identitu a umístění zařízení"
+      },
+      "network": {
+        "title": "Síťová konfigurace",
+        "description": "Nastavte Wi-Fi připojení a adresu serveru"
+      },
+      "sensors": {
+        "title": "Výběr senzorů",
+        "description": "Vyberte a nakonfigurujte připojené senzory"
+      },
+      "review": {
+        "title": "Kontrola a sestavení",
+        "description": "Zkontrolujte nastavení a sestavte firmware"
+      }
+    },
+    "navigation": {
+      "nextNetwork": "Pokračovat: Síťová konfigurace"
+    },
+    "sections": {
+      "device": {
+        "title": "Nastavení zařízení",
+        "fields": {
+          "name": {
+            "label": "Název zařízení *",
+            "placeholder": "např. Senzorická stanice v kuchyni",
+            "helper": "Zadejte popisný název pro snadnou identifikaci"
+          },
+          "location": {
+            "label": "Umístění",
+            "placeholder": "Zadejte nebo vyberte umístění...",
+            "helper": "Vyberte z existujících umístění nebo napište nové"
+          }
+        },
+        "auto": {
+          "title": "Automaticky generované identifikátory",
+          "deviceId": {
+            "label": "ID zařízení",
+            "regenerate": "Znovu vygenerovat"
+          },
+          "apiKey": {
+            "label": "API klíč",
+            "regenerate": "Znovu vygenerovat"
+          }
+        }
+      }
     }
   },
   "auth": {
@@ -537,6 +593,7 @@
     "settingsSaved": "Nastavení byla úspěšně uložena",
     "settingsReset": "Nastavení byla úspěšně obnovena",
     "languageChanged": "Jazyk byl úspěšně změněn",
+    "languageUpdateFailed": "Nepodařilo se aktualizovat jazykové nastavení",
     "tabs": {
       "system": "Systém",
       "branding": "Brandování",

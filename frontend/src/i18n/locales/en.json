@@ -79,7 +79,8 @@
     "telemetry": "Telemetry",
     "users": "Users",
     "settings": "Settings",
-    "help": "Help"
+    "help": "Help",
+    "language": "Language"
   },
   "silentMode": {
     "title": "Silent mode schedules",
@@ -159,6 +160,61 @@
       "medium": "medium",
       "high": "high",
       "critical": "critical"
+    }
+  },
+  "firmwareBuilder": {
+    "header": {
+      "title": "Custom Firmware Builder",
+      "subtitle": "Configure your ESP8266 device step by step and generate custom firmware"
+    },
+    "steps": {
+      "device": {
+        "title": "Device Setup",
+        "description": "Configure device identity and location"
+      },
+      "network": {
+        "title": "Network Config",
+        "description": "Set up Wi-Fi and server connection"
+      },
+      "sensors": {
+        "title": "Sensor Selection",
+        "description": "Choose and configure sensors"
+      },
+      "review": {
+        "title": "Review & Build",
+        "description": "Review configuration and build firmware"
+      }
+    },
+    "navigation": {
+      "nextNetwork": "Next: Network Config"
+    },
+    "sections": {
+      "device": {
+        "title": "Device Setup",
+        "fields": {
+          "name": {
+            "label": "Device Name *",
+            "placeholder": "e.g., Kitchen Sensor Hub",
+            "helper": "Choose a descriptive name for easy identification"
+          },
+          "location": {
+            "label": "Location",
+            "placeholder": "Enter or select location...",
+            "helper": "Choose from existing locations or type a new one"
+          }
+        },
+        "auto": {
+          "title": "Auto-generated identifiers",
+          "deviceId": {
+            "label": "Device ID",
+            "regenerate": "Regenerate"
+          },
+          "apiKey": {
+            "label": "API Key",
+            "regenerate": "Regenerate"
+          }
+        }
+      }
     }
   },
   "auth": {
@@ -467,7 +523,8 @@
     "securitySettings": "Security Settings",
     "settingsSaved": "Settings saved successfully",
     "settingsReset": "Settings reset successfully",
-    "languageChanged": "Language changed successfully"
+    "languageChanged": "Language changed successfully",
+    "languageUpdateFailed": "Failed to update language preference"
   },
   "errors": {
     "networkError": "Network error occurred",

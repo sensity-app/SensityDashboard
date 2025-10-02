@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react';
 
@@ -56,7 +57,7 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-    const { i18n } = useTranslation();
+    const { i18n, t } = useTranslation();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [needsSetup, setNeedsSetup] = useState(false);
@@ -98,6 +99,9 @@ function App() {
         localStorage.setItem('token', token);
         apiService.setAuthToken(token);
         setUser(userData);
+        if (userData?.preferred_language) {
+            i18n.changeLanguage(userData.preferred_language);
+        }
     };
 
     const handleLogout = () => {
@@ -110,6 +114,25 @@ function App() {
         setNeedsSetup(false);
         setHasUsers(true);
         handleLogin(userData, token);
+    };
+
+    useEffect(() => {
+        if (user?.preferred_language && i18n.language !== user.preferred_language) {
+            i18n.changeLanguage(user.preferred_language);
+        }
+    }, [user?.preferred_language, i18n]);
+
+    const handleUserLanguageChange = async (languageCode) => {
+        const previousLanguage = user?.preferred_language || i18n.language;
+        try {
+            await apiService.updatePreferredLanguage(languageCode);
+            setUser((prev) => prev ? ({ ...prev, preferred_language: languageCode }) : prev);
+            toast.success(t('settings.languageChanged', 'Language changed successfully'));
+        } catch (error) {
+            const message = error.response?.data?.error || t('settings.languageUpdateFailed', 'Failed to update language');
+            toast.error(message);
+            i18n.changeLanguage(previousLanguage);
+        }
     };
 
     if (loading) {
@@ -143,7 +166,7 @@ function App() {
                 <Router>
                     <div className="min-h-screen bg-gray-50">
                         {user ? (
-                            <AuthenticatedApp user={user} onLogout={handleLogout} />
+                            <AuthenticatedApp user={user} onLogout={handleLogout} onLanguageChange={handleUserLanguageChange} />
                         ) : (
                             <UnauthenticatedApp onLogin={handleLogin} />
                         )}
@@ -155,8 +178,8 @@ function App() {
     );
 }
 
-function AuthenticatedApp({ user, onLogout }) {
-    const { t } = useTranslation();
+function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const currentPath = location.pathname;
@@ -169,6 +192,15 @@ function AuthenticatedApp({ user, onLogout }) {
         }
     });
     const [isHeaderMinimal, setIsHeaderMinimal] = useState(false);
+
+    const handleLanguageChange = async (languageCode) => {
+        if (languageCode === (user?.preferred_language || i18n.language)) {
+            return;
+        }
+        if (onLanguageChange) {
+            await onLanguageChange(languageCode);
+        }
+    };
 
     // Load app settings on mount
     useEffect(() => {
@@ -330,7 +362,7 @@ function AuthenticatedApp({ user, onLogout }) {
                             <div className={`transition-all duration-300 ${
                                 isHeaderMinimal ? 'scale-90' : 'scale-100'
                             }`}>
-                                <LanguageSelector compact={true} />
+                                <LanguageSelector compact={true} onLanguageChange={handleLanguageChange} />
                             </div>
                             {!isHeaderMinimal && (
                                 <span className="badge badge-primary text-xs">

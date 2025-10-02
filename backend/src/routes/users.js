@@ -29,7 +29,7 @@ router.get('/', authenticateToken, requireAdmin, [
         let query = `
             SELECT
                 id, email, role, phone, full_name, notification_email, notification_sms,
-                notification_push, created_at, updated_at
+                notification_push, preferred_language, created_at, updated_at
             FROM users
         `;
 
@@ -89,7 +89,7 @@ router.get('/:id', [
         const result = await db.query(`
             SELECT
                 id, email, role, phone, full_name, notification_email, notification_sms,
-                notification_push, created_at, updated_at
+                notification_push, preferred_language, created_at, updated_at
             FROM users
             WHERE id = $1
         `, [id]);
@@ -113,7 +113,8 @@ router.post('/', [
     body('phone').optional().isMobilePhone(),
     body('notification_email').optional().isBoolean(),
     body('notification_sms').optional().isBoolean(),
-    body('notification_push').optional().isBoolean()
+    body('notification_push').optional().isBoolean(),
+    body('preferred_language').optional().isIn(['en', 'cs'])
 ], authenticateToken, requireAdmin, async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -130,6 +131,7 @@ router.post('/', [
             notification_sms = false,
             notification_push = true
         } = req.body;
+        const preferred_language = req.body.preferred_language || req.body.preferredLanguage || 'en';
 
         // Check if user already exists
         const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -144,11 +146,11 @@ router.post('/', [
         const result = await db.query(`
             INSERT INTO users (
                 email, password_hash, role, phone, notification_email,
-                notification_sms, notification_push
+                notification_sms, notification_push, preferred_language
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id, email, role, phone, notification_email, notification_sms, notification_push, created_at
-        `, [email, passwordHash, role, phone, notification_email, notification_sms, notification_push]);
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id, email, role, phone, notification_email, notification_sms, notification_push, preferred_language, created_at
+        `, [email, passwordHash, role, phone, notification_email, notification_sms, notification_push, preferred_language]);
 
         const user = result.rows[0];
         logger.info(`User created: ${email} with role: ${role} by ${req.user.email}`);
@@ -171,7 +173,8 @@ router.put('/:id', [
     body('phone').optional().isMobilePhone(),
     body('notification_email').optional().isBoolean(),
     body('notification_sms').optional().isBoolean(),
-    body('notification_push').optional().isBoolean()
+    body('notification_push').optional().isBoolean(),
+    body('preferred_language').optional().isIn(['en', 'cs'])
 ], authenticateToken, async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -181,6 +184,7 @@ router.put('/:id', [
 
         const { id } = req.params;
         const { email, role, phone, notification_email, notification_sms, notification_push } = req.body;
+        const preferred_language = req.body.preferred_language || req.body.preferredLanguage;
 
         // Users can only update their own profile unless they're admin
         if (req.user.role !== 'admin' && req.user.userId !== parseInt(id)) {
@@ -211,10 +215,11 @@ router.put('/:id', [
                 notification_email = COALESCE($4, notification_email),
                 notification_sms = COALESCE($5, notification_sms),
                 notification_push = COALESCE($6, notification_push),
+                preferred_language = COALESCE($7, preferred_language),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $7
-            RETURNING id, email, role, phone, notification_email, notification_sms, notification_push, updated_at
-        `, [email, role, phone, notification_email, notification_sms, notification_push, id]);
+            WHERE id = $8
+            RETURNING id, email, role, phone, notification_email, notification_sms, notification_push, preferred_language, updated_at
+        `, [email, role, phone, notification_email, notification_sms, notification_push, preferred_language, id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'User not found' });

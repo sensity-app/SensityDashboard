@@ -31,7 +31,8 @@ router.get('/setup-check', async (req, res) => {
 router.post('/initial-setup', [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 }),
-    body('fullName').notEmpty().trim()
+    body('fullName').notEmpty().trim(),
+    body('preferredLanguage').optional().isIn(['en', 'cs'])
 ], async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -46,6 +47,7 @@ router.post('/initial-setup', [
         }
 
         const { email, password, fullName, phone } = req.body;
+        const preferredLanguage = req.body.preferred_language || req.body.preferredLanguage || 'en';
 
         // Hash password
         const saltRounds = 12;
@@ -53,10 +55,10 @@ router.post('/initial-setup', [
 
         // Create first admin user
         const result = await db.query(
-            `INSERT INTO users (email, password_hash, role, phone, full_name)
-             VALUES ($1, $2, 'admin', $3, $4)
-             RETURNING id, email, role, full_name, created_at`,
-            [email, passwordHash, phone, fullName]
+            `INSERT INTO users (email, password_hash, role, phone, full_name, preferred_language)
+             VALUES ($1, $2, 'admin', $3, $4, $5)
+             RETURNING id, email, role, full_name, preferred_language, created_at`,
+            [email, passwordHash, phone, fullName, preferredLanguage]
         );
 
         const user = result.rows[0];
@@ -81,6 +83,8 @@ router.post('/initial-setup', [
                 email: user.email,
                 role: user.role,
                 fullName: user.full_name,
+                full_name: user.full_name,
+                preferred_language: user.preferred_language,
                 created_at: user.created_at
             }
         });
@@ -95,7 +99,8 @@ router.post('/register', [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 }),
     body('fullName').notEmpty().trim(),
-    body('inviteToken').notEmpty()
+    body('inviteToken').notEmpty(),
+    body('preferredLanguage').optional().isIn(['en', 'cs'])
 ], async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -104,6 +109,7 @@ router.post('/register', [
         }
 
         const { email, password, fullName, inviteToken, phone } = req.body;
+        const preferredLanguage = req.body.preferred_language || req.body.preferredLanguage || 'en';
 
         // Verify invite token
         const inviteResult = await db.query(
@@ -151,10 +157,10 @@ router.post('/register', [
 
             // Create user
             const userResult = await client.query(
-                `INSERT INTO users (email, password_hash, role, phone, full_name)
-                 VALUES ($1, $2, $3, $4, $5)
-                 RETURNING id, email, role, full_name, created_at`,
-                [email, passwordHash, invitation.role, phone, fullName]
+                `INSERT INTO users (email, password_hash, role, phone, full_name, preferred_language)
+                 VALUES ($1, $2, $3, $4, $5, $6)
+                 RETURNING id, email, role, full_name, preferred_language, created_at`,
+                [email, passwordHash, invitation.role, phone, fullName, preferredLanguage]
             );
 
             // Mark invitation as used
@@ -177,6 +183,8 @@ router.post('/register', [
                     email: user.email,
                     role: user.role,
                     fullName: user.full_name,
+                    full_name: user.full_name,
+                    preferred_language: user.preferred_language,
                     created_at: user.created_at
                 }
             });
@@ -207,7 +215,7 @@ router.post('/login', [
 
         // Find user
         const result = await db.query(
-            'SELECT id, email, password_hash, role FROM users WHERE email = $1',
+            'SELECT id, email, password_hash, role, full_name, preferred_language FROM users WHERE email = $1',
             [email]
         );
 
@@ -242,7 +250,10 @@ router.post('/login', [
             user: {
                 id: user.id,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                fullName: user.full_name,
+                full_name: user.full_name,
+                preferred_language: user.preferred_language
             }
         });
     } catch (error) {
@@ -256,7 +267,7 @@ router.get('/me', authenticateToken, async (req, res) => {
     try {
         const result = await db.query(
             `SELECT id, email, role, phone, notification_email, notification_sms,
-                    notification_push, created_at
+                    notification_push, preferred_language, full_name, created_at
              FROM users WHERE id = $1`,
             [req.user.id]
         );
@@ -277,7 +288,8 @@ router.put('/profile', authenticateToken, [
     body('phone').optional().isMobilePhone(),
     body('notification_email').optional().isBoolean(),
     body('notification_sms').optional().isBoolean(),
-    body('notification_push').optional().isBoolean()
+    body('notification_push').optional().isBoolean(),
+    body('preferred_language').optional().isIn(['en', 'cs'])
 ], async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -286,6 +298,7 @@ router.put('/profile', authenticateToken, [
         }
 
         const { phone, notification_email, notification_sms, notification_push } = req.body;
+        const preferredLanguage = req.body.preferred_language || req.body.preferredLanguage;
 
         const result = await db.query(
             `UPDATE users
@@ -293,10 +306,11 @@ router.put('/profile', authenticateToken, [
                  notification_email = COALESCE($2, notification_email),
                  notification_sms = COALESCE($3, notification_sms),
                  notification_push = COALESCE($4, notification_push),
+                 preferred_language = COALESCE($5, preferred_language),
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $5
-             RETURNING id, email, role, phone, notification_email, notification_sms, notification_push`,
-            [phone, notification_email, notification_sms, notification_push, req.user.userId]
+             WHERE id = $6
+             RETURNING id, email, role, phone, notification_email, notification_sms, notification_push, preferred_language`,
+            [phone, notification_email, notification_sms, notification_push, preferredLanguage, req.user.userId]
         );
 
         if (result.rows.length === 0) {

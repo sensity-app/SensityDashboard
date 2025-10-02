@@ -161,8 +161,6 @@ const createTables = async () => {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5) DEFAULT 'en';
-
         -- Locations table
         CREATE TABLE IF NOT EXISTS locations (
             id SERIAL PRIMARY KEY,
@@ -529,6 +527,13 @@ const createTables = async () => {
     `;
 
     await query(createTablesSQL);
+
+    // Ensure language preference column exists even if schema migrations fail later
+    try {
+        await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5) DEFAULT 'en'`);
+    } catch (error) {
+        logger.warn('Unable to ensure preferred_language column on users table:', error.message);
+    }
 
     // Insert default sensor types if they don't exist
     const sensorTypeCheck = await query('SELECT COUNT(*) as count FROM sensor_types');

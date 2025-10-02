@@ -527,6 +527,7 @@
   },
   "users": {
     "title": "Uživatelé",
+    "subtitle": "Spravujte uživatele a oprávnění systému",
     "userList": "Seznam uživatelů",
     "addUser": "Přidat uživatele",
     "editUser": "Upravit uživatele",
@@ -655,8 +656,10 @@
     },
     "platformUpdate": {
       "title": "Aktualizace platformy",
+      "currentVersion": "Aktuální verze",
       "updateAvailable": "Aktualizace k dispozici",
       "upToDate": "Systém je aktuální",
+      "runningLatest": "Běží nejnovější verze",
       "newCommits": "nový commit",
       "newCommitsPlural": "nové commity",
       "current": "Aktuální",
@@ -673,7 +676,14 @@
       "noCriticalOps": "Ujistěte se, že neběží žádné kritické operace",
       "updatePlatform": "Aktualizovat platformu",
       "updating": "Aktualizace...",
-      "commit": "Commit"
+      "commit": "Commit",
+      "branch": "Větev",
+      "author": "Autor",
+      "date": "Datum",
+      "toEnable": "Pro povolení aktualizací platformy:",
+      "createScript": "Vytvořte skript update-system",
+      "makeExecutable": "Učiňte jej spustitelným a umístěte do systémové PATH",
+      "orCreateLocal": "Nebo vytvořte update-system.sh v adresáři projektu"
     }
   },
   "errors": {
@@ -719,11 +729,14 @@
     "confidenceScore": "Jistota",
     "noRecommendations": "Žádná doporučení nejsou k dispozici",
     "loadError": "Nepodařilo se načíst analytická data",
-    "noData": "Pro vybrané období nejsou k dispozici žádná data"
+    "noData": "Pro vybrané období nejsou k dispozici žádná data",
+    "notEnoughData": "Pro analytiku není dostatek historických dat. Je zapotřebí alespoň 50 datových bodů na senzor."
   },
   "deviceGroups": {
     "title": "Správce skupin zařízení",
     "subtitle": "Organizujte a spravujte skupiny zařízení",
+    "allGroups": "Všechny skupiny",
+    "createFirst": "Vytvořte svou první skupinu zařízení pro organizaci vašich zařízení.",
     "addGroup": "Přidat skupinu",
     "editGroup": "Upravit skupinu",
     "groupName": "Název skupiny",

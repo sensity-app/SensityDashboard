@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -30,6 +30,21 @@ import { apiService } from '../services/api';
 function Settings() {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
+
+    const updateCopy = useMemo(() => {
+        const result = t('settings.update', { returnObjects: true });
+        return typeof result === 'string' ? {} : result;
+    }, [t]);
+
+    const getUpdate = (path, fallback) => {
+        const value = path.split('.').reduce((acc, key) => {
+            if (acc && typeof acc === 'object' && key in acc) {
+                return acc[key];
+            }
+            return undefined;
+        }, updateCopy);
+        return value ?? fallback;
+    };
 
     const [activeTab, setActiveTab] = useState('system');
     const [backupLoading, setBackupLoading] = useState(false);
@@ -1198,9 +1213,9 @@ function PlatformUpdateTab() {
                 if (status && !status.isRunning && updating) {
                     setUpdating(false);
                     if (status.error) {
-                        toast.error(`Update failed: ${status.error}`);
+                        toast.error(`${getUpdate('messages.failed', 'Update failed')}: ${status.error}`);
                     } else {
-                        toast.success('Platform update completed successfully!');
+                        toast.success(getUpdate('messages.complete', 'Platform update completed successfully!'));
                         refetchVersion();
                     }
                 }
@@ -1216,11 +1231,11 @@ function PlatformUpdateTab() {
         apiService.updatePlatform,
         {
             onSuccess: () => {
-                toast.success('Platform update started! Monitor progress below.');
+                toast.success(getUpdate('messages.started', 'Platform update started! Monitor progress below.'));
                 setUpdating(true);
             },
             onError: (error) => {
-                const message = error.response?.data?.error || 'Failed to start platform update';
+                const message = error.response?.data?.error || getUpdate('messages.startError', 'Failed to start platform update');
                 toast.error(message);
                 setUpdating(false);
             }
@@ -1229,12 +1244,12 @@ function PlatformUpdateTab() {
 
     const handleUpdate = async () => {
         if (!updateStatus?.updateScript) {
-            toast.error('Update script is not available on this system');
+            toast.error(getUpdate('messages.scriptMissing', 'Update script is not available on this system'));
             return;
         }
 
         const confirmed = window.confirm(
-            'Are you sure you want to update the platform? This will restart the system and may take several minutes. Make sure no critical operations are running.'
+            getUpdate('messages.confirm', 'Are you sure you want to update the platform? This will restart the system and may take several minutes. Make sure no critical operations are running.')
         );
 
         if (confirmed) {

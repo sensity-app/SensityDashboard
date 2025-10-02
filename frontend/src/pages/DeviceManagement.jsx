@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
     Plus,
     Edit3,
+    Edit2,
     Trash2,
     Wifi,
     WifiOff,
@@ -729,40 +730,57 @@ function SensorManagementModal({ device, onClose }) {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="card-header">
-                    <h2 className="card-title">
-                        <Cpu className="w-5 h-5 text-purple-600" />
-                        <span>{t('devices.manageSensors', 'Manage Sensors')}: {device.name}</span>
-                    </h2>
-                    <button onClick={onClose} className="btn-ghost p-2">
-                        <X className="w-5 h-5" />
-                    </button>
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Modern Header */}
+                <div className="card animate-fade-in m-6 mb-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                                <Cpu className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">{t('devices.manageSensors', 'Manage Sensors')}</h2>
+                                <p className="text-gray-600 mt-1">{device.name}</p>
+                            </div>
+                        </div>
+                        <button onClick={onClose} className="btn-ghost p-2 hover:bg-gray-100 rounded-full">
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
 
-                <div className="p-6">
+                <div className="px-6 pb-6">
                     {isLoading ? (
-                        <div className="text-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                            <p className="text-gray-500 mt-4">Loading sensors...</p>
+                        <div className="card animate-slide-up">
+                            <div className="text-center py-12">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                                <p className="text-gray-500 mt-4">Loading sensors...</p>
+                            </div>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {/* Add Sensor Button */}
                             {!showAddSensor && (
-                                <button
-                                    onClick={() => setShowAddSensor(true)}
-                                    className="btn-primary w-full py-3"
-                                >
-                                    <Plus className="w-4 h-4 mr-2 inline" />
-                                    Add New Sensor
-                                </button>
+                                <div className="card animate-slide-up">
+                                    <button
+                                        onClick={() => setShowAddSensor(true)}
+                                        className="w-full p-4 flex items-center justify-center space-x-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors border-2 border-dashed border-purple-300 hover:border-purple-400"
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                        <span className="font-medium">Add New Sensor</span>
+                                    </button>
+                                </div>
                             )}
 
                             {/* Add Sensor Form */}
                             {showAddSensor && (
-                                <div className="border border-purple-300 rounded-lg p-4 bg-purple-50">
-                                    <h3 className="font-semibold mb-3">Add New Sensor</h3>
+                                <div className="card animate-slide-up bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-200">
+                                    <div className="flex items-center space-x-2 mb-4">
+                                        <div className="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center">
+                                            <Plus className="w-4 h-4 text-white" />
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-gray-900">Add New Sensor</h3>
+                                    </div>
                                     <AddSensorForm
                                         onSave={(data) => createSensorMutation.mutate(data)}
                                         onCancel={() => setShowAddSensor(false)}
@@ -772,59 +790,75 @@ function SensorManagementModal({ device, onClose }) {
                             )}
 
                             {sensors.length === 0 && !showAddSensor ? (
-                                <div className="text-center py-8 bg-gray-50 rounded-lg">
-                                    <Cpu className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                                    <p className="text-gray-600 mb-2">No sensors configured</p>
-                                    <p className="text-sm text-gray-500">
-                                        Click "Add New Sensor" to create your first sensor
-                                    </p>
+                                <div className="card animate-slide-up">
+                                    <div className="text-center py-12">
+                                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mx-auto mb-4">
+                                            <Cpu className="h-8 w-8 text-gray-400" />
+                                        </div>
+                                        <p className="text-gray-700 font-medium mb-2">No sensors configured</p>
+                                        <p className="text-sm text-gray-500">
+                                            Click "Add New Sensor" to create your first sensor
+                                        </p>
+                                    </div>
                                 </div>
                             ) : null}
 
                             {/* Existing Sensors */}
                             {sensors.map((sensor) => (
-                                <div key={sensor.id} className="border rounded-lg p-4 hover:border-purple-300 transition-colors">
+                                <div key={sensor.id} className="card animate-slide-up hover:shadow-lg transition-all duration-200">
                                     {editingSensor?.id === sensor.id ? (
-                                        <SensorEditForm
-                                            sensor={sensor}
-                                            onSave={(data) => updateSensorMutation.mutate({ sensorId: sensor.id, data })}
+                                        <>
+                                            <div className="flex items-center space-x-2 mb-4">
+                                                <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
+                                                    <Edit2 className="w-4 h-4 text-white" />
+                                                </div>
+                                                <h3 className="text-lg font-semibold text-gray-900">Edit Sensor</h3>
+                                            </div>
+                                            <SensorEditForm
+                                                sensor={sensor}
+                                                onSave={(data) => updateSensorMutation.mutate({ sensorId: sensor.id, data })}
                                             onCancel={() => setEditingSensor(null)}
                                             isLoading={updateSensorMutation.isLoading}
                                         />
                                     ) : (
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
-                                                <div className="flex items-center space-x-2 mb-2">
-                                                    <h3 className="font-semibold text-lg">{sensor.name}</h3>
-                                                    <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">
-                                                        Pin {sensor.pin}
-                                                    </span>
-                                                    {sensor.enabled === false && (
-                                                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
-                                                            Disabled
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="text-sm text-gray-600 mb-2">
-                                                    Type: {sensor.sensor_type || 'Unknown'}
-                                                </p>
-                                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                                    <div>
-                                                        <span className="text-gray-500">Calibration Offset:</span>
-                                                        <span className="ml-2 font-mono">{sensor.calibration_offset || 0}</span>
+                                                <div className="flex items-center space-x-3 mb-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                                                        <Activity className="w-5 h-5 text-white" />
                                                     </div>
-                                                    <div>
-                                                        <span className="text-gray-500">Calibration Multiplier:</span>
-                                                        <span className="ml-2 font-mono">{sensor.calibration_multiplier || 1}</span>
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-lg text-gray-900">{sensor.name}</h3>
+                                                        <p className="text-sm text-gray-500">{sensor.sensor_type || 'Unknown type'}</p>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <span className="text-xs px-3 py-1 bg-gradient-to-r from-purple-100 to-purple-200 text-purple-700 rounded-full font-medium">
+                                                            Pin {sensor.pin}
+                                                        </span>
+                                                        {sensor.enabled === false && (
+                                                            <span className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">
+                                                                Disabled
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
+                                                    <div className="bg-gray-50 rounded-lg p-3">
+                                                        <p className="text-xs text-gray-500 mb-1">Calibration Offset</p>
+                                                        <p className="text-lg font-semibold font-mono text-gray-900">{sensor.calibration_offset || 0}</p>
+                                                    </div>
+                                                    <div className="bg-gray-50 rounded-lg p-3">
+                                                        <p className="text-xs text-gray-500 mb-1">Calibration Multiplier</p>
+                                                        <p className="text-lg font-semibold font-mono text-gray-900">{sensor.calibration_multiplier || 1}</p>
                                                     </div>
                                                 </div>
                                             </div>
                                             <button
                                                 onClick={() => setEditingSensor(sensor)}
-                                                className="btn-secondary px-3 py-2 text-sm"
+                                                className="btn-secondary px-4 py-2 ml-4 flex items-center space-x-2 hover:bg-blue-50 hover:border-blue-300"
                                             >
-                                                <Edit3 className="w-4 h-4 mr-1 inline" />
-                                                Edit
+                                                <Edit3 className="w-4 h-4" />
+                                                <span>Edit</span>
                                             </button>
                                         </div>
                                     )}
@@ -834,8 +868,8 @@ function SensorManagementModal({ device, onClose }) {
                     )}
                 </div>
 
-                <div className="border-t p-4 flex justify-end">
-                    <button onClick={onClose} className="btn-primary px-6 py-2">
+                <div className="border-t border-gray-200 bg-white px-6 py-4 flex justify-end rounded-b-lg">
+                    <button onClick={onClose} className="btn-primary px-8 py-2.5">
                         Close
                     </button>
                 </div>

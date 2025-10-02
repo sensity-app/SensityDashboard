@@ -284,7 +284,7 @@ function DeviceDetail() {
                                             (stat?.avg_value ? parseFloat(stat.avg_value).toFixed(2) : '--')
                                         }
                                     </span>
-                                    <span className="text-gray-500 text-sm">{sensor.unit}</span>
+                                    <span className="text-gray-500 text-sm">{sensor.unit || ''}</span>
                                 </div>
                                 {realtimeValue && (
                                     <p className="text-xs text-gray-400">
@@ -343,7 +343,7 @@ function DeviceDetail() {
                         deviceId={id}
                         sensorPin={sensor.pin}
                         sensorName={sensor.name}
-                        sensorUnit={sensor.unit}
+                        sensorUnit={sensor.unit || ''}
                     />
                 ))}
             </div>

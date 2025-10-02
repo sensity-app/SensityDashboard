@@ -691,6 +691,25 @@ function SensorManagementModal({ device, onClose }) {
     const [editingSensor, setEditingSensor] = useState(null);
     const [showAddSensor, setShowAddSensor] = useState(false);
 
+    // Available pins for ESP8266
+    const availablePins = {
+        digital: ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8'],
+        analog: ['A0']
+    };
+
+    const pinMapping = {
+        'D0': 'GPIO16 (Wake from deep sleep)',
+        'D1': 'GPIO5 (I2C SCL)',
+        'D2': 'GPIO4 (I2C SDA)',
+        'D3': 'GPIO0 (Flash mode)',
+        'D4': 'GPIO2 (Built-in LED)',
+        'D5': 'GPIO14 (SPI CLK)',
+        'D6': 'GPIO12 (SPI MISO)',
+        'D7': 'GPIO13 (SPI MOSI)',
+        'D8': 'GPIO15 (SPI CS)',
+        'A0': 'ADC0 (Analog input, 0-1V, use voltage divider for 3.3V)'
+    };
+
     // Fetch sensors for this device
     const { data: sensors = [], isLoading } = useQuery(
         ['device-sensors', device.id],
@@ -699,6 +718,25 @@ function SensorManagementModal({ device, onClose }) {
             select: (data) => data.sensors || data || []
         }
     );
+
+    // Get used pins
+    const getUsedPins = () => {
+        const usedPins = {};
+        for (const sensor of sensors) {
+            if (sensor.pin && sensor.pin.trim()) {
+                const pins = sensor.pin.includes(',') ? sensor.pin.split(',') : [sensor.pin];
+                for (const pin of pins) {
+                    const trimmedPin = pin.trim();
+                    if (usedPins[trimmedPin]) {
+                        usedPins[trimmedPin].push({ id: sensor.id, name: sensor.name });
+                    } else {
+                        usedPins[trimmedPin] = [{ id: sensor.id, name: sensor.name }];
+                    }
+                }
+            }
+        }
+        return usedPins;
+    };
 
     const updateSensorMutation = useMutation(
         ({ sensorId, data }) => apiService.updateSensor(device.id, sensorId, data),
@@ -759,6 +797,9 @@ function SensorManagementModal({ device, onClose }) {
                                         onSave={(data) => createSensorMutation.mutate(data)}
                                         onCancel={() => setShowAddSensor(false)}
                                         isLoading={createSensorMutation.isLoading}
+                                        availablePins={availablePins}
+                                        pinMapping={pinMapping}
+                                        usedPins={getUsedPins()}
                                     />
                                 </div>
                             )}
@@ -951,7 +992,7 @@ function SensorEditForm({ sensor, onSave, onCancel, isLoading }) {
 }
 
 // Add Sensor Form Component
-function AddSensorForm({ onSave, onCancel, isLoading }) {
+function AddSensorForm({ onSave, onCancel, isLoading, availablePins, pinMapping, usedPins }) {
     const [selectedType, setSelectedType] = useState(null);
     const [formData, setFormData] = useState({
         type: '',
@@ -961,6 +1002,8 @@ function AddSensorForm({ onSave, onCancel, isLoading }) {
         calibration_multiplier: 1,
         enabled: true
     });
+
+    const [pinConflict, setPinConflict] = useState(false);
 
     const sensorTypes = [
         { value: 'Temperature', label: 'Temperature', unit: '°C', description: 'Measures temperature', icon: '🌡️', color: 'from-red-400 to-red-500' },
@@ -1064,14 +1107,37 @@ function AddSensorForm({ onSave, onCancel, isLoading }) {
                         <label className="block text-sm text-gray-700 mb-1">
                             Pin Assignment
                         </label>
-                        <input
-                            type="text"
+                        <select
                             value={formData.pin}
-                            onChange={(e) => setFormData({...formData, pin: e.target.value})}
-                            className="input w-full"
+                            onChange={(e) => {
+                                const pin = e.target.value;
+                                setFormData({...formData, pin});
+                                setPinConflict(usedPins[pin] && usedPins[pin].length > 0);
+                            }}
+                            className={`input w-full ${pinConflict ? 'border-red-300 focus:ring-red-500' : ''}`}
                             required
-                            placeholder="e.g., D1, A0"
-                        />
+                        >
+                            <option value="">Select Pin</option>
+                            {(selectedType.unit === 'boolean' ? availablePins.digital : [...availablePins.digital, ...availablePins.analog]).map(pin => {
+                                const isUsed = usedPins[pin] && usedPins[pin].length > 0;
+                                const description = pinMapping[pin] || 'Available';
+                                return (
+                                    <option
+                                        key={pin}
+                                        value={pin}
+                                        disabled={isUsed}
+                                        style={{ color: isUsed ? '#9ca3af' : 'inherit' }}
+                                    >
+                                        {pin} - {description} {isUsed ? '(used)' : ''}
+                                    </option>
+                                );
+                            })}
+                        </select>
+                        {pinConflict && (
+                            <p className="text-xs text-red-600 mt-1">
+                                Pin {formData.pin} is already used by: {usedPins[formData.pin]?.map(s => s.name).join(', ')}
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm text-gray-700 mb-1">
@@ -1100,7 +1166,7 @@ function AddSensorForm({ onSave, onCancel, isLoading }) {
                     <button
                         type="submit"
                         className="btn-primary px-4 py-2"
-                        disabled={isLoading}
+                        disabled={isLoading || pinConflict}
                     >
                         {isLoading ? 'Adding...' : 'Add Sensor'}
                     </button>

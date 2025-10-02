@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import toast from 'react-hot-toast';
 import { Clock, Plus, Edit, Trash2, Volume, VolumeX, Save, X } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 function SilentModeManager() {
     const queryClient = useQueryClient();
+    const { t } = useTranslation();
     const [selectedDevice, setSelectedDevice] = useState('');
     const [selectedLocation, setSelectedLocation] = useState('');
     const [showForm, setShowForm] = useState(false);
@@ -41,7 +43,7 @@ function SilentModeManager() {
     // Mutations
     const createMutation = useMutation(apiService.createSilentModeSchedule, {
         onSuccess: () => {
-            toast.success('Silent mode schedule created successfully');
+        toast.success(t('silentMode.toasts.created'));
             queryClient.invalidateQueries('silentModeSchedules');
             resetForm();
         },
@@ -55,7 +57,7 @@ function SilentModeManager() {
         ({ id, data }) => apiService.updateSilentModeSchedule(id, data),
         {
             onSuccess: () => {
-                toast.success('Silent mode schedule updated successfully');
+            toast.success(t('silentMode.toasts.updated'));
                 queryClient.invalidateQueries('silentModeSchedules');
                 resetForm();
             },
@@ -68,7 +70,7 @@ function SilentModeManager() {
 
     const deleteMutation = useMutation(apiService.deleteSilentModeSchedule, {
         onSuccess: () => {
-            toast.success('Silent mode schedule deleted successfully');
+        toast.success(t('silentMode.toasts.deleted'));
             queryClient.invalidateQueries('silentModeSchedules');
         },
         onError: (error) => {
@@ -115,17 +117,17 @@ function SilentModeManager() {
         e.preventDefault();
 
         if (!formData.name.trim()) {
-            toast.error('Please enter a schedule name');
+            toast.error(t('silentMode.errors.nameRequired'));
             return;
         }
 
         if (formData.daysOfWeek.length === 0) {
-            toast.error('Please select at least one day');
+            toast.error(t('silentMode.errors.daysRequired'));
             return;
         }
 
         if (!formData.deviceId && !formData.locationId) {
-            toast.error('Please select either a device or location');
+            toast.error(t('silentMode.errors.scopeRequired'));
             return;
         }
 
@@ -144,7 +146,7 @@ function SilentModeManager() {
     };
 
     const handleDelete = (schedule) => {
-        if (window.confirm(`Are you sure you want to delete "${schedule.name}"?`)) {
+        if (window.confirm(t('silentMode.confirmDelete', { name: schedule.name }))) {
             deleteMutation.mutate(schedule.id);
         }
     };
@@ -158,15 +160,15 @@ function SilentModeManager() {
         }));
     };
 
-    const daysOfWeek = [
-        { value: 0, label: 'Sun' },
-        { value: 1, label: 'Mon' },
-        { value: 2, label: 'Tue' },
-        { value: 3, label: 'Wed' },
-        { value: 4, label: 'Thu' },
-        { value: 5, label: 'Fri' },
-        { value: 6, label: 'Sat' }
-    ];
+    const daysOfWeek = useMemo(() => ([
+        { value: 0, label: t('common.days.short.sun') },
+        { value: 1, label: t('common.days.short.mon') },
+        { value: 2, label: t('common.days.short.tue') },
+        { value: 3, label: t('common.days.short.wed') },
+        { value: 4, label: t('common.days.short.thu') },
+        { value: 5, label: t('common.days.short.fri') },
+        { value: 6, label: t('common.days.short.sat') }
+    ]), [t]);
 
     const alertTypes = ['sensor_threshold', 'device_offline', 'low_battery', 'connection_lost'];
     const severityLevels = ['low', 'medium', 'high', 'critical'];
@@ -185,10 +187,10 @@ function SilentModeManager() {
     };
 
     const formatDays = (days) => {
-        if (!Array.isArray(days)) return 'No days selected';
-        if (days.length === 7) return 'Every day';
-        if (days.length === 5 && !days.includes(0) && !days.includes(6)) return 'Weekdays';
-        if (days.length === 2 && days.includes(0) && days.includes(6)) return 'Weekends';
+        if (!Array.isArray(days) || days.length === 0) return t('silentMode.schedule.noDays');
+        if (days.length === 7) return t('silentMode.schedule.everyDay');
+        if (days.length === 5 && !days.includes(0) && !days.includes(6)) return t('silentMode.schedule.weekdays');
+        if (days.length === 2 && days.includes(0) && days.includes(6)) return t('silentMode.schedule.weekends');
 
         return days.map(day => daysOfWeek.find(d => d.value === day)?.label).join(', ');
     };
@@ -198,15 +200,15 @@ function SilentModeManager() {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Silent Mode Schedules</h2>
-                    <p className="text-gray-600">Manage quiet hours for alert notifications</p>
+                    <h2 className="text-2xl font-bold text-gray-900">{t('silentMode.title')}</h2>
+                    <p className="text-gray-600">{t('silentMode.subtitle')}</p>
                 </div>
                 <button
                     onClick={() => setShowForm(true)}
                     className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                     <Plus className="h-4 w-4" />
-                    <span>Add Schedule</span>
+                    <span>{t('silentMode.addSchedule')}</span>
                 </button>
             </div>
 
@@ -217,7 +219,7 @@ function SilentModeManager() {
                     onChange={(e) => setSelectedDevice(e.target.value)}
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                 >
-                    <option value="">All Devices</option>
+                    <option value="">{t('silentMode.filters.allDevices')}</option>
                     {Array.isArray(devices) && devices.map(device => (
                         <option key={device.id} value={device.id}>{device.name}</option>
                     ))}
@@ -227,7 +229,7 @@ function SilentModeManager() {
                     onChange={(e) => setSelectedLocation(e.target.value)}
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                 >
-                    <option value="">All Locations</option>
+                    <option value="">{t('silentMode.filters.allLocations')}</option>
                     {Array.isArray(locations) && locations.map(location => (
                         <option key={location.id} value={location.id}>{location.name}</option>
                     ))}
@@ -242,8 +244,8 @@ function SilentModeManager() {
             ) : schedules.length === 0 ? (
                 <div className="text-center py-8">
                     <VolumeX className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No silent mode schedules</h3>
-                    <p className="mt-1 text-sm text-gray-500">Get started by creating a new schedule.</p>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">{t('silentMode.empty.title')}</h3>
+                    <p className="mt-1 text-sm text-gray-500">{t('silentMode.empty.subtitle')}</p>
                 </div>
             ) : (
                 <div className="grid gap-4">
@@ -268,14 +270,14 @@ function SilentModeManager() {
                                                     <span>{formatDays(schedule.days_of_week)}</span>
                                                 </div>
                                                 {schedule.device_name && (
-                                                    <span className="text-blue-600">Device: {schedule.device_name}</span>
+                                                    <span className="text-blue-600">{t('silentMode.badges.device', { name: schedule.device_name })}</span>
                                                 )}
                                                 {schedule.location_name && (
-                                                    <span className="text-green-600">Location: {schedule.location_name}</span>
+                                                    <span className="text-green-600">{t('silentMode.badges.location', { name: schedule.location_name })}</span>
                                                 )}
                                                 {schedule.severity_threshold && (
                                                     <span className="text-orange-600">
-                                                        Severity threshold: {schedule.severity_threshold}
+                                                        {t('silentMode.badges.severityThreshold', { level: schedule.severity_threshold })}
                                                     </span>
                                                 )}
                                             </div>
@@ -288,7 +290,7 @@ function SilentModeManager() {
                                             ? 'bg-red-100 text-red-800'
                                             : 'bg-gray-100 text-gray-800'
                                     }`}>
-                                        {schedule.enabled ? 'Active' : 'Disabled'}
+                                        {schedule.enabled ? t('silentMode.status.active') : t('silentMode.status.inactive')}
                                     </span>
                                     <button
                                         onClick={() => handleEdit(schedule)}
@@ -315,7 +317,7 @@ function SilentModeManager() {
                     <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-medium">
-                                {editingSchedule ? 'Edit' : 'Create'} Silent Mode Schedule
+                                {editingSchedule ? t('silentMode.modal.editTitle') : t('silentMode.modal.createTitle')}
                             </h3>
                             <button
                                 onClick={resetForm}
@@ -328,14 +330,14 @@ function SilentModeManager() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Schedule Name *
+                                    {t('silentMode.form.nameLabel')}
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.name}
                                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                                     className="w-full border border-gray-300 rounded-md px-3 py-2"
-                                    placeholder="e.g., Night Mode"
+                                    placeholder={t('silentMode.form.namePlaceholder')}
                                     required
                                 />
                             </div>
@@ -343,7 +345,7 @@ function SilentModeManager() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Start Time *
+                                        {t('silentMode.form.startTime')}
                                     </label>
                                     <input
                                         type="time"
@@ -355,7 +357,7 @@ function SilentModeManager() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        End Time *
+                                        {t('silentMode.form.endTime')}
                                     </label>
                                     <input
                                         type="time"
@@ -369,7 +371,7 @@ function SilentModeManager() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Days of Week *
+                                    {t('silentMode.form.daysLabel')}
                                 </label>
                                 <div className="flex space-x-1">
                                     {daysOfWeek.map(day => (
@@ -392,14 +394,14 @@ function SilentModeManager() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Device (Optional)
+                                        {t('silentMode.form.deviceLabel')}
                                     </label>
                                     <select
                                         value={formData.deviceId}
                                         onChange={(e) => setFormData(prev => ({ ...prev, deviceId: e.target.value }))}
                                         className="w-full border border-gray-300 rounded-md px-3 py-2"
                                     >
-                                        <option value="">Select Device</option>
+                                        <option value="">{t('silentMode.form.devicePlaceholder')}</option>
                                         {Array.isArray(devices) && devices.map(device => (
                                             <option key={device.id} value={device.id}>{device.name}</option>
                                         ))}
@@ -407,14 +409,14 @@ function SilentModeManager() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Location (Optional)
+                                        {t('silentMode.form.locationLabel')}
                                     </label>
                                     <select
                                         value={formData.locationId}
                                         onChange={(e) => setFormData(prev => ({ ...prev, locationId: e.target.value }))}
                                         className="w-full border border-gray-300 rounded-md px-3 py-2"
                                     >
-                                        <option value="">Select Location</option>
+                                        <option value="">{t('silentMode.form.locationPlaceholder')}</option>
                                         {Array.isArray(locations) && locations.map(location => (
                                             <option key={location.id} value={location.id}>{location.name}</option>
                                         ))}
@@ -424,17 +426,17 @@ function SilentModeManager() {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Severity Threshold (Optional)
+                                    {t('silentMode.form.severityLabel')}
                                 </label>
                                 <select
                                     value={formData.severityThreshold || ''}
                                     onChange={(e) => setFormData(prev => ({ ...prev, severityThreshold: e.target.value || null }))}
                                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                                 >
-                                    <option value="">All severities</option>
+                                    <option value="">{t('silentMode.form.allSeverities')}</option>
                                     {Array.isArray(severityLevels) && severityLevels.map(level => (
                                         <option key={level} value={level}>
-                                            Silence {level} and below
+                                            {t('silentMode.form.silenceLevel', { level: t(`silentMode.severityLevels.${level}`) })}
                                         </option>
                                     ))}
                                 </select>
@@ -449,7 +451,7 @@ function SilentModeManager() {
                                     className="h-4 w-4 text-blue-600 border-gray-300 rounded"
                                 />
                                 <label htmlFor="enabled" className="ml-2 text-sm text-gray-700">
-                                    Enable this schedule
+                                    {t('silentMode.form.enabledLabel')}
                                 </label>
                             </div>
 
@@ -459,7 +461,7 @@ function SilentModeManager() {
                                     onClick={resetForm}
                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -468,7 +470,7 @@ function SilentModeManager() {
                                 >
                                     <Save className="h-4 w-4" />
                                     <span>
-                                        {editingSchedule ? 'Update' : 'Create'} Schedule
+                                        {editingSchedule ? t('silentMode.form.updateAction') : t('silentMode.form.createAction')}
                                     </span>
                                 </button>
                             </div>

@@ -43,7 +43,18 @@
     "sending": "Sending...",
     "welcome": "Welcome",
     "all": "All",
-    "noData": "No data"
+    "noData": "No data",
+    "days": {
+      "short": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      }
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -58,7 +69,8 @@
     "alertRules": "Alert Rules",
     "userManagement": "Users",
     "settings": "Settings",
-    "firmwareBuilder": "Firmware Builder"
+    "firmwareBuilder": "Firmware Builder",
+    "silentMode": "Silent Mode"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -68,6 +80,86 @@
     "users": "Users",
     "settings": "Settings",
     "help": "Help"
+  },
+  "silentMode": {
+    "title": "Silent mode schedules",
+    "subtitle": "Configure quiet hours for device alerts",
+    "addSchedule": "Add schedule",
+    "filters": {
+      "allDevices": "All devices",
+      "allLocations": "All locations"
+    },
+    "empty": {
+      "title": "No silent mode schedules yet",
+      "subtitle": "Create a schedule to control when alerts should be muted."
+    },
+    "schedule": {
+      "noDays": "No days",
+      "everyDay": "Every day",
+      "weekdays": "Weekdays",
+      "weekends": "Weekends"
+    },
+    "toasts": {
+      "created": "Silent mode schedule created.",
+      "updated": "Silent mode schedule updated.",
+      "deleted": "Silent mode schedule deleted."
+    },
+    "errors": {
+      "nameRequired": "Please enter a schedule name.",
+      "daysRequired": "Select at least one day.",
+      "scopeRequired": "Select a device or location."
+    },
+    "confirmDelete": "Are you sure you want to delete \"{{name}}\"?",
+    "badges": {
+      "device": "Device: {{name}}",
+      "location": "Location: {{name}}",
+      "severityThreshold": "Severity threshold: {{level}}"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "modal": {
+      "editTitle": "Edit silent mode schedule",
+      "createTitle": "Create silent mode schedule"
+    },
+    "form": {
+      "nameLabel": "Schedule name *",
+      "namePlaceholder": "e.g., Night mode",
+      "startTime": "Start time *",
+      "endTime": "End time *",
+      "daysLabel": "Days of week *",
+      "deviceLabel": "Device (optional)",
+      "devicePlaceholder": "Select a device",
+      "locationLabel": "Location (optional)",
+      "locationPlaceholder": "Select a location",
+      "severityLabel": "Severity threshold (optional)",
+      "allSeverities": "All severities",
+      "silenceLevel": "Silence {{level}} and below",
+      "enabledLabel": "Enable this schedule",
+      "updateAction": "Update schedule",
+      "createAction": "Create schedule"
+    },
+    "labels": {
+      "device": "Device",
+      "allDevices": "All devices",
+      "location": "Location",
+      "allLocations": "All locations",
+      "alertTypes": "Alert types",
+      "allAlerts": "All alerts",
+      "severityThreshold": "Severity threshold",
+      "timezone": "Timezone",
+      "days": "Days",
+      "start": "Start",
+      "end": "End",
+      "created": "Created"
+    },
+    "severityLevels": {
+      "low": "low",
+      "medium": "medium",
+      "high": "high",
+      "critical": "critical"
+    }
   },
   "auth": {
     "login": "Login",

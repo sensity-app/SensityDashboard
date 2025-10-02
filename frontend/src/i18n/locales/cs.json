@@ -44,7 +44,18 @@
     "create": "Vytvořit",
     "update": "Aktualizovat",
     "all": "Vše",
-    "noData": "Žádná data"
+    "noData": "Žádná data",
+    "days": {
+      "short": {
+        "sun": "Ne",
+        "mon": "Po",
+        "tue": "Út",
+        "wed": "St",
+        "thu": "Čt",
+        "fri": "Pá",
+        "sat": "So"
+      }
+    }
   },
   "nav": {
     "dashboard": "Přehled",
@@ -59,7 +70,8 @@
     "alertRules": "Pravidla upozornění",
     "firmwareBuilder": "Stavitel firmwaru",
     "userManagement": "Uživatelé",
-    "settings": "Nastavení"
+    "settings": "Nastavení",
+    "silentMode": "Tichý režim"
   },
   "navigation": {
     "dashboard": "Přehled",
@@ -69,6 +81,86 @@
     "users": "Uživatelé",
     "settings": "Nastavení",
     "help": "Nápověda"
+  },
+  "silentMode": {
+    "title": "Tichý režim upozornění",
+    "subtitle": "Nastavte tiché hodiny pro upozornění zařízení",
+    "addSchedule": "Přidat plán",
+    "filters": {
+      "allDevices": "Všechna zařízení",
+      "allLocations": "Všechny lokality"
+    },
+    "empty": {
+      "title": "Zatím žádné plány tichého režimu",
+      "subtitle": "Vytvořte nový plán a nastavte, kdy má být systém ztišen."
+    },
+    "schedule": {
+      "noDays": "Žádné dny",
+      "everyDay": "Každý den",
+      "weekdays": "Pracovní dny",
+      "weekends": "Víkendy"
+    },
+    "toasts": {
+      "created": "Plán tichého režimu byl vytvořen.",
+      "updated": "Plán tichého režimu byl aktualizován.",
+      "deleted": "Plán tichého režimu byl odstraněn."
+    },
+    "errors": {
+      "nameRequired": "Zadejte název plánu.",
+      "daysRequired": "Vyberte alespoň jeden den.",
+      "scopeRequired": "Vyberte zařízení nebo lokaci."
+    },
+    "confirmDelete": "Opravdu chcete odstranit plán \"{{name}}\"?",
+    "badges": {
+      "device": "Zařízení: {{name}}",
+      "location": "Lokace: {{name}}",
+      "severityThreshold": "Práh závažnosti: {{level}}"
+    },
+    "status": {
+      "active": "Aktivní",
+      "inactive": "Neaktivní"
+    },
+    "modal": {
+      "editTitle": "Upravit plán tichého režimu",
+      "createTitle": "Vytvořit plán tichého režimu"
+    },
+    "form": {
+      "nameLabel": "Název plánu *",
+      "namePlaceholder": "např. Noční režim",
+      "startTime": "Začátek *",
+      "endTime": "Konec *",
+      "daysLabel": "Dny v týdnu *",
+      "deviceLabel": "Zařízení (volitelné)",
+      "devicePlaceholder": "Vyberte zařízení",
+      "locationLabel": "Lokace (volitelné)",
+      "locationPlaceholder": "Vyberte lokaci",
+      "severityLabel": "Práh závažnosti (volitelné)",
+      "allSeverities": "Všechny úrovně",
+      "silenceLevel": "Ztišit úroveň {{level}} a nižší",
+      "enabledLabel": "Plán je aktivní",
+      "updateAction": "Aktualizovat plán",
+      "createAction": "Vytvořit plán"
+    },
+    "labels": {
+      "device": "Zařízení",
+      "allDevices": "Všechna zařízení",
+      "location": "Lokace",
+      "allLocations": "Všechny lokace",
+      "alertTypes": "Typy upozornění",
+      "allAlerts": "Všechna upozornění",
+      "severityThreshold": "Prahová hodnota",
+      "timezone": "Časové pásmo",
+      "days": "Dny",
+      "start": "Začátek",
+      "end": "Konec",
+      "created": "Vytvořeno"
+    },
+    "severityLevels": {
+      "low": "nízká",
+      "medium": "střední",
+      "high": "vysoká",
+      "critical": "kritická"
+    }
   },
   "auth": {
     "login": "Přihlášení",

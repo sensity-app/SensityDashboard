@@ -688,6 +688,7 @@ function SensorManagementModal({ device, onClose }) {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const [editingSensor, setEditingSensor] = useState(null);
+    const [showAddSensor, setShowAddSensor] = useState(false);
 
     // Fetch sensors for this device
     const { data: sensors = [], isLoading } = useQuery(
@@ -712,6 +713,20 @@ function SensorManagementModal({ device, onClose }) {
         }
     );
 
+    const createSensorMutation = useMutation(
+        (data) => apiService.createSensor(device.id, data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['device-sensors', device.id]);
+                toast.success('Sensor created successfully');
+                setShowAddSensor(false);
+            },
+            onError: (error) => {
+                toast.error('Failed to create sensor: ' + (error.response?.data?.error || error.message));
+            }
+        }
+    );
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -731,16 +746,42 @@ function SensorManagementModal({ device, onClose }) {
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
                             <p className="text-gray-500 mt-4">Loading sensors...</p>
                         </div>
-                    ) : sensors.length === 0 ? (
-                        <div className="text-center py-12 bg-gray-50 rounded-lg">
-                            <Cpu className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-gray-600 mb-2">No sensors configured</p>
-                            <p className="text-sm text-gray-500">
-                                Sensors are configured during firmware building
-                            </p>
-                        </div>
                     ) : (
                         <div className="space-y-4">
+                            {/* Add Sensor Button */}
+                            {!showAddSensor && (
+                                <button
+                                    onClick={() => setShowAddSensor(true)}
+                                    className="btn-primary w-full py-3"
+                                >
+                                    <Plus className="w-4 h-4 mr-2 inline" />
+                                    Add New Sensor
+                                </button>
+                            )}
+
+                            {/* Add Sensor Form */}
+                            {showAddSensor && (
+                                <div className="border border-purple-300 rounded-lg p-4 bg-purple-50">
+                                    <h3 className="font-semibold mb-3">Add New Sensor</h3>
+                                    <AddSensorForm
+                                        onSave={(data) => createSensorMutation.mutate(data)}
+                                        onCancel={() => setShowAddSensor(false)}
+                                        isLoading={createSensorMutation.isLoading}
+                                    />
+                                </div>
+                            )}
+
+                            {sensors.length === 0 && !showAddSensor ? (
+                                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                    <Cpu className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                                    <p className="text-gray-600 mb-2">No sensors configured</p>
+                                    <p className="text-sm text-gray-500">
+                                        Click "Add New Sensor" to create your first sensor
+                                    </p>
+                                </div>
+                            ) : null}
+
+                            {/* Existing Sensors */}
                             {sensors.map((sensor) => (
                                 <div key={sensor.id} className="border rounded-lg p-4 hover:border-purple-300 transition-colors">
                                     {editingSensor?.id === sensor.id ? (
@@ -888,6 +929,145 @@ function SensorEditForm({ sensor, onSave, onCancel, isLoading }) {
                     disabled={isLoading}
                 >
                     {isLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+            </div>
+        </form>
+    );
+}
+
+// Add Sensor Form Component
+function AddSensorForm({ onSave, onCancel, isLoading }) {
+    const [formData, setFormData] = useState({
+        type: '',
+        pin: '',
+        name: '',
+        calibration_offset: 0,
+        calibration_multiplier: 1,
+        enabled: true
+    });
+
+    const sensorTypes = [
+        { value: 'Temperature', label: 'Temperature (°C)' },
+        { value: 'Humidity', label: 'Humidity (%)' },
+        { value: 'Pressure', label: 'Pressure (hPa)' },
+        { value: 'Gas', label: 'Gas (ppm)' },
+        { value: 'Photodiode', label: 'Light/Photodiode (lux)' },
+        { value: 'Motion', label: 'Motion (PIR)' },
+        { value: 'Sound', label: 'Sound (dB)' },
+        { value: 'Magnetic', label: 'Magnetic Field' },
+        { value: 'Vibration', label: 'Vibration (g)' },
+        { value: 'Distance', label: 'Distance (cm)' }
+    ];
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(formData);
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Sensor Type
+                    </label>
+                    <select
+                        value={formData.type}
+                        onChange={(e) => setFormData({...formData, type: e.target.value})}
+                        className="input w-full"
+                        required
+                    >
+                        <option value="">Select sensor type...</option>
+                        {sensorTypes.map(type => (
+                            <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Pin Number
+                    </label>
+                    <input
+                        type="number"
+                        value={formData.pin}
+                        onChange={(e) => setFormData({...formData, pin: e.target.value})}
+                        className="input w-full"
+                        required
+                        min="0"
+                        max="16"
+                    />
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Sensor Name
+                </label>
+                <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="input w-full"
+                    required
+                    placeholder="e.g., Living Room Temperature"
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Calibration Offset
+                    </label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        value={formData.calibration_offset}
+                        onChange={(e) => setFormData({...formData, calibration_offset: parseFloat(e.target.value) || 0})}
+                        className="input w-full"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Calibration Multiplier
+                    </label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        value={formData.calibration_multiplier}
+                        onChange={(e) => setFormData({...formData, calibration_multiplier: parseFloat(e.target.value) || 1})}
+                        className="input w-full"
+                    />
+                </div>
+            </div>
+
+            <div className="flex items-center">
+                <input
+                    type="checkbox"
+                    id="add-sensor-enabled"
+                    checked={formData.enabled}
+                    onChange={(e) => setFormData({...formData, enabled: e.target.checked})}
+                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                />
+                <label htmlFor="add-sensor-enabled" className="ml-2 block text-sm text-gray-700">
+                    Enabled
+                </label>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="btn-secondary px-4 py-2"
+                    disabled={isLoading}
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    className="btn-primary px-4 py-2"
+                    disabled={isLoading}
+                >
+                    {isLoading ? 'Creating...' : 'Create Sensor'}
                 </button>
             </div>
         </form>

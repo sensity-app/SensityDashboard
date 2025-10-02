@@ -1045,13 +1045,33 @@ router.get('/:id/sensors', authenticateToken, async (req, res) => {
 router.post('/:id/sensors', authenticateToken, async (req, res) => {
     try {
         const deviceId = req.params.id;
-        const { sensor_type_id, pin, name, calibration_offset, calibration_multiplier } = req.body;
+        const { sensor_type_id, type, pin, name, calibration_offset, calibration_multiplier, enabled } = req.body;
+
+        let sensorTypeId = sensor_type_id;
+
+        // If type name is provided instead of ID, look up the ID
+        if (!sensorTypeId && type) {
+            const typeResult = await db.query(
+                'SELECT id FROM sensor_types WHERE LOWER(name) = LOWER($1)',
+                [type]
+            );
+
+            if (typeResult.rows.length > 0) {
+                sensorTypeId = typeResult.rows[0].id;
+            } else {
+                return res.status(400).json({ error: `Unknown sensor type: ${type}` });
+            }
+        }
+
+        if (!sensorTypeId) {
+            return res.status(400).json({ error: 'sensor_type_id or type is required' });
+        }
 
         const result = await db.query(`
-            INSERT INTO device_sensors (device_id, sensor_type_id, pin, name, calibration_offset, calibration_multiplier)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO device_sensors (device_id, sensor_type_id, pin, name, calibration_offset, calibration_multiplier, enabled)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-        `, [deviceId, sensor_type_id, pin, name, calibration_offset || 0, calibration_multiplier || 1]);
+        `, [deviceId, sensorTypeId, pin, name, calibration_offset || 0, calibration_multiplier || 1, enabled !== false]);
 
         res.json({ sensor: result.rows[0] });
     } catch (error) {

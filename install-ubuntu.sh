@@ -947,14 +947,101 @@ EOF
         print_status "Development mode: HTTP-only configuration created"
 
     else
-        # Production configuration (HTTPS with SSL)
+        # Production configuration - Start with HTTP only for certbot
+        print_status "Production mode: Creating temporary HTTP configuration for certificate acquisition..."
         cat > "/etc/nginx/sites-available/$DOMAIN" << EOF
+# Temporary HTTP server for certificate acquisition
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $DOMAIN www.$DOMAIN;
+
+    # Root directory for static files
+    root $APP_DIR/frontend/build;
+    index index.html;
+
+    # Allow certbot to validate domain
+    location ^~ /.well-known/acme-challenge/ {
+        default_type "text/plain";
+        root /var/www/html;
+    }
+
+    # API routes
+    location /api/ {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+
+    # WebSocket support
+    location /socket.io/ {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # Static files
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+}
+EOF
+
+        # Enable site
+        ln -sf "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/"
+        print_status "Temporary HTTP configuration created"
+    fi
+
+    rm -f /etc/nginx/sites-enabled/default
+
+    # Test Nginx configuration
+    if ! nginx -t; then
+        print_error "Nginx configuration test failed"
+        exit 1
+    fi
+
+    # Restart Nginx to apply changes
+    systemctl restart nginx
+    systemctl enable nginx
+
+    print_success "Nginx configured and restarted with HTTP"
+}
+
+# Function to upgrade nginx to HTTPS after SSL certificate is obtained
+upgrade_nginx_to_https() {
+    print_status "Upgrading Nginx configuration to HTTPS..."
+
+    cat > "/etc/nginx/sites-available/$DOMAIN" << EOF
 # HTTP redirect to HTTPS
 server {
     listen 80;
     listen [::]:80;
     server_name $DOMAIN www.$DOMAIN;
-    return 301 https://\$server_name\$request_uri;
+
+    # Allow certbot renewals
+    location ^~ /.well-known/acme-challenge/ {
+        default_type "text/plain";
+        root /var/www/html;
+    }
+
+    # Redirect everything else to HTTPS
+    location / {
+        return 301 https://\$server_name\$request_uri;
+    }
 }
 
 # HTTPS server
@@ -1047,21 +1134,16 @@ server {
 }
 EOF
 
-        # Enable site
-        ln -sf "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/"
-        print_status "Production mode: HTTPS configuration created"
+    # Test Nginx configuration
+    if ! nginx -t; then
+        print_error "Nginx HTTPS configuration test failed"
+        exit 1
     fi
 
-    rm -f /etc/nginx/sites-enabled/default
+    # Reload Nginx to apply HTTPS configuration
+    systemctl reload nginx
 
-    # Test Nginx configuration
-    nginx -t
-
-    # Restart Nginx to apply changes
-    systemctl restart nginx
-    systemctl enable nginx
-
-    print_success "Nginx configured and restarted"
+    print_success "Nginx upgraded to HTTPS successfully"
 }
 
 # Function to install Certbot and get SSL certificates
@@ -1075,18 +1157,33 @@ setup_ssl() {
 
     apt-get install -y certbot python3-certbot-nginx
 
-    # Stop Nginx temporarily
-    systemctl stop nginx
+    # Get SSL certificate using webroot (Nginx is already running with HTTP)
+    print_status "Requesting SSL certificate for $DOMAIN..."
 
-    # Get SSL certificate
-    certbot certonly --standalone -d "$DOMAIN" -d "www.$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive
+    # Create webroot directory for certbot
+    mkdir -p /var/www/html/.well-known/acme-challenge
+
+    # Use webroot method since nginx is already serving HTTP
+    if certbot certonly --webroot -w /var/www/html -d "$DOMAIN" -d "www.$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive; then
+        print_success "SSL certificate obtained successfully"
+    else
+        print_error "Failed to obtain SSL certificate"
+        print_status "Please check that:"
+        print_status "1. DNS records for $DOMAIN point to this server"
+        print_status "2. Port 80 is open and accessible from the internet"
+        print_status "3. No firewall is blocking the connection"
+        exit 1
+    fi
 
     # Setup automatic renewal
     cat > /etc/cron.d/certbot-renew << EOF
-0 12 * * * /usr/bin/certbot renew --quiet
+0 12 * * * /usr/bin/certbot renew --quiet --deploy-hook "systemctl reload nginx"
 EOF
 
     print_success "SSL certificates obtained and auto-renewal configured"
+
+    # Now upgrade nginx configuration to use HTTPS
+    upgrade_nginx_to_https
 }
 
 # Function to configure firewall

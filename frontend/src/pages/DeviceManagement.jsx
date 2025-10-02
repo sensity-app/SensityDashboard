@@ -817,9 +817,10 @@ function SensorManagementModal({ device, onClose }) {
                                             <SensorEditForm
                                                 sensor={sensor}
                                                 onSave={(data) => updateSensorMutation.mutate({ sensorId: sensor.id, data })}
-                                            onCancel={() => setEditingSensor(null)}
-                                            isLoading={updateSensorMutation.isLoading}
-                                        />
+                                                onCancel={() => setEditingSensor(null)}
+                                                isLoading={updateSensorMutation.isLoading}
+                                            />
+                                        </>
                                     ) : (
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">

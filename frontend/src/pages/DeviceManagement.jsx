@@ -1114,11 +1114,13 @@ function AddSensorForm({ onSave, onCancel, isLoading, availablePins, pinMapping,
                                 setFormData({...formData, pin});
                                 setPinConflict(usedPins[pin] && usedPins[pin].length > 0);
                             }}
-                            className={`input w-full ${pinConflict ? 'border-red-300 focus:ring-red-500' : ''}`}
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm bg-white ${
+                                pinConflict ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                            }`}
                             required
                         >
                             <option value="">Select Pin</option>
-                            {(selectedType.unit === 'boolean' ? availablePins.digital : [...availablePins.digital, ...availablePins.analog]).map(pin => {
+                            {(selectedType.unit === 'boolean' ? availablePins.digital : availablePins.analog).map(pin => {
                                 const isUsed = usedPins[pin] && usedPins[pin].length > 0;
                                 const description = pinMapping[pin] || 'Available';
                                 return (

@@ -616,6 +616,28 @@ const runMigrations = async () => {
                 CREATE INDEX IF NOT EXISTS idx_alert_rule_templates_system ON alert_rule_templates(is_system_template);
                 CREATE INDEX IF NOT EXISTS idx_sensor_rules_device_sensor ON sensor_rules(device_sensor_id);
             `
+        },
+        {
+            name: '002_add_user_preferred_language',
+            sql: `
+                ALTER TABLE IF EXISTS users
+                    ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(5) DEFAULT 'en';
+
+                UPDATE users
+                    SET preferred_language = COALESCE(preferred_language, 'en');
+            `
+        },
+        {
+            name: '003_update_alert_columns',
+            sql: `
+                ALTER TABLE IF EXISTS alerts
+                    ADD COLUMN IF NOT EXISTS last_escalated TIMESTAMP,
+                    ADD COLUMN IF NOT EXISTS escalation_level INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+                UPDATE alerts
+                    SET escalation_level = COALESCE(escalation_level, 0);
+            `
         }
     ];
 
@@ -627,12 +649,16 @@ const runMigrations = async () => {
 
         if (migrationCheck.rows.length === 0) {
             logger.info(`Running migration: ${migration.name}`);
-            await query(migration.sql);
-            await query(
-                'INSERT INTO migrations (migration_name) VALUES ($1)',
-                [migration.name]
-            );
-            logger.info(`Migration completed: ${migration.name}`);
+            try {
+                await query(migration.sql);
+                await query(
+                    'INSERT INTO migrations (migration_name) VALUES ($1)',
+                    [migration.name]
+                );
+                logger.info(`Migration completed: ${migration.name}`);
+            } catch (error) {
+                logger.warn(`Migration ${migration.name} failed: ${error.message}`);
+            }
         }
     }
 };

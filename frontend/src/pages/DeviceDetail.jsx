@@ -252,7 +252,7 @@ function DeviceDetail() {
                     </div>
                 ) : sensors.map((sensor) => {
                     const realtimeValue = realtimeData[sensor.pin];
-                    const stat = stats?.find(s => s.pin === sensor.pin);
+                    const stat = Array.isArray(stats) ? stats.find(s => s.pin === sensor.pin) : null;
 
                     return (
                         <div key={sensor.id} className="bg-white rounded-lg shadow p-6">

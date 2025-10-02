@@ -99,25 +99,44 @@ class ErrorBoundary extends React.Component {
                             We're sorry for the inconvenience. An unexpected error has occurred.
                         </p>
 
-                        {/* Error Details (Development Only) */}
-                        {process.env.NODE_ENV === 'development' && this.state.error && (
+                        {/* Error Details */}
+                        {this.state.error && (
                             <div className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                                    Error Details (Development Mode):
-                                </h3>
-                                <div className="text-xs font-mono text-red-600 mb-2 overflow-auto">
-                                    {this.state.error.toString()}
-                                </div>
-                                {this.state.errorInfo && (
-                                    <details className="mt-2">
-                                        <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">
-                                            Stack Trace
-                                        </summary>
-                                        <pre className="mt-2 text-xs text-gray-600 overflow-auto max-h-48 whitespace-pre-wrap">
-                                            {this.state.errorInfo.componentStack}
-                                        </pre>
-                                    </details>
-                                )}
+                                <details>
+                                    <summary className="text-sm font-semibold text-gray-700 cursor-pointer hover:text-gray-900 flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                                        Debug Information (click to expand)
+                                    </summary>
+                                    <div className="mt-3 space-y-3">
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-600 mb-1">Error Message:</p>
+                                            <div className="text-xs font-mono text-red-600 bg-red-50 p-2 rounded overflow-auto">
+                                                {this.state.error.toString()}
+                                            </div>
+                                        </div>
+                                        {this.state.error.stack && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-600 mb-1">Stack Trace:</p>
+                                                <pre className="text-xs font-mono text-gray-600 bg-white p-2 rounded overflow-auto max-h-48 whitespace-pre-wrap border border-gray-200">
+                                                    {this.state.error.stack}
+                                                </pre>
+                                            </div>
+                                        )}
+                                        {this.state.errorInfo && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-600 mb-1">Component Stack:</p>
+                                                <pre className="text-xs font-mono text-gray-600 bg-white p-2 rounded overflow-auto max-h-48 whitespace-pre-wrap border border-gray-200">
+                                                    {this.state.errorInfo.componentStack}
+                                                </pre>
+                                            </div>
+                                        )}
+                                        <div className="pt-2 border-t border-gray-200">
+                                            <p className="text-xs text-gray-500">
+                                                💡 Tip: Copy this information when reporting the issue for faster resolution.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </details>
                             </div>
                         )}
 

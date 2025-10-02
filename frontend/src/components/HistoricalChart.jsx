@@ -38,13 +38,13 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                 timeRange === '7d' || timeRange === '30d' ? 'hourly' : aggregation
             );
 
-            const formattedData = response.map(point => ({
+            const formattedData = Array.isArray(response) ? response.map(point => ({
                 timestamp: new Date(point.timestamp).getTime(),
                 value: parseFloat(point.value),
                 min_value: point.min_value ? parseFloat(point.min_value) : undefined,
                 max_value: point.max_value ? parseFloat(point.max_value) : undefined,
                 formattedTime: new Date(point.timestamp).toLocaleString()
-            }));
+            })) : [];
 
             setData(formattedData);
         } catch (error) {

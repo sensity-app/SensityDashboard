@@ -31,6 +31,7 @@ function DeviceManagement() {
     const navigate = useNavigate();
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [editingDevice, setEditingDevice] = useState(null);
+    const [managingSensorsDevice, setManagingSensorsDevice] = useState(null);
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterType, setFilterType] = useState('all');
 
@@ -76,6 +77,10 @@ function DeviceManagement() {
     const handleEditDevice = (device) => {
         setEditingDevice(device);
         setShowCreateForm(true);
+    };
+
+    const handleManageSensors = (device) => {
+        setManagingSensorsDevice(device);
     };
 
     const getStatusIcon = (status) => {
@@ -389,6 +394,13 @@ function DeviceManagement() {
                                                         <Eye className="h-4 w-4" />
                                                     </Link>
                                                     <button
+                                                        onClick={() => handleManageSensors(device)}
+                                                        className="btn-ghost p-2 text-purple-600 hover:text-purple-700"
+                                                        title={t('devices.manageSensors', 'Manage Sensors')}
+                                                    >
+                                                        <Cpu className="h-4 w-4" />
+                                                    </button>
+                                                    <button
                                                         onClick={() => handleEditDevice(device)}
                                                         className="btn-ghost p-2 text-primary"
                                                         title={t('common.edit')}
@@ -422,6 +434,14 @@ function DeviceManagement() {
                         setShowCreateForm(false);
                         setEditingDevice(null);
                     }}
+                />
+            )}
+
+            {/* Sensor Management Modal */}
+            {managingSensorsDevice && (
+                <SensorManagementModal
+                    device={managingSensorsDevice}
+                    onClose={() => setManagingSensorsDevice(null)}
                 />
             )}
         </div>
@@ -660,6 +680,217 @@ function DeviceFormModal({ device, locations, onClose }) {
                 </form>
             </div>
         </div>
+    );
+}
+
+// Sensor Management Modal Component
+function SensorManagementModal({ device, onClose }) {
+    const { t } = useTranslation();
+    const queryClient = useQueryClient();
+    const [editingSensor, setEditingSensor] = useState(null);
+
+    // Fetch sensors for this device
+    const { data: sensors = [], isLoading } = useQuery(
+        ['device-sensors', device.id],
+        () => apiService.getDeviceSensors(device.id),
+        {
+            select: (data) => data.sensors || data || []
+        }
+    );
+
+    const updateSensorMutation = useMutation(
+        ({ sensorId, data }) => apiService.updateSensor(device.id, sensorId, data),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['device-sensors', device.id]);
+                toast.success('Sensor updated successfully');
+                setEditingSensor(null);
+            },
+            onError: (error) => {
+                toast.error('Failed to update sensor: ' + (error.response?.data?.error || error.message));
+            }
+        }
+    );
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="card-header">
+                    <h2 className="card-title">
+                        <Cpu className="w-5 h-5 text-purple-600" />
+                        <span>{t('devices.manageSensors', 'Manage Sensors')}: {device.name}</span>
+                    </h2>
+                    <button onClick={onClose} className="btn-ghost p-2">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="p-6">
+                    {isLoading ? (
+                        <div className="text-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                            <p className="text-gray-500 mt-4">Loading sensors...</p>
+                        </div>
+                    ) : sensors.length === 0 ? (
+                        <div className="text-center py-12 bg-gray-50 rounded-lg">
+                            <Cpu className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                            <p className="text-gray-600 mb-2">No sensors configured</p>
+                            <p className="text-sm text-gray-500">
+                                Sensors are configured during firmware building
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {sensors.map((sensor) => (
+                                <div key={sensor.id} className="border rounded-lg p-4 hover:border-purple-300 transition-colors">
+                                    {editingSensor?.id === sensor.id ? (
+                                        <SensorEditForm
+                                            sensor={sensor}
+                                            onSave={(data) => updateSensorMutation.mutate({ sensorId: sensor.id, data })}
+                                            onCancel={() => setEditingSensor(null)}
+                                            isLoading={updateSensorMutation.isLoading}
+                                        />
+                                    ) : (
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center space-x-2 mb-2">
+                                                    <h3 className="font-semibold text-lg">{sensor.name}</h3>
+                                                    <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                                                        Pin {sensor.pin}
+                                                    </span>
+                                                    {sensor.enabled === false && (
+                                                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
+                                                            Disabled
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-2">
+                                                    Type: {sensor.sensor_type || 'Unknown'}
+                                                </p>
+                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                    <div>
+                                                        <span className="text-gray-500">Calibration Offset:</span>
+                                                        <span className="ml-2 font-mono">{sensor.calibration_offset || 0}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-500">Calibration Multiplier:</span>
+                                                        <span className="ml-2 font-mono">{sensor.calibration_multiplier || 1}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setEditingSensor(sensor)}
+                                                className="btn-secondary px-3 py-2 text-sm"
+                                            >
+                                                <Edit3 className="w-4 h-4 mr-1 inline" />
+                                                Edit
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="border-t p-4 flex justify-end">
+                    <button onClick={onClose} className="btn-primary px-6 py-2">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Sensor Edit Form Component
+function SensorEditForm({ sensor, onSave, onCancel, isLoading }) {
+    const [formData, setFormData] = useState({
+        name: sensor.name || '',
+        calibration_offset: sensor.calibration_offset || 0,
+        calibration_multiplier: sensor.calibration_multiplier || 1,
+        enabled: sensor.enabled !== false
+    });
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(formData);
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Sensor Name
+                    </label>
+                    <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="input w-full"
+                        required
+                    />
+                </div>
+                <div className="flex items-center pt-6">
+                    <input
+                        type="checkbox"
+                        id={`enabled-${sensor.id}`}
+                        checked={formData.enabled}
+                        onChange={(e) => setFormData({...formData, enabled: e.target.checked})}
+                        className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                    />
+                    <label htmlFor={`enabled-${sensor.id}`} className="ml-2 block text-sm text-gray-700">
+                        Enabled
+                    </label>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Calibration Offset
+                    </label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        value={formData.calibration_offset}
+                        onChange={(e) => setFormData({...formData, calibration_offset: parseFloat(e.target.value)})}
+                        className="input w-full"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Calibration Multiplier
+                    </label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        value={formData.calibration_multiplier}
+                        onChange={(e) => setFormData({...formData, calibration_multiplier: parseFloat(e.target.value)})}
+                        className="input w-full"
+                    />
+                </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="btn-secondary px-4 py-2"
+                    disabled={isLoading}
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    className="btn-primary px-4 py-2"
+                    disabled={isLoading}
+                >
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+            </div>
+        </form>
     );
 }
 

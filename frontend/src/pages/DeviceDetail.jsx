@@ -49,13 +49,13 @@ function DeviceDetail() {
     );
 
     // Device stats query
-    const { data: stats } = useQuery(
+    const { data: stats = [] } = useQuery(
         ['device-stats', id],
         () => apiService.getDeviceStats(id, '24h'),
         {
             enabled: !!id,
             refetchInterval: 60000,
-            select: (data) => data.stats
+            select: (data) => data.stats || []
         }
     );
 

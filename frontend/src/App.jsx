@@ -318,19 +318,16 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
     return (
         <div className="min-h-screen">
             {/* Modern Header */}
-            <header className={`nav-modern transition-all duration-300 sticky top-0 z-50 ${
-                isHeaderMinimal ? 'py-2' : 'py-4'
-            }`}>
+            <header className={`nav-modern transition-all duration-300 sticky top-0 z-50 ${isHeaderMinimal ? 'py-2' : 'py-4'
+                }`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className={`flex justify-between items-center transition-all duration-300 ${
-                        isHeaderMinimal ? 'py-2' : 'py-4'
-                    }`}>
+                    <div className={`flex justify-between items-center transition-all duration-300 ${isHeaderMinimal ? 'py-2' : 'py-4'
+                        }`}>
                         <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
                             {/* Logo */}
                             {appSettings.branding?.companyLogo ? (
-                                <div className={`flex-shrink-0 transition-all duration-300 ${
-                                    isHeaderMinimal ? 'h-8 w-8' : 'h-10 sm:h-12 w-10 sm:w-12'
-                                }`}>
+                                <div className={`flex-shrink-0 transition-all duration-300 ${isHeaderMinimal ? 'h-8 w-8' : 'h-10 sm:h-12 w-10 sm:w-12'
+                                    }`}>
                                     <img
                                         src={`${appSettings.branding.companyLogo}?${Date.now()}`}
                                         alt="Company Logo"
@@ -343,10 +340,9 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                             ) : (
                                 /* Company Name - only show if no logo */
                                 <div className="min-w-0 flex-1">
-                                    <h1 className={`font-bold text-gray-900 transition-all duration-300 truncate ${
-                                        isHeaderMinimal ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl md:text-3xl'
-                                    }`}>
-                                        {appSettings.branding?.companyName || t('app.title', 'IoT Monitoring Platform')}
+                                    <h1 className={`font-bold text-gray-900 transition-all duration-300 truncate ${isHeaderMinimal ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl md:text-3xl'
+                                        }`}>
+                                        {appSettings.branding?.companyName || t('app.title', 'Sensity')}
                                     </h1>
                                     {!isHeaderMinimal && (
                                         <p className="text-gray-600 text-xs sm:text-sm truncate">
@@ -356,12 +352,10 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                 </div>
                             )}
                         </div>
-                        <div className={`flex items-center flex-shrink-0 transition-all duration-300 ${
-                            isHeaderMinimal ? 'space-x-1 sm:space-x-2' : 'space-x-2 sm:space-x-4'
-                        }`}>
-                            <div className={`transition-all duration-300 ${
-                                isHeaderMinimal ? 'scale-75 sm:scale-90' : 'scale-90 sm:scale-100'
+                        <div className={`flex items-center flex-shrink-0 transition-all duration-300 ${isHeaderMinimal ? 'space-x-1 sm:space-x-2' : 'space-x-2 sm:space-x-4'
                             }`}>
+                            <div className={`transition-all duration-300 ${isHeaderMinimal ? 'scale-75 sm:scale-90' : 'scale-90 sm:scale-100'
+                                }`}>
                                 <LanguageSelector compact={true} onLanguageChange={handleLanguageChange} />
                             </div>
                             {!isHeaderMinimal && (
@@ -371,9 +365,8 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                             )}
                             <button
                                 onClick={onLogout}
-                                className={`btn-danger transition-all duration-300 whitespace-nowrap ${
-                                    isHeaderMinimal ? 'px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm' : 'px-3 sm:px-4 py-2 text-sm'
-                                }`}
+                                className={`btn-danger transition-all duration-300 whitespace-nowrap ${isHeaderMinimal ? 'px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm' : 'px-3 sm:px-4 py-2 text-sm'
+                                    }`}
                             >
                                 {t('auth.logout', 'Logout')}
                             </button>
@@ -392,17 +385,15 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                     <div className="relative">
                                         <button
                                             onClick={() => handleDropdownToggle(index)}
-                                            className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-t-lg whitespace-nowrap ${
-                                                isPathActive(item.path, item.items)
+                                            className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-t-lg whitespace-nowrap ${isPathActive(item.path, item.items)
                                                     ? 'text-white bg-gray-600 shadow-lg'
                                                     : 'text-white hover:text-gray-200 hover:bg-gray-700'
-                                            }`}
+                                                }`}
                                         >
                                             <span className="text-sm sm:text-base">{item.icon}</span>
                                             <span className="hidden sm:inline">{item.label}</span>
-                                            <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 ${
-                                                dropdownOpen === index ? 'rotate-180' : ''
-                                            }`} />
+                                            <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 ${dropdownOpen === index ? 'rotate-180' : ''
+                                                }`} />
                                         </button>
                                         {dropdownOpen === index && (
                                             <div className="absolute top-full left-0 w-48 sm:w-56 bg-white rounded-b-xl border border-gray-200 border-t-0 shadow-xl z-[70] animate-fade-in">
@@ -413,11 +404,10 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                                             navigate(subItem.path);
                                                             setDropdownOpen(null);
                                                         }}
-                                                        className={`w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-left transition-all duration-200 first:rounded-t-none last:rounded-b-xl ${
-                                                            currentPath === subItem.path
+                                                        className={`w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-left transition-all duration-200 first:rounded-t-none last:rounded-b-xl ${currentPath === subItem.path
                                                                 ? 'bg-primary/10 text-primary border-r-4 border-primary'
                                                                 : 'text-gray-700 hover:bg-white/50'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         <span className="text-sm sm:text-base">{subItem.icon}</span>
                                                         <span>{subItem.label}</span>
@@ -429,11 +419,10 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                 ) : (
                                     <button
                                         onClick={() => navigate(item.path)}
-                                        className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-lg whitespace-nowrap ${
-                                            currentPath === item.path
+                                        className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-lg whitespace-nowrap ${currentPath === item.path
                                                 ? 'text-white bg-primary shadow-lg border-b-2 border-primary-hover'
                                                 : 'text-white hover:text-gray-200 hover:bg-gray-700'
-                                        }`}
+                                            }`}
                                     >
                                         <span className="text-sm sm:text-base">{item.icon}</span>
                                         <span className="hidden sm:inline">{item.label}</span>

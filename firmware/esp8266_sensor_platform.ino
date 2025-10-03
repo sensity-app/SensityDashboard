@@ -76,6 +76,9 @@ DHT* dht = nullptr;
 Ultrasonic* ultrasonic = nullptr;
 #endif
 
+// Forward declarations
+void notifyOTAStatus(const String& status, int progress, const String& errorMessage = "");
+
 void setup() {
     Serial.begin(115200);
     delay(1000);
@@ -368,32 +371,44 @@ void readAndProcessSensors() {
             processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
 
-        } else if (sensors[i].type == "temperature" && dht != nullptr) {
-            rawValue = dht->readTemperature();
-            if (!isnan(rawValue)) {
-                filteredValue = applyMovingAverageFilter(i, rawValue);
-                processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
-                hasReading = true;
+        } else if (sensors[i].type == "temperature") {
+#if SENSOR_DHT_ENABLED
+            if (dht != nullptr) {
+                rawValue = dht->readTemperature();
+                if (!isnan(rawValue)) {
+                    filteredValue = applyMovingAverageFilter(i, rawValue);
+                    processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+                    hasReading = true;
+                }
             }
+#endif
 
-        } else if (sensors[i].type == "humidity" && dht != nullptr) {
-            rawValue = dht->readHumidity();
-            if (!isnan(rawValue)) {
-                filteredValue = applyMovingAverageFilter(i, rawValue);
-                processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
-                hasReading = true;
+        } else if (sensors[i].type == "humidity") {
+#if SENSOR_DHT_ENABLED
+            if (dht != nullptr) {
+                rawValue = dht->readHumidity();
+                if (!isnan(rawValue)) {
+                    filteredValue = applyMovingAverageFilter(i, rawValue);
+                    processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+                    hasReading = true;
+                }
             }
+#endif
 
         } else if (sensors[i].type == "motion") {
             rawValue = digitalRead(sensors[i].pin);
             processedValue = rawValue;  // No filtering for binary sensors
             hasReading = true;
 
-        } else if (sensors[i].type == "distance" && ultrasonic != nullptr) {
-            rawValue = ultrasonic->read();
-            filteredValue = applyMovingAverageFilter(i, rawValue);
-            processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
-            hasReading = true;
+        } else if (sensors[i].type == "distance") {
+#if SENSOR_DISTANCE_ENABLED
+            if (ultrasonic != nullptr) {
+                rawValue = ultrasonic->read();
+                filteredValue = applyMovingAverageFilter(i, rawValue);
+                processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+                hasReading = true;
+            }
+#endif
 
         } else if (sensors[i].type == "sound") {
             rawValue = applyMedianFilter(sensors[i].pin, true);
@@ -426,7 +441,7 @@ void readAndProcessSensors() {
             sensor["raw_value"] = rawValue;
             sensor["filtered_value"] = filteredValue;
             sensor["processed_value"] = processedValue;
-            sensor["timestamp"] = WiFi.getTime();
+            sensor["timestamp"] = millis() / 1000; // Use uptime in seconds
 
             // Check for alarm conditions using filtered/processed value
             if (config.armed &&
@@ -624,7 +639,7 @@ void performOTAUpdate(const String& firmwareUrl, const String& expectedChecksum)
     ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
 
     // Set progress callback
-    ESPhttpUpdate.onProgress([](int cur, int total) {
+    ESPhttpUpdate.onProgress([&](int cur, int total) {
         int progress = (cur * 100) / total;
         Serial.printf("OTA Progress: %d%%\n", progress);
 

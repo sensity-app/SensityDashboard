@@ -58,6 +58,9 @@ function convertSensorArrayToObject(sensorsArray) {
 router.post('/build', async (req, res) => {
     try {
         const {
+            // Platform
+            platform = 'esp8266',
+
             // Device configuration
             device_id,
             device_name,
@@ -122,29 +125,72 @@ router.post('/build', async (req, res) => {
             sensors: sensorsObject
         });
 
-        // Read base firmware files
+        // Read base firmware files based on platform
         const firmwarePath = path.join(__dirname, '../../../firmware');
-        const mainFirmware = await fs.readFile(path.join(firmwarePath, 'esp8266_sensor_platform.ino'), 'utf8');
+        const platformConfig = getPlatformConfig(platform);
+
+        let mainFirmware;
+        let mainFilename;
+
+        switch(platform) {
+            case 'esp32':
+                mainFirmware = await fs.readFile(path.join(firmwarePath, 'esp32_sensor_platform.ino'), 'utf8');
+                mainFilename = 'esp32_sensor_platform.ino';
+                break;
+            case 'arduino':
+                mainFirmware = await fs.readFile(path.join(firmwarePath, 'arduino_sensor_platform.ino'), 'utf8');
+                mainFilename = 'arduino_sensor_platform.ino';
+                break;
+            case 'raspberry_pi':
+                mainFirmware = await fs.readFile(path.join(firmwarePath, 'raspberry_pi_sensor_platform.py'), 'utf8');
+                mainFilename = 'sensor_platform.py';
+                // Replace config placeholders in Python script
+                mainFirmware = replacePythonConfig(mainFirmware, {
+                    device_id,
+                    device_name,
+                    device_location,
+                    wifi_ssid,
+                    wifi_password,
+                    server_url,
+                    api_key,
+                    heartbeat_interval,
+                    sensor_read_interval,
+                    debug_mode,
+                    sensors: sensorsObject
+                });
+                break;
+            default: // esp8266
+                mainFirmware = await fs.readFile(path.join(firmwarePath, 'esp8266_sensor_platform.ino'), 'utf8');
+                mainFilename = 'esp8266_sensor_platform.ino';
+        }
 
         // Create firmware package
         const zip = new JSZip();
 
-        // Add generated config
-        zip.file('device_config.h', configContent);
-
-        // Add main firmware
-        zip.file('esp8266_sensor_platform.ino', mainFirmware);
+        // Add configuration based on platform
+        if (platform === 'raspberry_pi') {
+            // For Python, config is embedded in the script
+            zip.file(mainFilename, mainFirmware);
+        } else {
+            // For Arduino/ESP, add header file
+            zip.file('device_config.h', configContent);
+            zip.file(mainFilename, mainFirmware);
+        }
 
         // Add installation instructions
-        const instructions = generateInstallationInstructions(device_id, device_name, sensors);
+        const instructions = generateInstallationInstructions(platform, device_id, device_name, sensors);
         zip.file('INSTALLATION_INSTRUCTIONS.md', instructions);
 
-        // Add required libraries list
-        const librariesList = generateLibrariesList(sensors);
-        zip.file('REQUIRED_LIBRARIES.txt', librariesList);
+        // Add required libraries/dependencies list
+        const librariesList = generateLibrariesList(platform, sensors);
+        if (platform === 'raspberry_pi') {
+            zip.file('requirements.txt', librariesList);
+        } else {
+            zip.file('REQUIRED_LIBRARIES.txt', librariesList);
+        }
 
         // Add wiring diagram (text-based)
-        const wiringDiagram = generateWiringDiagram(sensors);
+        const wiringDiagram = generateWiringDiagram(platform, sensors);
         zip.file('WIRING_DIAGRAM.txt', wiringDiagram);
 
         // Generate ZIP file
@@ -171,8 +217,138 @@ router.post('/build', async (req, res) => {
     }
 });
 
+// Platform-specific configurations
+const getPlatformConfig = (platform) => {
+    const configs = {
+        esp8266: {
+            name: 'ESP8266',
+            wifi_capable: true,
+            extension: '.ino',
+            language: 'C++',
+            available_pins: {
+                digital: [
+                    { pin: 'D0', label: 'D0 (GPIO16)', note: 'LED_BUILTIN, no PWM/interrupt' },
+                    { pin: 'D1', label: 'D1 (GPIO5)', note: 'SCL - avoid if using I2C' },
+                    { pin: 'D2', label: 'D2 (GPIO4)', note: 'SDA - avoid if using I2C' },
+                    { pin: 'D3', label: 'D3 (GPIO0)', note: 'FLASH button, pull-up required' },
+                    { pin: 'D4', label: 'D4 (GPIO2)', note: 'LED_BUILTIN on some boards, pull-up required' },
+                    { pin: 'D5', label: 'D5 (GPIO14)', note: 'SCK' },
+                    { pin: 'D6', label: 'D6 (GPIO12)', note: 'MISO' },
+                    { pin: 'D7', label: 'D7 (GPIO13)', note: 'MOSI' },
+                    { pin: 'D8', label: 'D8 (GPIO15)', note: 'SS, pull-down required' }
+                ],
+                analog: [
+                    { pin: 'A0', label: 'A0 (ADC0)', note: 'Analog input, 0-1V range, use voltage divider for 3.3V' }
+                ]
+            }
+        },
+        esp32: {
+            name: 'ESP32',
+            wifi_capable: true,
+            extension: '.ino',
+            language: 'C++',
+            available_pins: {
+                digital: [
+                    { pin: 'GPIO2', label: 'GPIO2', note: 'Built-in LED on some boards' },
+                    { pin: 'GPIO4', label: 'GPIO4', note: 'General purpose' },
+                    { pin: 'GPIO5', label: 'GPIO5', note: 'General purpose' },
+                    { pin: 'GPIO12', label: 'GPIO12', note: 'General purpose' },
+                    { pin: 'GPIO13', label: 'GPIO13', note: 'General purpose' },
+                    { pin: 'GPIO14', label: 'GPIO14', note: 'General purpose' },
+                    { pin: 'GPIO15', label: 'GPIO15', note: 'General purpose' },
+                    { pin: 'GPIO16', label: 'GPIO16', note: 'General purpose' },
+                    { pin: 'GPIO17', label: 'GPIO17', note: 'General purpose' },
+                    { pin: 'GPIO18', label: 'GPIO18', note: 'General purpose' },
+                    { pin: 'GPIO19', label: 'GPIO19', note: 'General purpose' },
+                    { pin: 'GPIO21', label: 'GPIO21', note: 'SDA (I2C)' },
+                    { pin: 'GPIO22', label: 'GPIO22', note: 'SCL (I2C)' },
+                    { pin: 'GPIO23', label: 'GPIO23', note: 'General purpose' },
+                    { pin: 'GPIO25', label: 'GPIO25', note: 'DAC1' },
+                    { pin: 'GPIO26', label: 'GPIO26', note: 'DAC2' },
+                    { pin: 'GPIO27', label: 'GPIO27', note: 'General purpose' },
+                    { pin: 'GPIO32', label: 'GPIO32', note: 'ADC1_CH4' },
+                    { pin: 'GPIO33', label: 'GPIO33', note: 'ADC1_CH5' }
+                ],
+                analog: [
+                    { pin: 'GPIO32', label: 'GPIO32 (ADC1_CH4)', note: 'ADC 0-3.3V' },
+                    { pin: 'GPIO33', label: 'GPIO33 (ADC1_CH5)', note: 'ADC 0-3.3V' },
+                    { pin: 'GPIO34', label: 'GPIO34 (ADC1_CH6)', note: 'Input only, ADC 0-3.3V' },
+                    { pin: 'GPIO35', label: 'GPIO35 (ADC1_CH7)', note: 'Input only, ADC 0-3.3V' },
+                    { pin: 'GPIO36', label: 'GPIO36 (VP)', note: 'Input only, ADC 0-3.3V' },
+                    { pin: 'GPIO39', label: 'GPIO39 (VN)', note: 'Input only, ADC 0-3.3V' }
+                ]
+            }
+        },
+        arduino: {
+            name: 'Arduino',
+            wifi_capable: false,
+            extension: '.ino',
+            language: 'C++',
+            available_pins: {
+                digital: [
+                    { pin: '2', label: 'Digital Pin 2', note: 'Interrupt capable' },
+                    { pin: '3', label: 'Digital Pin 3', note: 'PWM, Interrupt' },
+                    { pin: '4', label: 'Digital Pin 4', note: 'General purpose' },
+                    { pin: '5', label: 'Digital Pin 5', note: 'PWM' },
+                    { pin: '6', label: 'Digital Pin 6', note: 'PWM' },
+                    { pin: '7', label: 'Digital Pin 7', note: 'General purpose' },
+                    { pin: '8', label: 'Digital Pin 8', note: 'General purpose' },
+                    { pin: '9', label: 'Digital Pin 9', note: 'PWM' },
+                    { pin: '10', label: 'Digital Pin 10', note: 'PWM, SS' },
+                    { pin: '11', label: 'Digital Pin 11', note: 'PWM, MOSI' },
+                    { pin: '12', label: 'Digital Pin 12', note: 'MISO' },
+                    { pin: '13', label: 'Digital Pin 13', note: 'LED_BUILTIN, SCK' }
+                ],
+                analog: [
+                    { pin: 'A0', label: 'Analog A0', note: 'ADC 0-5V' },
+                    { pin: 'A1', label: 'Analog A1', note: 'ADC 0-5V' },
+                    { pin: 'A2', label: 'Analog A2', note: 'ADC 0-5V' },
+                    { pin: 'A3', label: 'Analog A3', note: 'ADC 0-5V' },
+                    { pin: 'A4', label: 'Analog A4', note: 'ADC 0-5V, SDA' },
+                    { pin: 'A5', label: 'Analog A5', note: 'ADC 0-5V, SCL' }
+                ]
+            }
+        },
+        raspberry_pi: {
+            name: 'Raspberry Pi',
+            wifi_capable: true,
+            extension: '.py',
+            language: 'Python',
+            available_pins: {
+                digital: [
+                    { pin: 'GPIO2', label: 'GPIO2 (Pin 3)', note: 'I2C SDA' },
+                    { pin: 'GPIO3', label: 'GPIO3 (Pin 5)', note: 'I2C SCL' },
+                    { pin: 'GPIO4', label: 'GPIO4 (Pin 7)', note: 'General purpose' },
+                    { pin: 'GPIO17', label: 'GPIO17 (Pin 11)', note: 'General purpose' },
+                    { pin: 'GPIO27', label: 'GPIO27 (Pin 13)', note: 'General purpose' },
+                    { pin: 'GPIO22', label: 'GPIO22 (Pin 15)', note: 'General purpose' },
+                    { pin: 'GPIO10', label: 'GPIO10 (Pin 19)', note: 'SPI MOSI' },
+                    { pin: 'GPIO9', label: 'GPIO9 (Pin 21)', note: 'SPI MISO' },
+                    { pin: 'GPIO11', label: 'GPIO11 (Pin 23)', note: 'SPI SCLK' },
+                    { pin: 'GPIO5', label: 'GPIO5 (Pin 29)', note: 'General purpose' },
+                    { pin: 'GPIO6', label: 'GPIO6 (Pin 31)', note: 'General purpose' },
+                    { pin: 'GPIO13', label: 'GPIO13 (Pin 33)', note: 'PWM' },
+                    { pin: 'GPIO19', label: 'GPIO19 (Pin 35)', note: 'PWM' },
+                    { pin: 'GPIO26', label: 'GPIO26 (Pin 37)', note: 'General purpose' }
+                ],
+                analog: [
+                    { pin: 'MCP3008_CH0', label: 'MCP3008 Channel 0', note: 'Requires MCP3008 ADC' },
+                    { pin: 'MCP3008_CH1', label: 'MCP3008 Channel 1', note: 'Requires MCP3008 ADC' },
+                    { pin: 'MCP3008_CH2', label: 'MCP3008 Channel 2', note: 'Requires MCP3008 ADC' },
+                    { pin: 'MCP3008_CH3', label: 'MCP3008 Channel 3', note: 'Requires MCP3008 ADC' }
+                ]
+            }
+        }
+    };
+
+    return configs[platform] || configs.esp8266;
+};
+
 // Generate sensor configuration options
 router.get('/sensor-options', (req, res) => {
+    const platform = req.query.platform || 'esp8266';
+    const platformConfig = getPlatformConfig(platform);
+
     const sensorOptions = {
         temperature_humidity: {
             name: 'Temperature & Humidity (DHT22)',
@@ -281,37 +457,22 @@ router.get('/sensor-options', (req, res) => {
         }
     };
 
+    // Generate pin mapping from available pins
+    const pin_mapping = {};
+    platformConfig.available_pins.digital.forEach(p => {
+        pin_mapping[p.pin] = `${p.label} - ${p.note}`;
+    });
+    platformConfig.available_pins.analog.forEach(p => {
+        pin_mapping[p.pin] = `${p.label} - ${p.note}`;
+    });
+
     res.json({
         success: true,
+        platform: platformConfig.name,
+        wifi_capable: platformConfig.wifi_capable,
         sensors: sensorOptions,
-        pin_mapping: {
-            'D0': 'GPIO16 (LED_BUILTIN, no PWM/interrupt)',
-            'D1': 'GPIO5 (SCL)',
-            'D2': 'GPIO4 (SDA)',
-            'D3': 'GPIO0 (FLASH button, pull-up required)',
-            'D4': 'GPIO2 (LED_BUILTIN on some boards, pull-up required)',
-            'D5': 'GPIO14 (SCK)',
-            'D6': 'GPIO12 (MISO)',
-            'D7': 'GPIO13 (MOSI)',
-            'D8': 'GPIO15 (SS, pull-down required)',
-            'A0': 'ADC0 (Analog input, 0-1V, use voltage divider for 3.3V)'
-        },
-        available_pins: {
-            digital: [
-                { pin: 'D0', label: 'D0 (GPIO16)', note: 'LED_BUILTIN, no PWM/interrupt' },
-                { pin: 'D1', label: 'D1 (GPIO5)', note: 'SCL - avoid if using I2C' },
-                { pin: 'D2', label: 'D2 (GPIO4)', note: 'SDA - avoid if using I2C' },
-                { pin: 'D3', label: 'D3 (GPIO0)', note: 'FLASH button, pull-up required' },
-                { pin: 'D4', label: 'D4 (GPIO2)', note: 'LED_BUILTIN on some boards, pull-up required' },
-                { pin: 'D5', label: 'D5 (GPIO14)', note: 'SCK' },
-                { pin: 'D6', label: 'D6 (GPIO12)', note: 'MISO' },
-                { pin: 'D7', label: 'D7 (GPIO13)', note: 'MOSI' },
-                { pin: 'D8', label: 'D8 (GPIO15)', note: 'SS, pull-down required' }
-            ],
-            analog: [
-                { pin: 'A0', label: 'A0 (ADC0)', note: 'Analog input, 0-1V range, use voltage divider for 3.3V' }
-            ]
-        }
+        pin_mapping: pin_mapping,
+        available_pins: platformConfig.available_pins
     });
 });
 
@@ -589,11 +750,49 @@ function generateConflictWarnings(sensors) {
     return warnings;
 }
 
+// Replace Python config placeholders
+function replacePythonConfig(template, config) {
+    let result = template;
+
+    // Replace basic config
+    result = result.replace(/{{DEVICE_ID}}/g, config.device_id);
+    result = result.replace(/{{DEVICE_NAME}}/g, config.device_name);
+    result = result.replace(/{{DEVICE_LOCATION}}/g, config.device_location || 'Unknown');
+    result = result.replace(/{{FIRMWARE_VERSION}}/g, '1.0.0');
+    result = result.replace(/{{WIFI_SSID}}/g, config.wifi_ssid);
+    result = result.replace(/{{WIFI_PASSWORD}}/g, config.wifi_password);
+    result = result.replace(/{{SERVER_URL}}/g, config.server_url);
+    result = result.replace(/{{SERVER_API_KEY}}/g, config.api_key || '');
+    result = result.replace(/{{HEARTBEAT_INTERVAL_SEC}}/g, config.heartbeat_interval);
+    result = result.replace(/{{SENSOR_READ_INTERVAL_MS}}/g, config.sensor_read_interval);
+    result = result.replace(/{{DEBUG_MODE}}/g, config.debug_mode ? 'True' : 'False');
+    result = result.replace(/{{DEVICE_ARMED}}/g, config.device_armed ? 'True' : 'False');
+
+    // Replace sensor config
+    const sensors = config.sensors || {};
+    result = result.replace(/{{SENSOR_DHT_ENABLED}}/g, sensors.temperature_humidity?.enabled ? 'True' : 'False');
+    result = result.replace(/{{SENSOR_DHT_PIN}}/g, sensors.temperature_humidity?.pin || 4);
+    result = result.replace(/{{SENSOR_DHT_TYPE}}/g, 'DHT22');
+
+    result = result.replace(/{{SENSOR_LIGHT_ENABLED}}/g, sensors.light?.enabled ? 'True' : 'False');
+    result = result.replace(/{{SENSOR_LIGHT_CHANNEL}}/g, '0');
+
+    result = result.replace(/{{SENSOR_MOTION_ENABLED}}/g, sensors.motion?.enabled ? 'True' : 'False');
+    result = result.replace(/{{SENSOR_MOTION_PIN}}/g, sensors.motion?.pin || 17);
+
+    result = result.replace(/{{SENSOR_DISTANCE_ENABLED}}/g, sensors.distance?.enabled ? 'True' : 'False');
+    result = result.replace(/{{SENSOR_DISTANCE_TRIGGER_PIN}}/g, sensors.distance?.trigger_pin || 23);
+    result = result.replace(/{{SENSOR_DISTANCE_ECHO_PIN}}/g, sensors.distance?.echo_pin || 24);
+
+    return result;
+}
+
 // Generate installation instructions
-function generateInstallationInstructions(deviceId, deviceName, sensors) {
+function generateInstallationInstructions(platform, deviceId, deviceName, sensors) {
     const enabledSensors = Object.keys(sensors).filter(key => sensors[key]?.enabled);
 
-    return `# Installation Instructions for ${deviceName} (${deviceId})
+    const platformInstructions = {
+        esp8266: `# Installation Instructions for ${deviceName} (${deviceId})
 
 ## Prerequisites
 
@@ -663,16 +862,155 @@ ${enabledSensors.length > 0
 For additional help, refer to:
 - ESP8266 documentation: https://arduino-esp8266.readthedocs.io/
 - Arduino community forums: https://forum.arduino.cc/
-`;
+`,
+        esp32: `# Installation Instructions for ${deviceName} (${deviceId})
+
+## Prerequisites
+1. **Arduino IDE** - Download from https://www.arduino.cc/en/software
+2. **ESP32 Board Package** - Install via Arduino IDE Board Manager
+3. **Required Libraries** - See REQUIRED_LIBRARIES.txt
+
+## Installation Steps
+
+### 1. Setup Arduino IDE for ESP32
+1. Open Arduino IDE
+2. Go to File → Preferences
+3. Add this URL to "Additional Board Manager URLs":
+   \`https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json\`
+4. Go to Tools → Board → Board Manager
+5. Search for "ESP32" and install the latest version
+
+### 2. Install Libraries & Upload
+Same as ESP8266 instructions, but select "ESP32 Dev Module" as board
+
+## Enabled Sensors
+${enabledSensors.map(s => `- ${s.toUpperCase()}`).join('\n') || 'No sensors'}
+
+## ESP32 Advantages
+- Dual-core processor for parallel sensor reading
+- More GPIO pins and ADC channels
+- Bluetooth support (future enhancement)
+`,
+        arduino: `# Installation Instructions for ${deviceName} (${deviceId})
+
+## Prerequisites
+1. **Arduino IDE** - Download from https://www.arduino.cc/en/software
+2. **Arduino Uno/Nano/Mega board**
+3. **WiFi Shield or ESP8266 Module** (optional, for network connectivity)
+4. **Required Libraries** - See REQUIRED_LIBRARIES.txt
+
+## Installation Steps
+
+### 1. Install Libraries
+1. Open Arduino IDE
+2. Go to Sketch → Include Library → Manage Libraries
+3. Install required libraries listed in REQUIRED_LIBRARIES.txt
+
+### 2. Upload Firmware
+1. Connect Arduino via USB
+2. Open the .ino file
+3. Select Tools → Board → Arduino Uno (or your board model)
+4. Select correct port
+5. Click Upload
+
+### 3. Serial Communication
+Arduino sends data via Serial. Connect to:
+- Raspberry Pi or PC via USB for network forwarding
+- ESP8266/ESP32 WiFi module for wireless connectivity
+
+## Enabled Sensors
+${enabledSensors.map(s => `- ${s.toUpperCase()}`).join('\n') || 'No sensors'}
+
+## Note
+Arduino boards without WiFi require external connectivity (ESP module, Ethernet shield, or USB-to-network bridge).
+`,
+        raspberry_pi: `# Installation Instructions for ${deviceName} (${deviceId})
+
+## Prerequisites
+1. **Raspberry Pi** (any model with GPIO - 3/4/Zero)
+2. **Raspbian OS** installed
+3. **Python 3.7+**
+4. **Internet connection**
+
+## Installation Steps
+
+### 1. Install Python Dependencies
+\`\`\`bash
+cd /path/to/firmware
+pip3 install -r requirements.txt
+\`\`\`
+
+### 2. Enable Interfaces (if needed)
+\`\`\`bash
+sudo raspi-config
+# Enable: I2C, SPI, GPIO (if using these interfaces)
+\`\`\`
+
+### 3. Run the Script
+\`\`\`bash
+# Make executable
+chmod +x sensor_platform.py
+
+# Run
+python3 sensor_platform.py
+
+# Or run as service
+sudo cp sensor_platform.py /usr/local/bin/
+sudo cp sensor_platform.service /etc/systemd/system/
+sudo systemctl enable sensor_platform
+sudo systemctl start sensor_platform
+\`\`\`
+
+### 4. Check Status
+\`\`\`bash
+sudo systemctl status sensor_platform
+journalctl -u sensor_platform -f
+\`\`\`
+
+## Enabled Sensors
+${enabledSensors.map(s => `- ${s.toUpperCase()}`).join('\n') || 'No sensors'}
+
+## Hardware Notes
+- MCP3008 ADC required for analog sensors
+- Connect sensors to GPIO pins as specified in wiring diagram
+- Ensure proper 3.3V/5V levels for sensors
+`
+    };
+
+    return platformInstructions[platform] || platformInstructions.esp8266;
 }
 
 // Generate libraries list
-function generateLibrariesList(sensors) {
-    const libraries = new Set([
-        'ESP8266WiFi (included with ESP8266 board package)',
-        'ESP8266HTTPClient (included with ESP8266 board package)',
-        'ArduinoJson (by Benoit Blanchon)'
-    ]);
+function generateLibrariesList(platform, sensors) {
+    if (platform === 'raspberry_pi') {
+        // Python requirements.txt format
+        const packages = [
+            'requests>=2.28.0',
+            'RPi.GPIO>=0.7.1',
+        ];
+
+        if (sensors.temperature_humidity?.enabled) {
+            packages.push('Adafruit-DHT>=1.4.0');
+        }
+
+        if (sensors.light?.enabled || sensors.gas?.enabled || sensors.sound?.enabled) {
+            packages.push('adafruit-circuitpython-mcp3xxx>=1.4.0');
+            packages.push('adafruit-blinka>=8.0.0');
+        }
+
+        return packages.join('\n');
+    }
+
+    // Arduino/ESP libraries
+    const libraries = new Set(['ArduinoJson (by Benoit Blanchon)']);
+
+    if (platform === 'esp8266') {
+        libraries.add('ESP8266WiFi (included with ESP8266 board package)');
+        libraries.add('ESP8266HTTPClient (included with ESP8266 board package)');
+    } else if (platform === 'esp32') {
+        libraries.add('WiFi (included with ESP32 board package)');
+        libraries.add('HTTPClient (included with ESP32 board package)');
+    }
 
     if (sensors.temperature_humidity?.enabled) {
         libraries.add('DHT sensor library (by Adafruit)');
@@ -683,7 +1021,9 @@ function generateLibrariesList(sensors) {
         libraries.add('Ultrasonic (by ErickSimoes) or NewPing');
     }
 
-    return `Required Arduino Libraries for ESP8266 Firmware
+    const platformName = platform === 'esp32' ? 'ESP32' : platform === 'arduino' ? 'Arduino' : 'ESP8266';
+
+    return `Required Arduino Libraries for ${platformName} Firmware
 
 Install these libraries through Arduino IDE:
 Sketch → Include Library → Manage Libraries
@@ -692,7 +1032,7 @@ Required Libraries:
 ${Array.from(libraries).map(lib => `- ${lib}`).join('\n')}
 
 Installation Notes:
-1. Some libraries are automatically included with the ESP8266 board package
+1. Some libraries are automatically included with the board package
 2. For Adafruit libraries, you may be prompted to install dependencies - click "Install All"
 3. If a library is not found, try searching with different keywords
 4. Restart Arduino IDE after installing libraries
@@ -700,8 +1040,10 @@ Installation Notes:
 }
 
 // Generate wiring diagram
-function generateWiringDiagram(sensors) {
-    let diagram = `ESP8266 Wiring Diagram
+function generateWiringDiagram(platform, sensors) {
+    const platformName = platform === 'esp32' ? 'ESP32' : platform === 'arduino' ? 'Arduino' : platform === 'raspberry_pi' ? 'Raspberry Pi' : 'ESP8266';
+
+    let diagram = `${platformName} Wiring Diagram
 ======================
 
 ESP8266 NodeMCU Pin Layout:

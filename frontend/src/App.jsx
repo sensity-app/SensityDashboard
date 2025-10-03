@@ -325,11 +325,11 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                     <div className={`flex justify-between items-center transition-all duration-300 ${
                         isHeaderMinimal ? 'py-2' : 'py-4'
                     }`}>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
                             {/* Logo */}
                             {appSettings.branding?.companyLogo ? (
-                                <div className={`transition-all duration-300 ${
-                                    isHeaderMinimal ? 'h-8 w-8' : 'h-12 w-12'
+                                <div className={`flex-shrink-0 transition-all duration-300 ${
+                                    isHeaderMinimal ? 'h-8 w-8' : 'h-10 sm:h-12 w-10 sm:w-12'
                                 }`}>
                                     <img
                                         src={`${appSettings.branding.companyLogo}?${Date.now()}`}
@@ -342,37 +342,37 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                 </div>
                             ) : (
                                 /* Company Name - only show if no logo */
-                                <div>
-                                    <h1 className={`font-bold text-gray-900 transition-all duration-300 ${
-                                        isHeaderMinimal ? 'text-lg' : 'text-3xl'
+                                <div className="min-w-0 flex-1">
+                                    <h1 className={`font-bold text-gray-900 transition-all duration-300 truncate ${
+                                        isHeaderMinimal ? 'text-base sm:text-lg' : 'text-xl sm:text-2xl md:text-3xl'
                                     }`}>
                                         {appSettings.branding?.companyName || t('app.title', 'IoT Monitoring Platform')}
                                     </h1>
                                     {!isHeaderMinimal && (
-                                        <p className="text-gray-600 text-sm">
+                                        <p className="text-gray-600 text-xs sm:text-sm truncate">
                                             {t('common.welcome', 'Welcome')}, {user.full_name || user.email}
                                         </p>
                                     )}
                                 </div>
                             )}
                         </div>
-                        <div className={`flex items-center transition-all duration-300 ${
-                            isHeaderMinimal ? 'space-x-2' : 'space-x-4'
+                        <div className={`flex items-center flex-shrink-0 transition-all duration-300 ${
+                            isHeaderMinimal ? 'space-x-1 sm:space-x-2' : 'space-x-2 sm:space-x-4'
                         }`}>
                             <div className={`transition-all duration-300 ${
-                                isHeaderMinimal ? 'scale-90' : 'scale-100'
+                                isHeaderMinimal ? 'scale-75 sm:scale-90' : 'scale-90 sm:scale-100'
                             }`}>
                                 <LanguageSelector compact={true} onLanguageChange={handleLanguageChange} />
                             </div>
                             {!isHeaderMinimal && (
-                                <span className="badge badge-primary text-xs">
+                                <span className="badge badge-primary text-xs hidden sm:inline-flex">
                                     {t(`roles.${user.role}`, user.role)}
                                 </span>
                             )}
                             <button
                                 onClick={onLogout}
-                                className={`btn-danger transition-all duration-300 ${
-                                    isHeaderMinimal ? 'px-3 py-2 text-sm' : 'px-4 py-2'
+                                className={`btn-danger transition-all duration-300 whitespace-nowrap ${
+                                    isHeaderMinimal ? 'px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm' : 'px-3 sm:px-4 py-2 text-sm'
                                 }`}
                             >
                                 {t('auth.logout', 'Logout')}
@@ -384,28 +384,28 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
 
             {/* Modern Navigation */}
             <nav className="glass-dark relative border-t border-white/10 z-40">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex space-x-1">
+                <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+                    <div className="flex space-x-0.5 sm:space-x-1 overflow-x-auto scrollbar-hide">
                         {navigationItems.map((item, index) => (
-                            <div key={item.path || index} className="relative">
+                            <div key={item.path || index} className="relative flex-shrink-0">
                                 {item.dropdown ? (
                                     <div className="relative">
                                         <button
                                             onClick={() => handleDropdownToggle(index)}
-                                            className={`flex items-center space-x-2 px-4 py-4 text-sm font-medium transition-all duration-200 rounded-t-lg ${
+                                            className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-t-lg whitespace-nowrap ${
                                                 isPathActive(item.path, item.items)
                                                     ? 'text-white bg-gray-600 shadow-lg'
                                                     : 'text-white hover:text-gray-200 hover:bg-gray-700'
                                             }`}
                                         >
-                                            <span className="text-base">{item.icon}</span>
-                                            <span>{item.label}</span>
-                                            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${
+                                            <span className="text-sm sm:text-base">{item.icon}</span>
+                                            <span className="hidden sm:inline">{item.label}</span>
+                                            <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 ${
                                                 dropdownOpen === index ? 'rotate-180' : ''
                                             }`} />
                                         </button>
                                         {dropdownOpen === index && (
-                                            <div className="absolute top-full left-0 w-56 bg-white rounded-b-xl border border-gray-200 border-t-0 shadow-xl z-[70] animate-fade-in">
+                                            <div className="absolute top-full left-0 w-48 sm:w-56 bg-white rounded-b-xl border border-gray-200 border-t-0 shadow-xl z-[70] animate-fade-in">
                                                 {item.items.map((subItem) => (
                                                     <button
                                                         key={subItem.path}
@@ -413,13 +413,13 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                                             navigate(subItem.path);
                                                             setDropdownOpen(null);
                                                         }}
-                                                        className={`w-full flex items-center space-x-3 px-4 py-3 text-sm text-left transition-all duration-200 first:rounded-t-none last:rounded-b-xl ${
+                                                        className={`w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-left transition-all duration-200 first:rounded-t-none last:rounded-b-xl ${
                                                             currentPath === subItem.path
                                                                 ? 'bg-primary/10 text-primary border-r-4 border-primary'
                                                                 : 'text-gray-700 hover:bg-white/50'
                                                         }`}
                                                     >
-                                                        <span className="text-base">{subItem.icon}</span>
+                                                        <span className="text-sm sm:text-base">{subItem.icon}</span>
                                                         <span>{subItem.label}</span>
                                                     </button>
                                                 ))}
@@ -429,14 +429,14 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                 ) : (
                                     <button
                                         onClick={() => navigate(item.path)}
-                                        className={`flex items-center space-x-2 px-4 py-4 text-sm font-medium transition-all duration-200 rounded-lg ${
+                                        className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-lg whitespace-nowrap ${
                                             currentPath === item.path
                                                 ? 'text-white bg-primary shadow-lg border-b-2 border-primary-hover'
                                                 : 'text-white hover:text-gray-200 hover:bg-gray-700'
                                         }`}
                                     >
-                                        <span className="text-base">{item.icon}</span>
-                                        <span>{item.label}</span>
+                                        <span className="text-sm sm:text-base">{item.icon}</span>
+                                        <span className="hidden sm:inline">{item.label}</span>
                                     </button>
                                 )}
                             </div>
@@ -446,7 +446,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
             </nav>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto py-8 sm:px-6 lg:px-8" onClick={() => setDropdownOpen(null)}>
+            <main className="max-w-7xl mx-auto py-4 px-4 sm:py-8 sm:px-6 lg:px-8" onClick={() => setDropdownOpen(null)}>
                 <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/devices" element={<DeviceManagement />} />

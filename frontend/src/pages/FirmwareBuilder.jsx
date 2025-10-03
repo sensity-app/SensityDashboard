@@ -72,6 +72,7 @@ const FirmwareBuilder = () => {
 
     // Form state
     const [config, setConfig] = useState({
+        platform: 'esp8266', // esp8266, esp32, arduino, raspberry_pi
         device_id: generateDeviceId(),
         device_name: '',
         device_location: '',
@@ -96,7 +97,7 @@ const FirmwareBuilder = () => {
 
     const fetchSensorOptions = async () => {
         try {
-            const response = await fetch('/api/firmware-builder/sensor-options');
+            const response = await fetch(`/api/firmware-builder/sensor-options?platform=${config.platform}`);
             const data = await response.json();
             if (data.success) {
                 setSensorOptions(data.sensors);
@@ -252,7 +253,7 @@ const FirmwareBuilder = () => {
             const deviceData = {
                 id: config.device_id,           // Backend expects 'id', not 'device_id'
                 name: config.device_name,
-                device_type: 'esp8266',
+                device_type: config.platform || 'esp8266',
                 wifi_ssid: config.wifi_ssid,
                 wifi_password: config.open_wifi ? '' : config.wifi_password,
             };
@@ -485,6 +486,48 @@ const FirmwareBuilder = () => {
                                 </h2>
                             </div>
                             <div className="space-y-6">
+                                {/* Platform Selection */}
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        <Cpu className="w-4 h-4 inline mr-1" />
+                                        Platform *
+                                    </label>
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {[
+                                            { value: 'esp8266', label: 'ESP8266', icon: '📡', desc: 'WiFi microcontroller' },
+                                            { value: 'esp32', label: 'ESP32', icon: '🚀', desc: 'Dual-core with WiFi & Bluetooth' },
+                                            { value: 'arduino', label: 'Arduino', icon: '🔧', desc: 'Uno/Nano/Mega boards' },
+                                            { value: 'raspberry_pi', label: 'Raspberry Pi', icon: '🥧', desc: 'Single board computer' }
+                                        ].map(platform => (
+                                            <button
+                                                key={platform.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    handleConfigChange('platform', platform.value);
+                                                    setConfig(prev => ({
+                                                        ...prev,
+                                                        platform: platform.value,
+                                                        device_id: `${platform.label.toUpperCase().replace(' ', '_')}_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 5)}`,
+                                                        device_type: platform.value,
+                                                        sensors: [] // Reset sensors when platform changes
+                                                    }));
+                                                    fetchSensorOptions(); // Reload sensor options for new platform
+                                                }}
+                                                className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                                                    config.platform === platform.value
+                                                        ? 'border-primary bg-primary/10 shadow-lg'
+                                                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                                                }`}
+                                            >
+                                                <div className="text-2xl mb-2">{platform.icon}</div>
+                                                <div className="font-semibold text-gray-900">{platform.label}</div>
+                                                <div className="text-xs text-gray-500 mt-1">{platform.desc}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2">Select the hardware platform for your IoT device</p>
+                                </div>
+
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <div className="form-group">
                                         <label className="form-label">

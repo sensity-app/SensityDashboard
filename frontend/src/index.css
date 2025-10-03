@@ -58,6 +58,7 @@
     min-height: 100vh;
     color: var(--gray-800);
     line-height: 1.5;
+    overflow-x: hidden;
   }
 
   code {
@@ -68,6 +69,13 @@
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+
+  /* Prevent horizontal scroll */
+  #root {
+    overflow-x: hidden;
+    width: 100%;
   }
 
   /* Selection styling */
@@ -282,6 +290,64 @@
 
   .ring-primary {
     --tw-ring-color: var(--primary-color);
+  }
+
+  /* Mobile Navigation Styles */
+  @media (max-width: 768px) {
+    .nav-modern {
+      padding: 0.5rem 0;
+    }
+
+    .glass-dark {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .glass-dark::-webkit-scrollbar {
+      display: none;
+    }
+
+    .card {
+      padding: 1rem;
+      border-radius: var(--radius-lg);
+    }
+
+    .table-modern th,
+    .table-modern td {
+      padding: 0.75rem 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .btn {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+    }
+  }
+
+  /* Ensure all containers are responsive */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Mobile-first responsive utilities */
+@media (max-width: 640px) {
+  .container,
+  .max-w-7xl {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
 

@@ -1256,12 +1256,25 @@ EOF
 upgrade_nginx_to_https() {
     print_status "Upgrading Nginx configuration to HTTPS..."
 
+    # Check if we have a certificate for www subdomain
+    local server_names="$DOMAIN"
+    if [[ -d "/etc/letsencrypt/live/$DOMAIN" ]]; then
+        # Check certificate for www domain
+        if openssl x509 -in "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" -text -noout | grep -q "DNS:www.$DOMAIN"; then
+            server_names="$DOMAIN www.$DOMAIN"
+            print_status "Certificate includes www subdomain"
+        else
+            server_names="$DOMAIN"
+            print_status "Certificate is for main domain only"
+        fi
+    fi
+
     cat > "/etc/nginx/sites-available/$DOMAIN" << EOF
 # HTTP redirect to HTTPS
 server {
     listen 80;
     listen [::]:80;
-    server_name $DOMAIN www.$DOMAIN;
+    server_name $server_names;
 
     # Allow certbot renewals
     location ^~ /.well-known/acme-challenge/ {
@@ -1279,7 +1292,7 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name $DOMAIN www.$DOMAIN;
+    server_name $server_names;
 
     # SSL Configuration
     ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
@@ -1394,15 +1407,37 @@ setup_ssl() {
     # Create webroot directory for certbot
     mkdir -p /var/www/html/.well-known/acme-challenge
 
+    # Check if www subdomain exists
+    print_status "Checking if www.$DOMAIN is configured..."
+    local www_domain_exists=false
+    if dig +short "www.$DOMAIN" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' >/dev/null 2>&1; then
+        www_domain_exists=true
+        print_status "www.$DOMAIN has DNS record, including in certificate"
+    else
+        print_status "www.$DOMAIN has no DNS record, requesting certificate for $DOMAIN only"
+    fi
+
     # Use webroot method since nginx is already serving HTTP
-    if certbot certonly --webroot -w /var/www/html -d "$DOMAIN" -d "www.$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive; then
+    if [[ "$www_domain_exists" == "true" ]]; then
+        certbot_cmd="certbot certonly --webroot -w /var/www/html -d \"$DOMAIN\" -d \"www.$DOMAIN\" --email \"$EMAIL\" --agree-tos --non-interactive"
+    else
+        certbot_cmd="certbot certonly --webroot -w /var/www/html -d \"$DOMAIN\" --email \"$EMAIL\" --agree-tos --non-interactive"
+    fi
+
+    if eval $certbot_cmd; then
         print_success "SSL certificate obtained successfully"
     else
         print_error "Failed to obtain SSL certificate"
         print_status "Please check that:"
         print_status "1. DNS records for $DOMAIN point to this server"
-        print_status "2. Port 80 is open and accessible from the internet"
-        print_status "3. No firewall is blocking the connection"
+        if [[ "$www_domain_exists" == "true" ]]; then
+            print_status "2. DNS records for www.$DOMAIN point to this server"
+            print_status "3. Port 80 is open and accessible from the internet"
+            print_status "4. No firewall is blocking the connection"
+        else
+            print_status "2. Port 80 is open and accessible from the internet"
+            print_status "3. No firewall is blocking the connection"
+        fi
         exit 1
     fi
 

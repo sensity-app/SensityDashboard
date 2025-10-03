@@ -3,6 +3,9 @@ const router = express.Router();
 const fs = require('fs').promises;
 const path = require('path');
 const JSZip = require('jszip');
+const db = require('../models/database');
+const logger = require('../utils/logger');
+const { authenticateToken } = require('../middleware/auth');
 
 // Convert sensor array from frontend to object format expected by generateDeviceConfig
 function convertSensorArrayToObject(sensorsArray) {
@@ -54,8 +57,121 @@ function convertSensorArrayToObject(sensorsArray) {
     return sensorsObject;
 }
 
+// Helper function to register device in database
+async function registerDeviceInDatabase(config) {
+    const {
+        device_id,
+        device_name,
+        location_id,
+        device_location,
+        platform,
+        wifi_ssid,
+        wifi_password,
+        ota_enabled,
+        heartbeat_interval,
+        sensors,
+        user
+    } = config;
+
+    // Map sensor types to database sensor type names
+    const sensorTypeMapping = {
+        'light': 'Photodiode',
+        'temperature_humidity': 'Temperature',
+        'motion': 'Motion',
+        'distance': 'Distance',
+        'sound': 'Sound',
+        'gas': 'Gas',
+        'pressure': 'Pressure'
+    };
+
+    try {
+        // Check if device already exists
+        const existingDevice = await db.query('SELECT id FROM devices WHERE id = $1', [device_id]);
+
+        if (existingDevice.rows.length > 0) {
+            // Update existing device
+            await db.query(`
+                UPDATE devices
+                SET name = $1,
+                    location_id = $2,
+                    device_type = $3,
+                    wifi_ssid = $4,
+                    wifi_password = $5,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = $6
+            `, [device_name, location_id, platform, wifi_ssid, wifi_password, device_id]);
+
+            logger.info(`Updated existing device: ${device_id} by ${user?.email || 'system'}`);
+        } else {
+            // Insert new device
+            await db.query(`
+                INSERT INTO devices (id, name, location_id, device_type, wifi_ssid, wifi_password, status)
+                VALUES ($1, $2, $3, $4, $5, $6, 'offline')
+            `, [device_id, device_name, location_id, platform, wifi_ssid, wifi_password]);
+
+            logger.info(`Registered new device: ${device_id} (${device_name}) by ${user?.email || 'system'}`);
+        }
+
+        // Create or update device config
+        await db.query(`
+            INSERT INTO device_configs (device_id, armed, heartbeat_interval, ota_enabled)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (device_id) DO UPDATE
+            SET heartbeat_interval = $3, ota_enabled = $4, updated_at = CURRENT_TIMESTAMP
+        `, [device_id, true, heartbeat_interval, ota_enabled]);
+
+        // Register sensors if provided
+        if (sensors && sensors.length > 0) {
+            for (const sensor of sensors) {
+                if (!sensor.enabled) continue;
+
+                const sensorTypeName = sensorTypeMapping[sensor.type] || sensor.type;
+
+                // Get sensor type ID
+                const sensorTypeResult = await db.query(
+                    'SELECT id FROM sensor_types WHERE LOWER(name) = LOWER($1)',
+                    [sensorTypeName]
+                );
+
+                if (sensorTypeResult.rows.length === 0) {
+                    logger.warn(`Sensor type not found: ${sensorTypeName}, skipping sensor registration`);
+                    continue;
+                }
+
+                const sensorTypeId = sensorTypeResult.rows[0].id;
+
+                // Insert or update device sensor
+                await db.query(`
+                    INSERT INTO device_sensors (device_id, sensor_type_id, pin, name, calibration_offset, calibration_multiplier, enabled)
+                    VALUES ($1, $2, $3, $4, $5, $6, true)
+                    ON CONFLICT (device_id, pin) DO UPDATE
+                    SET sensor_type_id = $2,
+                        name = $4,
+                        calibration_offset = $5,
+                        calibration_multiplier = $6,
+                        enabled = true
+                `, [
+                    device_id,
+                    sensorTypeId,
+                    sensor.pin,
+                    sensor.name || sensor.type,
+                    sensor.calibration_offset || sensor.light_calibration_offset || 0,
+                    sensor.calibration_multiplier || sensor.light_calibration_multiplier || 1
+                ]);
+
+                logger.info(`Registered sensor: ${sensor.name || sensor.type} (${sensor.pin}) for device ${device_id}`);
+            }
+        }
+
+        return { success: true, device_id };
+    } catch (error) {
+        logger.error(`Failed to register device ${device_id}:`, error);
+        throw error;
+    }
+}
+
 // Firmware builder route
-router.post('/build', async (req, res) => {
+router.post('/build', authenticateToken, async (req, res) => {
     try {
         const {
             // Platform
@@ -65,6 +181,7 @@ router.post('/build', async (req, res) => {
             device_id,
             device_name,
             device_location,
+            location_id,
             wifi_ssid,
             wifi_password,
             open_wifi = false,
@@ -196,6 +313,26 @@ router.post('/build', async (req, res) => {
         // Generate ZIP file
         const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
 
+        // Register device in database (or update if already exists)
+        try {
+            await registerDeviceInDatabase({
+                device_id,
+                device_name,
+                location_id: location_id || null,
+                device_location,
+                platform,
+                wifi_ssid,
+                wifi_password,
+                ota_enabled,
+                heartbeat_interval,
+                sensors,
+                user: req.user
+            });
+        } catch (dbError) {
+            logger.warn(`Device registration failed for ${device_id}, but firmware was generated:`, dbError.message);
+            // Continue with firmware download even if DB registration fails
+        }
+
         // Set response headers for file download
         res.set({
             'Content-Type': 'application/zip',
@@ -204,12 +341,12 @@ router.post('/build', async (req, res) => {
         });
 
         // Log firmware generation
-        console.log(`Generated firmware for device: ${device_id} (${device_name})`);
+        logger.info(`Generated firmware for device: ${device_id} (${device_name}) by ${req.user?.email || 'unknown'}`);
 
         res.send(zipBuffer);
 
     } catch (error) {
-        console.error('Firmware generation error:', error);
+        logger.error('Firmware generation error:', error);
         res.status(500).json({
             success: false,
             error: 'Failed to generate firmware package'

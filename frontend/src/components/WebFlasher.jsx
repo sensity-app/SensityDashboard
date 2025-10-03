@@ -133,6 +133,7 @@ const WebFlasher = ({ config, onClose }) => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
                 body: JSON.stringify(config)
             });
@@ -198,6 +199,7 @@ const WebFlasher = ({ config, onClose }) => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
                 body: JSON.stringify(config)
             });

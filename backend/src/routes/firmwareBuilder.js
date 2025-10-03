@@ -227,18 +227,18 @@ const getPlatformConfig = (platform) => {
             language: 'C++',
             available_pins: {
                 digital: [
-                    { pin: 'D0', label: 'D0 (GPIO16)', note: 'LED_BUILTIN, no PWM/interrupt' },
-                    { pin: 'D1', label: 'D1 (GPIO5)', note: 'SCL - avoid if using I2C' },
-                    { pin: 'D2', label: 'D2 (GPIO4)', note: 'SDA - avoid if using I2C' },
-                    { pin: 'D3', label: 'D3 (GPIO0)', note: 'FLASH button, pull-up required' },
-                    { pin: 'D4', label: 'D4 (GPIO2)', note: 'LED_BUILTIN on some boards, pull-up required' },
-                    { pin: 'D5', label: 'D5 (GPIO14)', note: 'SCK' },
-                    { pin: 'D6', label: 'D6 (GPIO12)', note: 'MISO' },
-                    { pin: 'D7', label: 'D7 (GPIO13)', note: 'MOSI' },
-                    { pin: 'D8', label: 'D8 (GPIO15)', note: 'SS, pull-down required' }
+                    { pin: 'D0', label: 'D0', note: 'LED_BUILTIN, no PWM/interrupt (GPIO16)' },
+                    { pin: 'D1', label: 'D1', note: 'SCL - avoid if using I2C (GPIO5)' },
+                    { pin: 'D2', label: 'D2', note: 'SDA - avoid if using I2C (GPIO4)' },
+                    { pin: 'D3', label: 'D3', note: 'FLASH button, pull-up required (GPIO0)' },
+                    { pin: 'D4', label: 'D4', note: 'LED_BUILTIN on some boards, pull-up required (GPIO2)' },
+                    { pin: 'D5', label: 'D5', note: 'SCK (GPIO14)' },
+                    { pin: 'D6', label: 'D6', note: 'MISO (GPIO12)' },
+                    { pin: 'D7', label: 'D7', note: 'MOSI (GPIO13)' },
+                    { pin: 'D8', label: 'D8', note: 'SS, pull-down required (GPIO15)' }
                 ],
                 analog: [
-                    { pin: 'A0', label: 'A0 (ADC0)', note: 'Analog input, 0-1V range, use voltage divider for 3.3V' }
+                    { pin: 'A0', label: 'A0', note: 'Analog input, 0-1V range (ADC0)' }
                 ]
             }
         },
@@ -260,22 +260,22 @@ const getPlatformConfig = (platform) => {
                     { pin: 'GPIO17', label: 'GPIO17', note: 'General purpose' },
                     { pin: 'GPIO18', label: 'GPIO18', note: 'General purpose' },
                     { pin: 'GPIO19', label: 'GPIO19', note: 'General purpose' },
-                    { pin: 'GPIO21', label: 'GPIO21', note: 'SDA (I2C)' },
-                    { pin: 'GPIO22', label: 'GPIO22', note: 'SCL (I2C)' },
+                    { pin: 'GPIO21', label: 'GPIO21', note: 'I2C SDA' },
+                    { pin: 'GPIO22', label: 'GPIO22', note: 'I2C SCL' },
                     { pin: 'GPIO23', label: 'GPIO23', note: 'General purpose' },
-                    { pin: 'GPIO25', label: 'GPIO25', note: 'DAC1' },
-                    { pin: 'GPIO26', label: 'GPIO26', note: 'DAC2' },
+                    { pin: 'GPIO25', label: 'GPIO25', note: 'DAC1 output' },
+                    { pin: 'GPIO26', label: 'GPIO26', note: 'DAC2 output' },
                     { pin: 'GPIO27', label: 'GPIO27', note: 'General purpose' },
-                    { pin: 'GPIO32', label: 'GPIO32', note: 'ADC1_CH4' },
-                    { pin: 'GPIO33', label: 'GPIO33', note: 'ADC1_CH5' }
+                    { pin: 'GPIO32', label: 'GPIO32', note: 'ADC capable' },
+                    { pin: 'GPIO33', label: 'GPIO33', note: 'ADC capable' }
                 ],
                 analog: [
-                    { pin: 'GPIO32', label: 'GPIO32 (ADC1_CH4)', note: 'ADC 0-3.3V' },
-                    { pin: 'GPIO33', label: 'GPIO33 (ADC1_CH5)', note: 'ADC 0-3.3V' },
-                    { pin: 'GPIO34', label: 'GPIO34 (ADC1_CH6)', note: 'Input only, ADC 0-3.3V' },
-                    { pin: 'GPIO35', label: 'GPIO35 (ADC1_CH7)', note: 'Input only, ADC 0-3.3V' },
-                    { pin: 'GPIO36', label: 'GPIO36 (VP)', note: 'Input only, ADC 0-3.3V' },
-                    { pin: 'GPIO39', label: 'GPIO39 (VN)', note: 'Input only, ADC 0-3.3V' }
+                    { pin: 'GPIO32', label: 'GPIO32', note: 'ADC 0-3.3V (ADC1_CH4)' },
+                    { pin: 'GPIO33', label: 'GPIO33', note: 'ADC 0-3.3V (ADC1_CH5)' },
+                    { pin: 'GPIO34', label: 'GPIO34', note: 'Input only, ADC 0-3.3V (ADC1_CH6)' },
+                    { pin: 'GPIO35', label: 'GPIO35', note: 'Input only, ADC 0-3.3V (ADC1_CH7)' },
+                    { pin: 'GPIO36', label: 'GPIO36', note: 'Input only, ADC 0-3.3V (VP)' },
+                    { pin: 'GPIO39', label: 'GPIO39', note: 'Input only, ADC 0-3.3V (VN)' }
                 ]
             }
         },
@@ -286,26 +286,26 @@ const getPlatformConfig = (platform) => {
             language: 'C++',
             available_pins: {
                 digital: [
-                    { pin: '2', label: 'Digital Pin 2', note: 'Interrupt capable' },
-                    { pin: '3', label: 'Digital Pin 3', note: 'PWM, Interrupt' },
-                    { pin: '4', label: 'Digital Pin 4', note: 'General purpose' },
-                    { pin: '5', label: 'Digital Pin 5', note: 'PWM' },
-                    { pin: '6', label: 'Digital Pin 6', note: 'PWM' },
-                    { pin: '7', label: 'Digital Pin 7', note: 'General purpose' },
-                    { pin: '8', label: 'Digital Pin 8', note: 'General purpose' },
-                    { pin: '9', label: 'Digital Pin 9', note: 'PWM' },
-                    { pin: '10', label: 'Digital Pin 10', note: 'PWM, SS' },
-                    { pin: '11', label: 'Digital Pin 11', note: 'PWM, MOSI' },
-                    { pin: '12', label: 'Digital Pin 12', note: 'MISO' },
-                    { pin: '13', label: 'Digital Pin 13', note: 'LED_BUILTIN, SCK' }
+                    { pin: '2', label: 'Pin 2', note: 'Interrupt capable' },
+                    { pin: '3', label: 'Pin 3', note: 'PWM, Interrupt' },
+                    { pin: '4', label: 'Pin 4', note: 'General purpose' },
+                    { pin: '5', label: 'Pin 5', note: 'PWM capable' },
+                    { pin: '6', label: 'Pin 6', note: 'PWM capable' },
+                    { pin: '7', label: 'Pin 7', note: 'General purpose' },
+                    { pin: '8', label: 'Pin 8', note: 'General purpose' },
+                    { pin: '9', label: 'Pin 9', note: 'PWM capable' },
+                    { pin: '10', label: 'Pin 10', note: 'PWM, SPI SS' },
+                    { pin: '11', label: 'Pin 11', note: 'PWM, SPI MOSI' },
+                    { pin: '12', label: 'Pin 12', note: 'SPI MISO' },
+                    { pin: '13', label: 'Pin 13', note: 'Built-in LED, SPI SCK' }
                 ],
                 analog: [
-                    { pin: 'A0', label: 'Analog A0', note: 'ADC 0-5V' },
-                    { pin: 'A1', label: 'Analog A1', note: 'ADC 0-5V' },
-                    { pin: 'A2', label: 'Analog A2', note: 'ADC 0-5V' },
-                    { pin: 'A3', label: 'Analog A3', note: 'ADC 0-5V' },
-                    { pin: 'A4', label: 'Analog A4', note: 'ADC 0-5V, SDA' },
-                    { pin: 'A5', label: 'Analog A5', note: 'ADC 0-5V, SCL' }
+                    { pin: 'A0', label: 'A0', note: 'ADC 0-5V' },
+                    { pin: 'A1', label: 'A1', note: 'ADC 0-5V' },
+                    { pin: 'A2', label: 'A2', note: 'ADC 0-5V' },
+                    { pin: 'A3', label: 'A3', note: 'ADC 0-5V' },
+                    { pin: 'A4', label: 'A4', note: 'ADC 0-5V, I2C SDA' },
+                    { pin: 'A5', label: 'A5', note: 'ADC 0-5V, I2C SCL' }
                 ]
             }
         },
@@ -316,26 +316,26 @@ const getPlatformConfig = (platform) => {
             language: 'Python',
             available_pins: {
                 digital: [
-                    { pin: 'GPIO2', label: 'GPIO2 (Pin 3)', note: 'I2C SDA' },
-                    { pin: 'GPIO3', label: 'GPIO3 (Pin 5)', note: 'I2C SCL' },
-                    { pin: 'GPIO4', label: 'GPIO4 (Pin 7)', note: 'General purpose' },
-                    { pin: 'GPIO17', label: 'GPIO17 (Pin 11)', note: 'General purpose' },
-                    { pin: 'GPIO27', label: 'GPIO27 (Pin 13)', note: 'General purpose' },
-                    { pin: 'GPIO22', label: 'GPIO22 (Pin 15)', note: 'General purpose' },
-                    { pin: 'GPIO10', label: 'GPIO10 (Pin 19)', note: 'SPI MOSI' },
-                    { pin: 'GPIO9', label: 'GPIO9 (Pin 21)', note: 'SPI MISO' },
-                    { pin: 'GPIO11', label: 'GPIO11 (Pin 23)', note: 'SPI SCLK' },
-                    { pin: 'GPIO5', label: 'GPIO5 (Pin 29)', note: 'General purpose' },
-                    { pin: 'GPIO6', label: 'GPIO6 (Pin 31)', note: 'General purpose' },
-                    { pin: 'GPIO13', label: 'GPIO13 (Pin 33)', note: 'PWM' },
-                    { pin: 'GPIO19', label: 'GPIO19 (Pin 35)', note: 'PWM' },
-                    { pin: 'GPIO26', label: 'GPIO26 (Pin 37)', note: 'General purpose' }
+                    { pin: 'GPIO2', label: 'GPIO2', note: 'I2C SDA (Pin 3)' },
+                    { pin: 'GPIO3', label: 'GPIO3', note: 'I2C SCL (Pin 5)' },
+                    { pin: 'GPIO4', label: 'GPIO4', note: 'General purpose (Pin 7)' },
+                    { pin: 'GPIO17', label: 'GPIO17', note: 'General purpose (Pin 11)' },
+                    { pin: 'GPIO27', label: 'GPIO27', note: 'General purpose (Pin 13)' },
+                    { pin: 'GPIO22', label: 'GPIO22', note: 'General purpose (Pin 15)' },
+                    { pin: 'GPIO10', label: 'GPIO10', note: 'SPI MOSI (Pin 19)' },
+                    { pin: 'GPIO9', label: 'GPIO9', note: 'SPI MISO (Pin 21)' },
+                    { pin: 'GPIO11', label: 'GPIO11', note: 'SPI SCLK (Pin 23)' },
+                    { pin: 'GPIO5', label: 'GPIO5', note: 'General purpose (Pin 29)' },
+                    { pin: 'GPIO6', label: 'GPIO6', note: 'General purpose (Pin 31)' },
+                    { pin: 'GPIO13', label: 'GPIO13', note: 'PWM capable (Pin 33)' },
+                    { pin: 'GPIO19', label: 'GPIO19', note: 'PWM capable (Pin 35)' },
+                    { pin: 'GPIO26', label: 'GPIO26', note: 'General purpose (Pin 37)' }
                 ],
                 analog: [
-                    { pin: 'MCP3008_CH0', label: 'MCP3008 Channel 0', note: 'Requires MCP3008 ADC' },
-                    { pin: 'MCP3008_CH1', label: 'MCP3008 Channel 1', note: 'Requires MCP3008 ADC' },
-                    { pin: 'MCP3008_CH2', label: 'MCP3008 Channel 2', note: 'Requires MCP3008 ADC' },
-                    { pin: 'MCP3008_CH3', label: 'MCP3008 Channel 3', note: 'Requires MCP3008 ADC' }
+                    { pin: 'MCP3008_CH0', label: 'Channel 0', note: 'Requires MCP3008 ADC chip' },
+                    { pin: 'MCP3008_CH1', label: 'Channel 1', note: 'Requires MCP3008 ADC chip' },
+                    { pin: 'MCP3008_CH2', label: 'Channel 2', note: 'Requires MCP3008 ADC chip' },
+                    { pin: 'MCP3008_CH3', label: 'Channel 3', note: 'Requires MCP3008 ADC chip' }
                 ]
             }
         }

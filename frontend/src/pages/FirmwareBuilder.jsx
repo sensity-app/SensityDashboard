@@ -822,22 +822,9 @@ const FirmwareBuilder = () => {
                                 </h2>
                             </div>
                             <div className="space-y-6">
-                                {/* Sensor Configuration */}
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-gray-900">Available Sensors</h3>
-                            <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                <span>{enabledSensorsCount} sensors enabled</span>
-                                {pinConflicts.length > 0 && (
-                                    <div className="flex items-center space-x-1 text-red-600">
-                                        <AlertTriangle className="w-4 h-4" />
-                                        <span>{pinConflicts.length} pin conflict{pinConflicts.length > 1 ? 's' : ''}</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
+                                {/* Pin Conflicts Warning */}
                         {pinConflicts.length > 0 && (
-                            <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+                            <div className="bg-red-50 border border-red-200 rounded-md p-4">
                                 <div className="flex items-start space-x-3">
                                     <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
                                     <div>
@@ -853,21 +840,22 @@ const FirmwareBuilder = () => {
                                 </div>
                             </div>
                         )}
-                        <div className="bg-gray-50 rounded-lg p-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {Object.entries(pinMapping).map(([pin, description]) => (
-                                    <div key={pin} className="flex text-sm">
-                                        <span className="font-mono font-medium text-blue-600 w-8">{pin}:</span>
-                                        <span className="text-gray-700">{description}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
 
                         {/* Available Sensor Types */}
                         <div className="space-y-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Available Sensor Types</h3>
+                                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                    <span>{enabledSensorsCount} sensors configured</span>
+                                    {pinConflicts.length > 0 && (
+                                        <div className="flex items-center space-x-1 text-red-600">
+                                            <AlertTriangle className="w-4 h-4" />
+                                            <span>{pinConflicts.length} conflict{pinConflicts.length > 1 ? 's' : ''}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                             <div>
-                                <h4 className="text-lg font-semibold text-gray-900 mb-4">Available Sensor Types</h4>
                                 {Object.entries(sensorOptions).length === 0 ? (
                                     <div className="text-center py-8">
                                         <p className="text-gray-500">Loading sensor options...</p>
@@ -910,6 +898,24 @@ const FirmwareBuilder = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Pin Reference - Collapsible */}
+                            {Object.keys(pinMapping).length > 0 && (
+                                <details className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <summary className="cursor-pointer font-medium text-blue-900 flex items-center">
+                                        <Info className="w-4 h-4 mr-2" />
+                                        Pin Reference Guide ({config.platform.toUpperCase()})
+                                    </summary>
+                                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {Object.entries(pinMapping).map(([pin, description]) => (
+                                            <div key={pin} className="flex text-sm">
+                                                <span className="font-mono font-medium text-blue-700 min-w-[80px]">{pin}</span>
+                                                <span className="text-gray-700">{description}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </details>
+                            )}
 
                             {/* Configured Sensors */}
                             {config.sensors.length > 0 && (

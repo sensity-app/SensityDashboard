@@ -700,10 +700,14 @@ EOF
     # Create password file with secure permissions from the start
     touch /etc/mosquitto/passwd
     chmod 600 /etc/mosquitto/passwd
-    chown mosquitto:mosquitto /etc/mosquitto/passwd
+    chown root:root /etc/mosquitto/passwd
 
     # Add user credentials
     mosquitto_passwd -b /etc/mosquitto/passwd "$MQTT_USERNAME" "$MQTT_PASSWORD"
+
+    # Ensure password file has correct ownership
+    chown root:root /etc/mosquitto/passwd
+    chmod 600 /etc/mosquitto/passwd
 
     # Create and set permissions for log directory
     mkdir -p /var/log/mosquitto
@@ -715,8 +719,9 @@ EOF
     chown mosquitto:mosquitto /var/lib/mosquitto
     chmod 755 /var/lib/mosquitto
 
-    # Set proper ownership on configuration
-    chown -R mosquitto:mosquitto /etc/mosquitto
+    # Set proper ownership on configuration (but not passwd file)
+    chown mosquitto:mosquitto /etc/mosquitto/*.conf 2>/dev/null || true
+    chown mosquitto:mosquitto /etc/mosquitto/conf.d/*.conf 2>/dev/null || true
 
     # Enable and start mosquitto service
     systemctl enable mosquitto

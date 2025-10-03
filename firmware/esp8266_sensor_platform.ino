@@ -1,3 +1,4 @@
+#include "device_config.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266httpUpdate.h>
@@ -5,9 +6,15 @@
 #include <WiFiClientSecure.h>
 #include <EEPROM.h>
 #include <cstring>
+
+// Conditional sensor library includes
+#if SENSOR_DHT_ENABLED
 #include <DHT.h>
+#endif
+
+#if SENSOR_DISTANCE_ENABLED
 #include <Ultrasonic.h>
-#include "device_config.h"
+#endif
 
 // Configuration structure
 struct DeviceConfig {
@@ -61,8 +68,13 @@ WiFiClientSecure secureClient;
 #endif
 
 // Hardware instances (initialize based on configuration)
+#if SENSOR_DHT_ENABLED
 DHT* dht = nullptr;
+#endif
+
+#if SENSOR_DISTANCE_ENABLED
 Ultrasonic* ultrasonic = nullptr;
+#endif
 
 void setup() {
     Serial.begin(115200);

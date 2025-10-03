@@ -1215,6 +1215,7 @@ const FirmwareBuilder = () => {
                                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                             : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
                                     }`}
+                                    title="Flash firmware directly to ESP8266 via Web Serial API"
                                 >
                                     <Zap className="w-5 h-5" />
                                     <span>Flash to Device</span>

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Zap, Download, AlertTriangle, CheckCircle, Upload, Usb } from 'lucide-react';
+import { ESPLoader, Transport } from 'esptool-js';
 
 const WebFlasher = ({ config, onClose }) => {
     const [isFlashing, setIsFlashing] = useState(false);
@@ -127,9 +128,11 @@ const WebFlasher = ({ config, onClose }) => {
         setFlashStatus('Building firmware...');
 
         try {
-            // Step 1: Generate firmware
-            addLog('Generating firmware...', 'info');
-            const buildResponse = await fetch('/api/firmware-builder/build', {
+            // Step 1: Compile firmware to binary
+            addLog('Compiling firmware...', 'info');
+            setFlashStatus('Compiling firmware...');
+
+            const compileResponse = await fetch('/api/firmware-builder/compile', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -138,24 +141,17 @@ const WebFlasher = ({ config, onClose }) => {
                 body: JSON.stringify(config)
             });
 
-            if (!buildResponse.ok) {
-                throw new Error('Failed to generate firmware');
+            if (!compileResponse.ok) {
+                const error = await compileResponse.json();
+                throw new Error(error.error || 'Failed to compile firmware');
             }
 
-            const firmwareBlob = await buildResponse.blob();
-            addLog('Firmware generated successfully', 'success');
-            setFlashProgress(25);
+            const compiledFirmware = await compileResponse.json();
+            addLog('Firmware compiled successfully', 'success');
+            setFlashProgress(20);
 
-            // Step 2: Extract firmware files
-            setFlashStatus('Preparing firmware files...');
-            addLog('Extracting firmware files...', 'info');
-
-            // For demonstration, we'll simulate the flashing process
-            // In a real implementation, you would need to:
-            // 1. Parse the .ino file and compile it to binary
-            // 2. Use esptool-js or similar to flash the binary
-
-            await simulateFlashing();
+            // Step 2: Flash to device using ESPTool
+            await flashToDevice(compiledFirmware.flashFiles);
 
         } catch (error) {
             console.error('Flash error:', error);
@@ -166,29 +162,92 @@ const WebFlasher = ({ config, onClose }) => {
         }
     };
 
-    const simulateFlashing = async () => {
-        // This simulates the flashing process
-        // In reality, you would need to implement actual ESP8266 flashing
-        const steps = [
-            { message: 'Putting device into flash mode...', progress: 30 },
-            { message: 'Erasing flash memory...', progress: 40 },
-            { message: 'Writing firmware...', progress: 70 },
-            { message: 'Verifying firmware...', progress: 90 },
-            { message: 'Restarting device...', progress: 100 }
-        ];
-
-        for (const step of steps) {
-            setFlashStatus(step.message);
-            addLog(step.message, 'info');
-            setFlashProgress(step.progress);
-
-            // Simulate time delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
+    const flashToDevice = async (flashFiles) => {
+        if (!port) {
+            throw new Error('Device not connected');
         }
 
-        setFlashStatus('Flash completed successfully!');
-        addLog('Firmware flashed successfully!', 'success');
-        addLog('Device should restart automatically', 'info');
+        try {
+            setFlashStatus('Connecting to ESP8266...');
+            addLog('Initializing ESPTool...', 'info');
+            setFlashProgress(25);
+
+            // Create transport
+            const transport = new Transport(port);
+
+            // Create ESPLoader with progress callbacks
+            const esploader = new ESPLoader(transport, 115200);
+
+            setFlashStatus('Connecting to chip...');
+            addLog('Connecting to ESP8266...', 'info');
+
+            // Connect to chip
+            await esploader.main_fn();
+
+            addLog(`Connected to ${esploader.chip.CHIP_NAME}`, 'success');
+            setFlashProgress(35);
+
+            // Prepare flash files
+            setFlashStatus('Preparing flash data...');
+            addLog('Preparing firmware for flashing...', 'info');
+
+            const fileArray = flashFiles.map(file => ({
+                data: Uint8Array.from(atob(file.data), c => c.charCodeAt(0)),
+                address: file.address
+            }));
+
+            setFlashProgress(45);
+
+            // Flash firmware
+            setFlashStatus('Erasing flash...');
+            addLog('Erasing flash memory...', 'info');
+
+            await esploader.erase_flash();
+            addLog('Flash erased', 'success');
+            setFlashProgress(55);
+
+            setFlashStatus('Writing firmware...');
+            addLog('Writing firmware to flash...', 'info');
+
+            // Write each file
+            for (let i = 0; i < fileArray.length; i++) {
+                const file = fileArray[i];
+                const progress = 55 + (35 * (i + 1) / fileArray.length);
+
+                addLog(`Writing ${file.data.length} bytes at address 0x${file.address.toString(16)}...`, 'info');
+
+                await esploader.write_flash({
+                    fileArray: [file],
+                    flash_size: "4MB",
+                    flash_mode: "dio",
+                    flash_freq: "40m",
+                    compress: true,
+                    reportProgress: (fileIndex, written, total) => {
+                        const fileProgress = (written / total) * (35 / fileArray.length);
+                        setFlashProgress(55 + (35 * i / fileArray.length) + fileProgress);
+                    }
+                });
+
+                addLog(`Written ${file.data.length} bytes successfully`, 'success');
+                setFlashProgress(progress);
+            }
+
+            setFlashProgress(90);
+
+            setFlashStatus('Restarting device...');
+            addLog('Resetting ESP8266...', 'info');
+
+            await esploader.hard_reset();
+
+            setFlashProgress(100);
+            setFlashStatus('Flash completed successfully!');
+            addLog('Firmware flashed successfully!', 'success');
+            addLog('Device should connect to WiFi and appear online shortly', 'success');
+
+        } catch (error) {
+            addLog(`Flash error: ${error.message}`, 'error');
+            throw error;
+        }
     };
 
     const downloadInsteadOfFlash = async () => {

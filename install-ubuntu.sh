@@ -15,6 +15,7 @@
 # - PM2 process manager
 # - UFW firewall configuration
 # - Automatic SSL certificates via Let's Encrypt
+# - Arduino CLI for web-based ESP8266 firmware compilation
 #
 # Usage: curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo bash
 # Or: wget -qO- https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo bash
@@ -548,6 +549,74 @@ install_nodejs() {
     NODE_VER=$(node --version)
     NPM_VER=$(npm --version)
     print_success "Node.js $NODE_VER and npm $NPM_VER installed"
+}
+
+# Function to install Arduino CLI for firmware compilation
+install_arduino_cli() {
+    print_status "Installing Arduino CLI for firmware compilation..."
+
+    # Detect architecture
+    ARCH=$(uname -m)
+    case $ARCH in
+        x86_64)
+            ARDUINO_ARCH="Linux_64bit"
+            ;;
+        aarch64|arm64)
+            ARDUINO_ARCH="Linux_ARM64"
+            ;;
+        armv7l)
+            ARDUINO_ARCH="Linux_ARMv7"
+            ;;
+        *)
+            print_warning "Unsupported architecture: $ARCH"
+            print_warning "Skipping Arduino CLI installation"
+            return 0
+            ;;
+    esac
+
+    # Download and install Arduino CLI
+    ARDUINO_CLI_VERSION="1.3.1"
+    ARDUINO_CLI_URL="https://github.com/arduino/arduino-cli/releases/download/v${ARDUINO_CLI_VERSION}/arduino-cli_${ARDUINO_CLI_VERSION}_${ARDUINO_ARCH}.tar.gz"
+
+    print_status "Downloading Arduino CLI ${ARDUINO_CLI_VERSION} for ${ARDUINO_ARCH}..."
+    wget -q "$ARDUINO_CLI_URL" -O /tmp/arduino-cli.tar.gz
+
+    # Extract and install
+    tar -xzf /tmp/arduino-cli.tar.gz -C /tmp/
+    mv /tmp/arduino-cli /usr/local/bin/
+    chmod +x /usr/local/bin/arduino-cli
+    rm /tmp/arduino-cli.tar.gz
+
+    # Verify installation
+    if command -v arduino-cli &> /dev/null; then
+        ARDUINO_VER=$(arduino-cli version 2>&1 | head -n1)
+        print_success "Arduino CLI installed: $ARDUINO_VER"
+    else
+        print_error "Arduino CLI installation failed"
+        return 1
+    fi
+
+    # Initialize Arduino CLI configuration
+    print_status "Configuring Arduino CLI..."
+    sudo -u "$APP_USER" arduino-cli config init --overwrite 2>/dev/null || arduino-cli config init --overwrite
+
+    # Add ESP8266 board manager URL
+    print_status "Adding ESP8266 board support..."
+    sudo -u "$APP_USER" arduino-cli config add board_manager.additional_urls http://arduino.esp8266.com/stable/package_esp8266com_index.json
+    sudo -u "$APP_USER" arduino-cli core update-index
+
+    # Install ESP8266 core
+    print_status "Installing ESP8266 core (this may take a few minutes)..."
+    sudo -u "$APP_USER" arduino-cli core install esp8266:esp8266
+
+    # Install required libraries
+    print_status "Installing Arduino libraries..."
+    sudo -u "$APP_USER" arduino-cli lib install "ArduinoJson"
+    sudo -u "$APP_USER" arduino-cli lib install "DHT sensor library"
+    sudo -u "$APP_USER" arduino-cli lib install "Adafruit Unified Sensor"
+    sudo -u "$APP_USER" arduino-cli lib install "Ultrasonic"
+
+    print_success "Arduino CLI configured with ESP8266 support and required libraries"
 }
 
 # Function to install PostgreSQL
@@ -1854,6 +1923,7 @@ main() {
     install_redis
     install_mqtt_broker  # New: Optional MQTT broker installation
     create_app_user
+    install_arduino_cli  # Install Arduino CLI for web-based firmware flashing
     setup_application
     install_app_dependencies
     create_env_files     # Must be before setup_database so migrations can connect

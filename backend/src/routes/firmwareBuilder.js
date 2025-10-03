@@ -6,6 +6,7 @@ const JSZip = require('jszip');
 const db = require('../models/database');
 const logger = require('../utils/logger');
 const { authenticateToken } = require('../middleware/auth');
+const firmwareCompiler = require('../services/firmwareCompiler');
 
 // Convert sensor array from frontend to object format expected by generateDeviceConfig
 function convertSensorArrayToObject(sensorsArray) {
@@ -351,6 +352,99 @@ router.post('/build', authenticateToken, async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to generate firmware package'
+        });
+    }
+});
+
+// POST /api/firmware-builder/compile - Compile firmware to binary for web flashing
+router.post('/compile', authenticateToken, async (req, res) => {
+    try {
+        const {
+            platform = 'esp8266',
+            device_id,
+            device_name,
+            device_location,
+            wifi_ssid,
+            wifi_password,
+            open_wifi = false,
+            server_url,
+            api_key,
+            heartbeat_interval = 300,
+            sensor_read_interval = 5000,
+            debug_mode = false,
+            ota_enabled = true,
+            device_armed = true,
+            sensors = []
+        } = req.body;
+
+        // Validate required fields
+        if (!device_id || !device_name || !wifi_ssid || !server_url) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: device_id, device_name, wifi_ssid, server_url'
+            });
+        }
+
+        // Only support ESP8266 for now
+        if (platform !== 'esp8266') {
+            return res.status(400).json({
+                success: false,
+                error: 'Web flashing currently only supports ESP8266 platform'
+            });
+        }
+
+        // Convert sensor array to object format
+        const sensorsObject = convertSensorArrayToObject(sensors);
+
+        // Generate device configuration header
+        const configContent = generateDeviceConfig({
+            device_id,
+            device_name,
+            device_location: device_location || 'Unknown',
+            wifi_ssid,
+            wifi_password,
+            server_url,
+            api_key: api_key || '',
+            heartbeat_interval,
+            sensor_read_interval,
+            debug_mode,
+            ota_enabled,
+            device_armed,
+            sensors: sensorsObject
+        });
+
+        // Read base firmware file
+        const firmwarePath = path.join(__dirname, '../../../firmware');
+        const mainFirmware = await fs.readFile(path.join(firmwarePath, 'esp8266_sensor_platform.ino'), 'utf8');
+
+        logger.info(`Compiling firmware for device: ${device_id} (${device_name})`);
+
+        // Compile firmware using arduino-cli
+        const compilationResult = await firmwareCompiler.compile(device_id, mainFirmware, configContent);
+
+        if (!compilationResult.success) {
+            return res.status(500).json({
+                success: false,
+                error: 'Firmware compilation failed'
+            });
+        }
+
+        logger.info(`Firmware compiled successfully for ${device_id}`);
+
+        // Return compiled binary for web flashing
+        res.json({
+            success: true,
+            device_id,
+            flashFiles: compilationResult.flashFiles,
+            chipFamily: 'ESP8266',
+            message: 'Firmware compiled successfully'
+        });
+
+    } catch (error) {
+        logger.error('Firmware compilation error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to compile firmware'
         });
     }
 });

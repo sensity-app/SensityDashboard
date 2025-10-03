@@ -16,8 +16,8 @@
 # - UFW firewall configuration
 # - Automatic SSL certificates via Let's Encrypt
 #
-# Usage: curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo bash
-# Or: wget -qO- https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo bash
+# Usage: curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo bash
+# Or: wget -qO- https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo bash
 #
 ###############################################################################
 
@@ -403,7 +403,7 @@ gather_input() {
         print_error "This script requires interactive input but is being run in a non-interactive environment."
         echo
         print_status "To run this script interactively, save it first and run it directly:"
-        echo "  wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh"
+        echo "  wget https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh"
         echo "  chmod +x install-ubuntu.sh"
         echo "  sudo ./install-ubuntu.sh"
         echo
@@ -415,14 +415,14 @@ gather_input() {
         echo "  export DB_PASSWORD=your-secure-password"
         echo "  export MQTT_USERNAME=your-mqtt-user    # Optional, defaults to 'iot'"
         echo "  export MQTT_PASSWORD=your-mqtt-pass    # Optional, auto-generated if not set"
-        echo "  curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash"
+        echo "  curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo -E bash"
         echo
         echo "  For development (no SSL, IP access only):"
         echo "  export DEVELOPMENT_MODE=true"
         echo "  export DB_PASSWORD=your-secure-password"
         echo "  export MQTT_USERNAME=your-mqtt-user    # Optional, defaults to 'iot'"
         echo "  export MQTT_PASSWORD=your-mqtt-pass    # Optional, auto-generated if not set"
-        echo "  curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash"
+        echo "  curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo -E bash"
         echo
         exit 1
     fi
@@ -757,7 +757,7 @@ setup_application() {
         cd "$APP_DIR"
         sudo -u "$APP_USER" git pull origin main
     else
-        sudo -u "$APP_USER" git clone https://github.com/martinkadlcek/ESP-Management-Platform.git "$APP_DIR"
+        sudo -u "$APP_USER" git clone https://github.com/sensity-app/SensityDashboard.git "$APP_DIR"
         cd "$APP_DIR"
     fi
 
@@ -1583,9 +1583,9 @@ sudo -u postgres psql -d esp8266_platform < backup.sql
 - UFW firewall is active (SSH + HTTP/HTTPS only)
 
 For support, check the logs and refer to the project documentation:
-- GitHub Repository: https://github.com/martinkadlcek/ESP-Management-Platform
-- Issues: https://github.com/martinkadlcek/ESP-Management-Platform/issues
-- Documentation: https://github.com/martinkadlcek/ESP-Management-Platform/blob/main/README.md
+- GitHub Repository: https://github.com/sensity-app/SensityDashboard
+- Issues: https://github.com/sensity-app/SensityDashboard/issues
+- Documentation: https://github.com/sensity-app/SensityDashboard/blob/main/README.md
 EOF
 
     chown "$APP_USER:$APP_USER" "$APP_DIR/INSTALLATION_INFO.md"

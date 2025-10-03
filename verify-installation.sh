@@ -382,9 +382,9 @@ echo "4. Configure email/SMS settings in backend/.env (optional)"
 echo "5. Test firmware builder functionality"
 echo
 echo -e "${YELLOW}Support Resources:${NC}"
-echo "• GitHub: https://github.com/martinkadlcek/ESP-Management-Platform"
-echo "• Issues: https://github.com/martinkadlcek/ESP-Management-Platform/issues"
-echo "• Docs: https://github.com/martinkadlcek/ESP-Management-Platform/blob/main/README.md"
+echo "• GitHub: https://github.com/sensity-app/SensityDashboard"
+echo "• Issues: https://github.com/sensity-app/SensityDashboard/issues"
+echo "• Docs: https://github.com/sensity-app/SensityDashboard/blob/main/README.md"
 
 echo
 echo -e "${GREEN}Verification completed!${NC}"

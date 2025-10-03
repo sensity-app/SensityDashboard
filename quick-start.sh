@@ -4,7 +4,7 @@
 # ESP8266 IoT Management Platform - Quick Start Script
 #
 # This script provides easy deployment options for the ESP8266 platform
-# Repository: https://github.com/martinkadlcek/ESP-Management-Platform
+# Repository: https://github.com/sensity-app/SensityDashboard
 ###############################################################################
 
 set -e
@@ -21,7 +21,7 @@ print_header() {
 ╔═══════════════════════════════════════════════════════════════╗
 ║           ESP8266 IoT Management Platform - Quick Start      ║
 ║                                                               ║
-║  Repository: github.com/martinkadlcek/ESP-Management-Platform║
+║  Repository: github.com/sensity-app/SensityDashboard║
 ╚═══════════════════════════════════════════════════════════════╝${NC}"
 }
 
@@ -95,7 +95,7 @@ ubuntu_install() {
 
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_info "Starting Ubuntu installation..."
-        curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo bash
+        curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo bash
     else
         print_info "Installation cancelled"
     fi
@@ -127,7 +127,7 @@ docker_install() {
     # Clone repository if not exists
     if [[ ! -d "ESP-Management-Platform" ]]; then
         print_info "Cloning repository..."
-        git clone https://github.com/martinkadlcek/ESP-Management-Platform.git
+        git clone https://github.com/sensity-app/SensityDashboard.git
         cd ESP-Management-Platform
     else
         print_info "Repository already exists, updating..."
@@ -173,7 +173,7 @@ manual_install() {
     # Clone repository
     if [[ ! -d "ESP-Management-Platform" ]]; then
         print_info "Cloning repository..."
-        git clone https://github.com/martinkadlcek/ESP-Management-Platform.git
+        git clone https://github.com/sensity-app/SensityDashboard.git
         cd ESP-Management-Platform
     else
         print_info "Repository already exists, updating..."
@@ -207,7 +207,7 @@ verify_installation() {
             cd ESP-Management-Platform
         else
             print_info "Downloading verification script..."
-            curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/verify-installation.sh -o verify-installation.sh
+            curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/verify-installation.sh -o verify-installation.sh
             chmod +x verify-installation.sh
         fi
     fi
@@ -230,16 +230,16 @@ view_documentation() {
     echo -e "${YELLOW}📚 Available Documentation:${NC}"
     echo
     echo "• Main Repository:"
-    echo "  https://github.com/martinkadlcek/ESP-Management-Platform"
+    echo "  https://github.com/sensity-app/SensityDashboard"
     echo
     echo "• Deployment Guide (DEPLOYMENT.md):"
-    echo "  https://github.com/martinkadlcek/ESP-Management-Platform/blob/main/DEPLOYMENT.md"
+    echo "  https://github.com/sensity-app/SensityDashboard/blob/main/DEPLOYMENT.md"
     echo
     echo "• Firmware Builder Documentation:"
-    echo "  https://github.com/martinkadlcek/ESP-Management-Platform/blob/main/FIRMWARE_BUILDER_README.md"
+    echo "  https://github.com/sensity-app/SensityDashboard/blob/main/FIRMWARE_BUILDER_README.md"
     echo
     echo "• Issue Tracker:"
-    echo "  https://github.com/martinkadlcek/ESP-Management-Platform/issues"
+    echo "  https://github.com/sensity-app/SensityDashboard/issues"
     echo
     echo -e "${YELLOW}🔧 Supported Sensors:${NC}"
     echo "• DHT22 (Temperature/Humidity) - Pin D4"
@@ -286,7 +286,7 @@ while true; do
         0)
             echo
             print_success "Thank you for using ESP8266 IoT Management Platform!"
-            print_info "Repository: https://github.com/martinkadlcek/ESP-Management-Platform"
+            print_info "Repository: https://github.com/sensity-app/SensityDashboard"
             print_info "Star the repo if you find it useful! ⭐"
             exit 0
             ;;

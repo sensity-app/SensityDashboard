@@ -22,7 +22,7 @@ let updateStatus = {
 };
 
 // GitHub repository configuration
-const GITHUB_REPO = 'martinkadlcek/ESP-Management-Platform';
+const GITHUB_REPO = 'sensity-app/SensityDashboard';
 const GITHUB_RAW_URL = `https://raw.githubusercontent.com/${GITHUB_REPO}/main`;
 
 /**

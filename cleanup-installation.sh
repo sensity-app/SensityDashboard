@@ -4,7 +4,7 @@
 # ESP8266 IoT Platform - Installation Cleanup Script
 #
 # This script removes all components of a failed or existing installation
-# Repository: https://github.com/martinkadlcek/ESP-Management-Platform
+# Repository: https://github.com/sensity-app/SensityDashboard
 ###############################################################################
 
 set -e
@@ -156,7 +156,7 @@ cleanup_installation() {
     print_success "Cleanup completed successfully!"
     echo
     print_status "The system is now ready for a fresh installation."
-    print_status "You can run the installer again: wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh"
+    print_status "You can run the installer again: wget https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh"
 }
 
 show_components() {

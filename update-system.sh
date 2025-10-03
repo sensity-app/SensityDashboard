@@ -11,7 +11,7 @@ set -e
 # Configuration
 APP_USER="esp8266app"
 APP_DIR="/opt/esp8266-platform"
-REPO_URL="https://github.com/martinkadlcek/ESP-Management-Platform.git"
+REPO_URL="https://github.com/sensity-app/SensityDashboard.git"
 
 # Colors
 RED='\033[0;31m'

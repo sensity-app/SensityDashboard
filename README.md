@@ -100,7 +100,7 @@ A comprehensive web-based platform for managing ESP8266 IoT devices with **drag-
 
 **Interactive Installation:**
 ```bash
-wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh
+wget https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh
 chmod +x install-ubuntu.sh
 sudo ./install-ubuntu.sh
 ```
@@ -109,7 +109,7 @@ sudo ./install-ubuntu.sh
 ```bash
 export DEVELOPMENT_MODE=true
 export DB_PASSWORD=your-secure-password
-curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash
+curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo -E bash
 ```
 
 **Production Mode (HTTPS with domain):**
@@ -117,7 +117,7 @@ curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platfor
 export DOMAIN=your-domain.com
 export EMAIL=your-email@example.com
 export DB_PASSWORD=your-secure-password
-curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash
+curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo -E bash
 ```
 
 This will:
@@ -137,7 +137,7 @@ This will:
 ### Option 2: Docker Deployment
 
 ```bash
-git clone https://github.com/martinkadlcek/ESP-Management-Platform.git
+git clone https://github.com/sensity-app/SensityDashboard.git
 cd ESP-Management-Platform
 docker-compose up -d
 ```
@@ -246,14 +246,14 @@ The platform includes a built-in update manager accessible from the web interfac
 
 **Download and run the update script:**
 ```bash
-wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/update-system.sh
+wget https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/update-system.sh
 chmod +x update-system.sh
 sudo ./update-system.sh
 ```
 
 **Or use curl:**
 ```bash
-curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/update-system.sh | sudo bash
+curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/update-system.sh | sudo bash
 ```
 
 ### Update Process
@@ -370,7 +370,7 @@ sudo -u esp8266app pm2 restart all
 
 ```bash
 # Clone repository
-git clone https://github.com/martinkadlcek/ESP-Management-Platform.git
+git clone https://github.com/sensity-app/SensityDashboard.git
 cd ESP-Management-Platform
 
 # Backend setup
@@ -479,8 +479,8 @@ ESP-Management-Platform/
 
 ### Getting Help
 - 📚 **Documentation**: Check the docs in this repository
-- 🐛 **Bug Reports**: [Create an issue](https://github.com/martinkadlcek/ESP-Management-Platform/issues)
-- 💡 **Feature Requests**: [Suggest improvements](https://github.com/martinkadlcek/ESP-Management-Platform/issues)
+- 🐛 **Bug Reports**: [Create an issue](https://github.com/sensity-app/SensityDashboard/issues)
+- 💡 **Feature Requests**: [Suggest improvements](https://github.com/sensity-app/SensityDashboard/issues)
 - 💬 **Discussions**: Use GitHub Discussions for questions
 
 ### Troubleshooting
@@ -529,7 +529,7 @@ If your installation fails or you need to start over:
 **Automatic Cleanup (Recommended):**
 ```bash
 # The installer will detect existing components and offer cleanup
-wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh
+wget https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh
 sudo ./install-ubuntu.sh
 ```
 
@@ -569,7 +569,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Interactive Installation:**
 ```bash
-wget https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh
+wget https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh
 chmod +x install-ubuntu.sh
 sudo ./install-ubuntu.sh
 ```
@@ -577,13 +577,13 @@ sudo ./install-ubuntu.sh
 **Development Mode (HTTP only):**
 ```bash
 export DEVELOPMENT_MODE=true DB_PASSWORD=your-password
-curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash
+curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo -E bash
 ```
 
 **Production Mode (HTTPS):**
 ```bash
 export DOMAIN=your-domain.com EMAIL=your-email@example.com DB_PASSWORD=your-password
-curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash
+curl -sSL https://raw.githubusercontent.com/sensity-app/SensityDashboard/main/install-ubuntu.sh | sudo -E bash
 ```
 
 ### Or Explore First

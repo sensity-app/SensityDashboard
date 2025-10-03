@@ -289,24 +289,41 @@ const FirmwareBuilder = () => {
 
         setLoading(true);
         try {
+            // Find location_id if device_location is specified
+            let locationId = null;
+            if (config.device_location) {
+                const location = locations.find(loc => loc.name === config.device_location);
+                if (location) {
+                    locationId = location.id;
+                }
+            }
+
+            // Prepare config with location_id
+            const buildConfig = {
+                ...config,
+                location_id: locationId
+            };
+
             // Debug: Log the config being sent
-            console.log('Sending firmware build request with config:', config);
+            console.log('Sending firmware build request with config:', buildConfig);
             console.log('Required fields check:', {
                 device_id: config.device_id,
                 device_name: config.device_name,
                 wifi_ssid: config.wifi_ssid,
                 wifi_password: config.wifi_password,
                 open_wifi: config.open_wifi,
-                server_url: config.server_url
+                server_url: config.server_url,
+                location_id: locationId
             });
 
-            // First, build the firmware
+            // Build the firmware (this will also register the device in the database)
             const response = await fetch('/api/firmware-builder/build', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify(config)
+                body: JSON.stringify(buildConfig)
             });
 
             if (response.ok) {
@@ -322,14 +339,8 @@ const FirmwareBuilder = () => {
 
                 setDownloadUrl(url);
 
-                // After successful firmware build, create the device in database
-                try {
-                    await createDeviceFromConfig();
-                    alert('Firmware built successfully and device created in database!');
-                } catch (deviceError) {
-                    console.warn('Firmware built but failed to create device:', deviceError);
-                    alert('Firmware built successfully, but failed to create device in database. You can create it manually in the devices section.');
-                }
+                // Device is automatically registered by the backend during firmware build
+                alert('Firmware built successfully! Device has been registered in the database and is ready to use once flashed.');
             } else {
                 const error = await response.json();
                 alert('Failed to build firmware: ' + (error.error || 'Unknown error'));

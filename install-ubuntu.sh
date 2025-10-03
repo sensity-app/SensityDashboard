@@ -38,6 +38,8 @@ EMAIL=""
 DB_PASSWORD=""
 JWT_SECRET=""
 DEVELOPMENT_MODE=""
+MQTT_USERNAME=""
+MQTT_PASSWORD=""
 APP_USER="esp8266app"
 APP_DIR="/opt/esp8266-platform"
 NODE_VERSION="18"
@@ -70,6 +72,46 @@ print_header() {
 "
 }
 
+# Function to check if port is available
+check_port() {
+    local port=$1
+    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+        return 1
+    fi
+    return 0
+}
+
+# Function to validate DNS configuration
+validate_dns() {
+    local domain=$1
+    print_status "Validating DNS configuration for $domain..."
+
+    # Get server's public IP
+    local server_ip=$(curl -s ifconfig.me 2>/dev/null || curl -s icanhazip.com 2>/dev/null)
+    if [[ -z "$server_ip" ]]; then
+        print_warning "Could not determine server's public IP address"
+        return 0
+    fi
+
+    # Resolve domain
+    local domain_ip=$(dig +short $domain | tail -n1 2>/dev/null)
+    if [[ -z "$domain_ip" ]]; then
+        print_error "Could not resolve domain $domain"
+        print_error "Please ensure DNS records are configured before continuing"
+        return 1
+    fi
+
+    # Compare IPs
+    if [[ "$server_ip" != "$domain_ip" ]]; then
+        print_warning "DNS mismatch: $domain points to $domain_ip, but server IP is $server_ip"
+        print_warning "SSL certificate acquisition may fail if DNS is not properly configured"
+        return 1
+    fi
+
+    print_success "DNS configuration valid"
+    return 0
+}
+
 # Function to check system requirements
 check_requirements() {
     print_status "Checking system requirements..."
@@ -91,6 +133,72 @@ check_requirements() {
     fi
 
     print_success "System requirements check passed"
+}
+
+# Function to run pre-installation validation checks
+validate_installation() {
+    print_status "Running pre-installation validation checks..."
+
+    local validation_failed=0
+
+    # Check for running apt/dpkg processes
+    print_status "Checking for running package manager processes..."
+    if pgrep -x apt-get >/dev/null || pgrep -x dpkg >/dev/null || pgrep -x apt >/dev/null; then
+        print_error "Package manager (apt/dpkg) is currently running"
+        print_error "Please wait for other package operations to complete or run:"
+        print_error "  sudo killall apt apt-get dpkg"
+        validation_failed=1
+    else
+        print_success "No conflicting package manager processes found"
+    fi
+
+    # Check if required ports are available
+    print_status "Checking required ports availability..."
+    local required_ports=(80 443 3000 5432 6379 1883)
+    local ports_in_use=()
+
+    for port in "${required_ports[@]}"; do
+        if ! check_port $port; then
+            ports_in_use+=($port)
+            print_error "Port $port is already in use"
+            validation_failed=1
+        fi
+    done
+
+    if [[ ${#ports_in_use[@]} -eq 0 ]]; then
+        print_success "All required ports are available"
+    else
+        print_error "The following ports are in use: ${ports_in_use[*]}"
+        print_error "Please free these ports before continuing"
+    fi
+
+    # Check network connectivity
+    print_status "Checking network connectivity..."
+    if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+        print_error "No network connectivity"
+        validation_failed=1
+    else
+        print_success "Network connectivity OK"
+    fi
+
+    # Check if DNS tools are available
+    print_status "Checking for required tools..."
+    local required_tools=("curl" "dig" "lsof")
+    for tool in "${required_tools[@]}"; do
+        if ! command -v $tool &> /dev/null; then
+            print_warning "$tool not found, installing..."
+            apt-get update -qq && apt-get install -y -qq $tool
+        fi
+    done
+    print_success "Required tools available"
+
+    if [[ $validation_failed -eq 1 ]]; then
+        print_error "Pre-installation validation failed"
+        print_error "Please resolve the above issues before continuing"
+        exit 1
+    fi
+
+    print_success "Pre-installation validation passed"
 }
 
 # Function to get user input for configuration
@@ -165,6 +273,14 @@ check_env_vars() {
             return 1  # Let gather_input handle this
         fi
 
+        # Set MQTT defaults if not provided
+        if [[ -z "$MQTT_USERNAME" ]]; then
+            MQTT_USERNAME="iot"
+        fi
+        if [[ -z "$MQTT_PASSWORD" ]]; then
+            MQTT_PASSWORD=$(openssl rand -base64 16 | tr -d '\n')
+        fi
+
         # Generate JWT secret
         JWT_SECRET=$(openssl rand -base64 64 | tr -d '\n')
         print_success "Development mode configuration validated successfully"
@@ -188,6 +304,14 @@ check_env_vars() {
         # Check password length
         if [[ ${#DB_PASSWORD} -lt 8 ]]; then
             return 1  # Let gather_input handle this
+        fi
+
+        # Set MQTT defaults if not provided
+        if [[ -z "$MQTT_USERNAME" ]]; then
+            MQTT_USERNAME="iot"
+        fi
+        if [[ -z "$MQTT_PASSWORD" ]]; then
+            MQTT_PASSWORD=$(openssl rand -base64 16 | tr -d '\n')
         fi
 
         # Generate JWT secret
@@ -223,11 +347,15 @@ gather_input() {
         echo "  export DOMAIN=your-domain.com"
         echo "  export EMAIL=your-email@example.com"
         echo "  export DB_PASSWORD=your-secure-password"
+        echo "  export MQTT_USERNAME=your-mqtt-user    # Optional, defaults to 'iot'"
+        echo "  export MQTT_PASSWORD=your-mqtt-pass    # Optional, auto-generated if not set"
         echo "  curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash"
         echo
         echo "  For development (no SSL, IP access only):"
         echo "  export DEVELOPMENT_MODE=true"
         echo "  export DB_PASSWORD=your-secure-password"
+        echo "  export MQTT_USERNAME=your-mqtt-user    # Optional, defaults to 'iot'"
+        echo "  export MQTT_PASSWORD=your-mqtt-pass    # Optional, auto-generated if not set"
         echo "  curl -sSL https://raw.githubusercontent.com/martinkadlcek/ESP-Management-Platform/main/install-ubuntu.sh | sudo -E bash"
         echo
         exit 1
@@ -289,6 +417,36 @@ gather_input() {
         if [[ ${#DB_PASSWORD} -lt 8 ]]; then
             print_error "Password must be at least 8 characters long"
             DB_PASSWORD=""
+        fi
+    done
+
+    echo
+
+    # MQTT credentials
+    print_status "MQTT Broker Configuration"
+    echo
+
+    # MQTT username
+    read -p "Enter MQTT username [default: iot]: " MQTT_USERNAME < /dev/tty
+    if [[ -z "$MQTT_USERNAME" ]]; then
+        MQTT_USERNAME="iot"
+    fi
+
+    # MQTT password
+    while [[ -z "$MQTT_PASSWORD" ]]; do
+        read -s -p "Enter MQTT password (or press Enter for auto-generated): " MQTT_PASSWORD_INPUT < /dev/tty
+        echo
+
+        if [[ -z "$MQTT_PASSWORD_INPUT" ]]; then
+            # Auto-generate secure password
+            MQTT_PASSWORD=$(openssl rand -base64 16 | tr -d '\n')
+            print_success "Auto-generated MQTT password: $MQTT_PASSWORD"
+        else
+            if [[ ${#MQTT_PASSWORD_INPUT} -lt 8 ]]; then
+                print_error "Password must be at least 8 characters long"
+            else
+                MQTT_PASSWORD="$MQTT_PASSWORD_INPUT"
+            fi
         fi
     done
 
@@ -458,10 +616,19 @@ persistence_location /var/lib/mosquitto/
 message_size_limit 10240
 EOF
 
-    # Create password file with default credentials
-    print_status "Creating default MQTT user 'iot' with password 'iot123'..."
+    # Create password file with custom or default credentials
+    if [[ -z "$MQTT_USERNAME" ]]; then
+        MQTT_USERNAME="iot"
+    fi
+
+    if [[ -z "$MQTT_PASSWORD" ]]; then
+        MQTT_PASSWORD=$(openssl rand -base64 16 | tr -d '\n')
+        print_success "Auto-generated MQTT password: $MQTT_PASSWORD"
+    fi
+
+    print_status "Creating MQTT user '$MQTT_USERNAME'..."
     touch /etc/mosquitto/passwd
-    mosquitto_passwd -b /etc/mosquitto/passwd iot iot123
+    mosquitto_passwd -b /etc/mosquitto/passwd "$MQTT_USERNAME" "$MQTT_PASSWORD"
 
     # Set proper permissions
     chown mosquitto:mosquitto /etc/mosquitto/passwd
@@ -483,13 +650,11 @@ EOF
     if systemctl is-active --quiet mosquitto; then
         MQTT_ENABLED="true"
         MQTT_BROKER_URL="mqtt://localhost:1883"
-        MQTT_USERNAME="iot"
-        MQTT_PASSWORD="iot123"
 
         print_success "Mosquitto MQTT broker installed and running"
-        print_warning "Default MQTT credentials: iot / iot123"
+        print_success "MQTT credentials: $MQTT_USERNAME / $MQTT_PASSWORD"
         print_status "To add more users: sudo mosquitto_passwd /etc/mosquitto/passwd <username>"
-        print_status "To change password: sudo mosquitto_passwd -b /etc/mosquitto/passwd iot <new_password>"
+        print_status "To change password: sudo mosquitto_passwd -b /etc/mosquitto/passwd $MQTT_USERNAME <new_password>"
     else
         print_error "Mosquitto failed to start. Check logs: journalctl -u mosquitto"
         MQTT_ENABLED="false"
@@ -1537,6 +1702,26 @@ main() {
     # Get configuration
     get_user_input
 
+    # Run pre-installation validation
+    validate_installation
+
+    # Validate DNS in production mode
+    if [[ "$DEVELOPMENT_MODE" != "true" ]]; then
+        if ! validate_dns "$DOMAIN"; then
+            print_warning "DNS validation failed. SSL certificate acquisition may fail."
+            if [[ -t 0 ]]; then
+                read -p "Continue anyway? (y/N): " -n 1 -r < /dev/tty
+                echo
+                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                    exit 1
+                fi
+            else
+                print_error "Non-interactive mode: cannot continue with DNS issues"
+                exit 1
+            fi
+        fi
+    fi
+
     # Check for existing installation
     check_existing_installation
 
@@ -1579,6 +1764,18 @@ main() {
         echo -e "${GREEN}✓ SSL certificates configured and auto-renewing${NC}"
     fi
 
+    # Display MQTT credentials if enabled
+    if [[ "$MQTT_ENABLED" == "true" ]]; then
+        echo
+        echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${YELLOW}📡 MQTT Broker Credentials (SAVE THESE!)${NC}"
+        echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  Username: ${GREEN}$MQTT_USERNAME${NC}"
+        echo -e "  Password: ${GREEN}$MQTT_PASSWORD${NC}"
+        echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    fi
+
+    echo
     echo -e "${BLUE}📋 Installation details saved to: $APP_DIR/INSTALLATION_INFO.md${NC}"
     echo -e "${BLUE}📊 Check service status: ${CYAN}sudo -u esp8266app pm2 status${NC}"
     echo -e "${BLUE}📝 View logs: ${CYAN}sudo -u esp8266app pm2 logs${NC}"

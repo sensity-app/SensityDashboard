@@ -431,10 +431,13 @@ router.post('/compile', authenticateToken, async (req, res) => {
 
         logger.info(`Firmware compiled successfully for ${device_id}`);
 
+        const firmwareVersion = generateFirmwareVersion();
+
         // Return compiled binary for web flashing
         res.json({
             success: true,
             device_id,
+            firmwareVersion: firmwareVersion,
             flashFiles: compilationResult.flashFiles,
             chipFamily: 'ESP8266',
             message: 'Firmware compiled successfully'
@@ -708,6 +711,19 @@ router.get('/sensor-options', (req, res) => {
     });
 });
 
+// Generate firmware version based on current date/time
+// Format: DDMMYYYY_HHMM (e.g., 04102025_0020)
+function generateFirmwareVersion() {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+
+    return `${day}${month}${year}_${hours}${minutes}`;
+}
+
 // Generate device configuration content
 function generateDeviceConfig(config) {
     const { sensors } = config;
@@ -718,13 +734,14 @@ function generateDeviceConfig(config) {
 // ========================================
 // GENERATED DEVICE CONFIGURATION
 // Generated on: ${new Date().toISOString()}
+// Firmware Version: ${generateFirmwareVersion()}
 // ========================================
 
 // DEVICE IDENTIFICATION
 #define DEVICE_ID "${config.device_id}"
 #define DEVICE_NAME "${config.device_name}"
 #define DEVICE_LOCATION "${config.device_location}"
-#define FIRMWARE_VERSION "2.1.0"
+#define FIRMWARE_VERSION "${generateFirmwareVersion()}"
 
 // WIFI CONFIGURATION
 #define WIFI_SSID "${config.wifi_ssid}"

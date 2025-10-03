@@ -147,7 +147,7 @@ const WebFlasher = ({ config, onClose }) => {
             }
 
             const compiledFirmware = await compileResponse.json();
-            addLog('Firmware compiled successfully', 'success');
+            addLog(`Firmware compiled successfully - Version: ${compiledFirmware.firmwareVersion}`, 'success');
             setFlashProgress(20);
 
             // Step 2: Flash to device using ESPTool

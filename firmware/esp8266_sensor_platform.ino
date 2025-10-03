@@ -672,7 +672,7 @@ void performOTAUpdate(const String& firmwareUrl, const String& expectedChecksum)
     }
 }
 
-void notifyOTAStatus(const String& status, int progress, const String& errorMessage = "") {
+void notifyOTAStatus(const String& status, int progress, const String& errorMessage) {
     HTTPClient http;
     String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/ota-status";
 #if USE_HTTPS

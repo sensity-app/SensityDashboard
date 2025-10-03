@@ -156,20 +156,86 @@ validate_installation() {
     print_status "Checking required ports availability..."
     local required_ports=(80 443 3000 5432 6379 1883)
     local ports_in_use=()
+    local conflicting_ports=()
 
     for port in "${required_ports[@]}"; do
         if ! check_port $port; then
             ports_in_use+=($port)
-            print_error "Port $port is already in use"
-            validation_failed=1
+
+            # Identify which service is using the port
+            local service_name=""
+            case $port in
+                5432)
+                    # PostgreSQL - OK if it's already installed from previous installation
+                    if systemctl is-active --quiet postgresql; then
+                        service_name="PostgreSQL (existing installation)"
+                    else
+                        conflicting_ports+=($port)
+                        service_name="Unknown process"
+                    fi
+                    ;;
+                6379)
+                    # Redis - OK if it's already installed from previous installation
+                    if systemctl is-active --quiet redis-server || systemctl is-active --quiet redis; then
+                        service_name="Redis (existing installation)"
+                    else
+                        conflicting_ports+=($port)
+                        service_name="Unknown process"
+                    fi
+                    ;;
+                1883)
+                    # Mosquitto - OK if it's already installed from previous installation
+                    if systemctl is-active --quiet mosquitto; then
+                        service_name="Mosquitto (existing installation)"
+                    else
+                        conflicting_ports+=($port)
+                        service_name="Unknown process"
+                    fi
+                    ;;
+                80|443)
+                    # Nginx - OK if it's already installed from previous installation
+                    if systemctl is-active --quiet nginx; then
+                        service_name="Nginx (existing installation)"
+                    else
+                        conflicting_ports+=($port)
+                        service_name="Unknown process"
+                    fi
+                    ;;
+                3000)
+                    # Application port - check if PM2 is running it
+                    if pgrep -f "pm2.*esp8266" >/dev/null 2>&1; then
+                        service_name="PM2 (existing installation)"
+                    else
+                        conflicting_ports+=($port)
+                        service_name="Unknown process"
+                    fi
+                    ;;
+                *)
+                    conflicting_ports+=($port)
+                    service_name="Unknown process"
+                    ;;
+            esac
+
+            if [[ -n "$service_name" ]]; then
+                if [[ " ${conflicting_ports[@]} " =~ " ${port} " ]]; then
+                    print_error "Port $port is in use by: $service_name"
+                else
+                    print_warning "Port $port is in use by: $service_name"
+                fi
+            fi
         fi
     done
 
-    if [[ ${#ports_in_use[@]} -eq 0 ]]; then
-        print_success "All required ports are available"
+    if [[ ${#conflicting_ports[@]} -eq 0 ]]; then
+        if [[ ${#ports_in_use[@]} -eq 0 ]]; then
+            print_success "All required ports are available"
+        else
+            print_success "All port conflicts are from existing installation components"
+        fi
     else
-        print_error "The following ports are in use: ${ports_in_use[*]}"
+        print_error "The following ports have conflicts: ${conflicting_ports[*]}"
         print_error "Please free these ports before continuing"
+        validation_failed=1
     fi
 
     # Check network connectivity
@@ -1702,6 +1768,10 @@ main() {
     # Get configuration
     get_user_input
 
+    # Check for existing installation FIRST (before validation)
+    # This allows port checks to skip already-installed services
+    check_existing_installation
+
     # Run pre-installation validation
     validate_installation
 
@@ -1721,9 +1791,6 @@ main() {
             fi
         fi
     fi
-
-    # Check for existing installation
-    check_existing_installation
 
     print_status "Starting installation process..."
 

@@ -170,7 +170,7 @@ async function registerDeviceInDatabase(config) {
     }
 }
 
-// Firmware builder route
+// Firmware builder route - requires authentication
 router.post('/build', authenticateToken, async (req, res) => {
     try {
         const {
@@ -328,6 +328,7 @@ router.post('/build', authenticateToken, async (req, res) => {
                 sensors,
                 user: req.user
             });
+            logger.info(`Device ${device_id} registered by authenticated user ${req.user.email}`);
         } catch (dbError) {
             logger.warn(`Device registration failed for ${device_id}, but firmware was generated:`, dbError.message);
             // Continue with firmware download even if DB registration fails

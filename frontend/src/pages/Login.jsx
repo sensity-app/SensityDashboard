@@ -14,12 +14,12 @@ function Login({ onLogin }) {
     });
     const [loading, setLoading] = useState(false);
     const [branding, setBranding] = useState({
-        companyName: 'IoT Monitoring Platform',
+        companyName: 'Sensity',
         companyLogo: null,
         primaryColor: '#2563eb'
     });
     const [systemSettings, setSystemSettings] = useState({
-        siteName: 'ESP8266 IoT Platform'
+        siteName: 'Sensity'
     });
 
     // Load branding settings

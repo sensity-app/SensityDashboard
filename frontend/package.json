@@ -1,7 +1,7 @@
 {
-  "name": "arduino-iot-frontend",
+  "name": "sensity-frontend",
   "version": "1.0.0",
-  "description": "Frontend for Arduino IoT Platform",
+  "description": "Frontend for Sensity Platform",
   "main": "index.js",
   "scripts": {
     "start": "react-scripts start",
@@ -18,7 +18,7 @@
     "sensors",
     "dashboard"
   ],
-  "author": "Arduino IoT Project",
+  "author": "Sensity Project",
   "license": "MIT",
   "dependencies": {
     "react": "^18.2.0",

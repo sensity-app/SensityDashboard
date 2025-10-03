@@ -124,7 +124,7 @@ The device has not sent a heartbeat for over 1 hour.
         const message = `
 ✅ <b>Telegram Integration Test</b>
 
-Your ESP8266 IoT Monitoring Platform is successfully connected to Telegram!
+Your Sensity platform is successfully connected to Telegram!
 
 You will receive notifications for:
 • Device alerts and alarms

@@ -251,19 +251,19 @@ class EmailService {
     }
 
     async sendInvitationEmail(email, fullName, inviteUrl, invitedBy, role) {
-        const subject = 'You\'re invited to join our IoT Monitoring Platform';
+        const subject = 'You\'re invited to join Sensity';
 
         const html = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: #007bff; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-                    <h1 style="margin: 0; font-size: 24px;">Welcome to IoT Monitoring!</h1>
+                    <h1 style="margin: 0; font-size: 24px;">Welcome to Sensity!</h1>
                     <p style="margin: 5px 0 0; opacity: 0.9;">You've been invited to join our platform</p>
                 </div>
 
                 <div style="background: #f8f9fa; padding: 20px; border: 1px solid #dee2e6;">
                     <h2 style="color: #495057; margin-top: 0;">Hello ${fullName},</h2>
                     <p style="color: #6c757d; line-height: 1.6;">
-                        You have been invited by <strong>${invitedBy}</strong> to join our IoT Monitoring Platform
+                        You have been invited by <strong>${invitedBy}</strong> to join Sensity
                         with the role of <strong>${role}</strong>.
                     </p>
                     <p style="color: #6c757d; line-height: 1.6;">

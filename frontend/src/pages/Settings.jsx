@@ -52,7 +52,7 @@ function Settings() {
     const [envValidation, setEnvValidation] = useState({ valid: true, errors: [], warnings: [] });
     const [logoUploading, setLogoUploading] = useState(false);
     const [systemSettings, setSystemSettings] = useState({
-        siteName: 'ESP8266 IoT Platform',
+        siteName: 'Sensity',
         adminEmail: '',
         backupRetentionDays: 30,
         logRetentionDays: 7,
@@ -62,7 +62,7 @@ function Settings() {
     const [showSensitive, setShowSensitive] = useState({});
 
     const [brandingSettings, setBrandingSettings] = useState({
-        companyName: 'ESP8266 IoT Platform',
+        companyName: 'Sensity',
         companyLogo: null,
         logoPreview: null,
         favicon: null,

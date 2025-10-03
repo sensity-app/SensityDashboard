@@ -437,7 +437,7 @@ router.post('/forgot-password', [
                 <div style="background: #f8f9fa; padding: 20px; border: 1px solid #dee2e6;">
                     <h2 style="color: #495057; margin-top: 0;">Hello ${user.full_name || user.email},</h2>
                     <p style="color: #6c757d; line-height: 1.6;">
-                        You requested a password reset for your IoT Monitoring Platform account.
+                        You requested a password reset for your Sensity account.
                         Click the button below to reset your password:
                     </p>
                 </div>

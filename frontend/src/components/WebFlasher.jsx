@@ -175,26 +175,33 @@ const WebFlasher = ({ config, onClose }) => {
             // Create transport
             const transport = new Transport(port);
 
-            // Create ESPLoader with progress callbacks
-            const esploader = new ESPLoader(transport, 115200);
+            // Create ESPLoader
+            const esploader = new ESPLoader(transport, 115200, undefined);
 
             setFlashStatus('Connecting to chip...');
             addLog('Connecting to ESP8266...', 'info');
 
             // Connect to chip
-            await esploader.main_fn();
+            const chip = await esploader.main();
 
-            addLog(`Connected to ${esploader.chip.CHIP_NAME}`, 'success');
+            addLog(`Connected to ${chip}`, 'success');
             setFlashProgress(35);
 
             // Prepare flash files
             setFlashStatus('Preparing flash data...');
             addLog('Preparing firmware for flashing...', 'info');
 
-            const fileArray = flashFiles.map(file => ({
-                data: Uint8Array.from(atob(file.data), c => c.charCodeAt(0)),
-                address: file.address
-            }));
+            const fileArray = flashFiles.map(file => {
+                const binaryString = atob(file.data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return {
+                    data: bytes,
+                    address: file.address
+                };
+            });
 
             setFlashProgress(45);
 
@@ -202,42 +209,41 @@ const WebFlasher = ({ config, onClose }) => {
             setFlashStatus('Erasing flash...');
             addLog('Erasing flash memory...', 'info');
 
-            await esploader.erase_flash();
+            await esploader.eraseFlash();
             addLog('Flash erased', 'success');
             setFlashProgress(55);
 
             setFlashStatus('Writing firmware...');
             addLog('Writing firmware to flash...', 'info');
 
-            // Write each file
-            for (let i = 0; i < fileArray.length; i++) {
-                const file = fileArray[i];
-                const progress = 55 + (35 * (i + 1) / fileArray.length);
-
-                addLog(`Writing ${file.data.length} bytes at address 0x${file.address.toString(16)}...`, 'info');
-
-                await esploader.write_flash({
-                    fileArray: [file],
-                    flash_size: "4MB",
-                    flash_mode: "dio",
-                    flash_freq: "40m",
-                    compress: true,
-                    reportProgress: (fileIndex, written, total) => {
-                        const fileProgress = (written / total) * (35 / fileArray.length);
-                        setFlashProgress(55 + (35 * i / fileArray.length) + fileProgress);
+            // Write firmware
+            const flashOptions = {
+                fileArray: fileArray,
+                flashSize: "keep",
+                flashMode: "keep",
+                flashFreq: "keep",
+                eraseAll: false,
+                compress: true,
+                reportProgress: (fileIndex, written, total) => {
+                    const progressPercent = (written / total) * 100;
+                    const overallProgress = 55 + (progressPercent * 0.35);
+                    setFlashProgress(overallProgress);
+                    if (progressPercent % 10 === 0) {
+                        addLog(`Writing: ${Math.round(progressPercent)}%`, 'info');
                     }
-                });
+                }
+            };
 
-                addLog(`Written ${file.data.length} bytes successfully`, 'success');
-                setFlashProgress(progress);
-            }
+            addLog(`Writing ${fileArray[0].data.length} bytes at address 0x${fileArray[0].address.toString(16)}...`, 'info');
+            await esploader.writeFlash(flashOptions);
+            addLog('Firmware written successfully', 'success');
 
             setFlashProgress(90);
 
             setFlashStatus('Restarting device...');
             addLog('Resetting ESP8266...', 'info');
 
-            await esploader.hard_reset();
+            await esploader.hardReset();
 
             setFlashProgress(100);
             setFlashStatus('Flash completed successfully!');

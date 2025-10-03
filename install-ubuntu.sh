@@ -651,6 +651,9 @@ install_mqtt_broker() {
     # Install mosquitto
     apt-get install -y mosquitto mosquitto-clients
 
+    # Stop mosquitto service temporarily for configuration
+    systemctl stop mosquitto 2>/dev/null || true
+
     # Create MQTT configuration directory
     mkdir -p /etc/mosquitto/conf.d
 
@@ -693,24 +696,34 @@ EOF
     fi
 
     print_status "Creating MQTT user '$MQTT_USERNAME'..."
-    touch /etc/mosquitto/passwd
-    mosquitto_passwd -b /etc/mosquitto/passwd "$MQTT_USERNAME" "$MQTT_PASSWORD"
 
-    # Set proper permissions
-    chown mosquitto:mosquitto /etc/mosquitto/passwd
+    # Create password file with secure permissions from the start
+    touch /etc/mosquitto/passwd
     chmod 600 /etc/mosquitto/passwd
+    chown mosquitto:mosquitto /etc/mosquitto/passwd
+
+    # Add user credentials
+    mosquitto_passwd -b /etc/mosquitto/passwd "$MQTT_USERNAME" "$MQTT_PASSWORD"
 
     # Create and set permissions for log directory
     mkdir -p /var/log/mosquitto
     chown mosquitto:mosquitto /var/log/mosquitto
+    chmod 755 /var/log/mosquitto
 
-    # Ensure persistence directory exists
+    # Ensure persistence directory exists with proper permissions
     mkdir -p /var/lib/mosquitto
     chown mosquitto:mosquitto /var/lib/mosquitto
+    chmod 755 /var/lib/mosquitto
 
-    # Restart mosquitto to apply configuration
-    systemctl restart mosquitto
+    # Set proper ownership on configuration
+    chown -R mosquitto:mosquitto /etc/mosquitto
+
+    # Enable and start mosquitto service
     systemctl enable mosquitto
+    systemctl restart mosquitto
+
+    # Wait a moment for service to start
+    sleep 2
 
     # Verify mosquitto is running
     if systemctl is-active --quiet mosquitto; then

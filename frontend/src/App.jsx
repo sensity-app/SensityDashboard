@@ -328,7 +328,10 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
     ];
 
     const handleDropdownToggle = (index) => {
-        setDropdownOpen(dropdownOpen === index ? null : index);
+        console.log('Dropdown toggle clicked:', index, 'Currently open:', dropdownOpen);
+        const newValue = dropdownOpen === index ? null : index;
+        setDropdownOpen(newValue);
+        console.log('Setting dropdown to:', newValue);
     };
 
     const isPathActive = (path, items) => {
@@ -419,19 +422,22 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                             <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 ${dropdownOpen === index ? 'rotate-180' : ''
                                                 }`} />
                                         </button>
-                                        {dropdownOpen === index && (
-                                            <div
-                                                className="bg-white rounded-b-xl border border-gray-200 shadow-2xl"
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: '100%',
-                                                    left: 0,
-                                                    minWidth: '200px',
-                                                    zIndex: 9999,
-                                                    marginTop: '0px'
-                                                }}
-                                            >
-                                                {item.items.map((subItem) => (
+                                        {dropdownOpen === index && (() => {
+                                            console.log('Rendering dropdown for index:', index);
+                                            return (
+                                                <div
+                                                    className="bg-white rounded-b-xl border border-gray-200 shadow-2xl"
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '100%',
+                                                        left: 0,
+                                                        minWidth: '200px',
+                                                        zIndex: 9999,
+                                                        marginTop: '0px',
+                                                        display: 'block'
+                                                    }}
+                                                >
+                                                    {item.items.map((subItem) => (
                                                     <button
                                                         key={subItem.path}
                                                         onClick={() => {
@@ -448,7 +454,8 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                                     </button>
                                                 ))}
                                             </div>
-                                        )}
+                                        );
+                                        })()}
                                     </div>
                                 ) : (
                                     <button

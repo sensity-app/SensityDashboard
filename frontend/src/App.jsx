@@ -400,13 +400,13 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
             </header>
 
             {/* Modern Navigation */}
-            <nav className="glass-dark relative border-t border-white/10 z-40 overflow-visible">
+            <nav className="glass-dark relative border-t border-white/10 z-50" style={{ overflow: 'visible' }}>
                 <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-                    <div className="flex space-x-0.5 sm:space-x-1 overflow-x-auto scrollbar-hide overflow-y-visible">
+                    <div className="flex space-x-0.5 sm:space-x-1 scrollbar-hide" style={{ overflowX: 'auto', overflowY: 'visible' }}>
                         {navigationItems.map((item, index) => (
-                            <div key={item.path || index} className="relative flex-shrink-0">
+                            <div key={item.path || index} className="flex-shrink-0" style={{ position: 'relative' }}>
                                 {item.dropdown ? (
-                                    <div className="relative" ref={dropdownOpen === index ? dropdownRef : null}>
+                                    <div ref={dropdownOpen === index ? dropdownRef : null} style={{ position: 'relative' }}>
                                         <button
                                             onClick={() => handleDropdownToggle(index)}
                                             className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-t-lg whitespace-nowrap ${isPathActive(item.path, item.items)
@@ -420,7 +420,17 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                                 }`} />
                                         </button>
                                         {dropdownOpen === index && (
-                                            <div className="absolute top-full left-0 min-w-[200px] sm:min-w-[224px] bg-white rounded-b-xl border border-gray-200 shadow-2xl z-[100] mt-0">
+                                            <div
+                                                className="bg-white rounded-b-xl border border-gray-200 shadow-2xl"
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: 0,
+                                                    minWidth: '200px',
+                                                    zIndex: 9999,
+                                                    marginTop: '0px'
+                                                }}
+                                            >
                                                 {item.items.map((subItem) => (
                                                     <button
                                                         key={subItem.path}

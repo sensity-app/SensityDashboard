@@ -35,14 +35,15 @@ function DeviceManagement() {
     const [managingSensorsDevice, setManagingSensorsDevice] = useState(null);
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterType, setFilterType] = useState('all');
+    const [filterLocation, setFilterLocation] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     // Query devices
     const { data: devicesData, isLoading: devicesLoading } = useQuery(
-        ['devices', filterStatus, filterType],
-        () => apiService.getDevices({
-            status: filterStatus === 'all' ? undefined : filterStatus,
-            device_type: filterType === 'all' ? undefined : filterType
-        }),
+        ['devices'],
+        () => apiService.getDevices(),
         {
             refetchInterval: 30000,
             select: (data) => data.devices || data || []
@@ -114,7 +115,52 @@ function DeviceManagement() {
         );
     }
 
-    const devices = devicesData || [];
+    const allDevices = devicesData || [];
+
+    // Apply filters and search
+    const filteredDevices = allDevices.filter(device => {
+        // Status filter
+        if (filterStatus !== 'all' && (device.current_status || device.status) !== filterStatus) {
+            return false;
+        }
+
+        // Type filter
+        if (filterType !== 'all' && device.device_type !== filterType) {
+            return false;
+        }
+
+        // Location filter
+        if (filterLocation !== 'all' && device.location_id !== parseInt(filterLocation)) {
+            return false;
+        }
+
+        // Search query
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            const matchesName = device.name?.toLowerCase().includes(query);
+            const matchesId = device.id?.toLowerCase().includes(query);
+            const matchesType = device.device_type?.toLowerCase().includes(query);
+            const matchesLocation = device.location_name?.toLowerCase().includes(query);
+            const matchesIp = device.ip_address?.toLowerCase().includes(query);
+
+            if (!matchesName && !matchesId && !matchesType && !matchesLocation && !matchesIp) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    // Pagination
+    const totalPages = Math.ceil(filteredDevices.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const devices = filteredDevices.slice(startIndex, endIndex);
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [filterStatus, filterType, filterLocation, searchQuery]);
 
     return (
         <div className="space-y-8 animate-fade-in">
@@ -154,15 +200,31 @@ function DeviceManagement() {
                 <div className="card-header">
                     <h3 className="card-title">
                         <Filter className="w-5 h-5 text-primary" />
-                        <span>Filter Devices</span>
+                        <span>Filter & Search</span>
                     </h3>
+                    <div className="text-sm text-gray-500">
+                        {filteredDevices.length} of {allDevices.length} devices
+                    </div>
                 </div>
                 <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="form-group">
+                            <label className="form-label">
+                                <Search className="w-4 h-4 inline mr-1" />
+                                Search
+                            </label>
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Name, ID, IP..."
+                                className="input-field"
+                            />
+                        </div>
                         <div className="form-group">
                             <label className="form-label">
                                 <Activity className="w-4 h-4 inline mr-1" />
-                                {t('devices.filterByStatus', 'Filter by Status')}
+                                Status
                             </label>
                             <select
                                 value={filterStatus}
@@ -171,7 +233,7 @@ function DeviceManagement() {
                             >
                                 {statusOptions.map(status => (
                                     <option key={status} value={status}>
-                                        {status === 'all' ? t('common.all', 'All') : status.toUpperCase()}
+                                        {status === 'all' ? t('common.all', 'All') : status.charAt(0).toUpperCase() + status.slice(1)}
                                     </option>
                                 ))}
                             </select>
@@ -179,7 +241,7 @@ function DeviceManagement() {
                         <div className="form-group">
                             <label className="form-label">
                                 <Monitor className="w-4 h-4 inline mr-1" />
-                                {t('devices.filterByType', 'Filter by Type')}
+                                Type
                             </label>
                             <select
                                 value={filterType}
@@ -196,19 +258,34 @@ function DeviceManagement() {
                         </div>
                         <div className="form-group">
                             <label className="form-label">
-                                <Search className="w-4 h-4 inline mr-1" />
-                                Search Devices
+                                <MapPin className="w-4 h-4 inline mr-1" />
+                                Location
                             </label>
-                            <input
-                                type="text"
-                                placeholder="Search by name or ID..."
+                            <select
+                                value={filterLocation}
+                                onChange={(e) => setFilterLocation(e.target.value)}
                                 className="input-field"
-                            />
+                            >
+                                <option value="all">{t('common.all', 'All')}</option>
+                                {locations.map(location => (
+                                    <option key={location.id} value={location.id}>
+                                        {location.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
-                    {(filterStatus !== 'all' || filterType !== 'all') && (
-                        <div className="mt-4 flex items-center space-x-2">
+                    {(filterStatus !== 'all' || filterType !== 'all' || filterLocation !== 'all' || searchQuery.trim()) && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
                             <span className="text-sm text-gray-500">Active filters:</span>
+                            {searchQuery.trim() && (
+                                <span className="badge badge-primary flex items-center space-x-1">
+                                    <span>Search: "{searchQuery}"</span>
+                                    <button onClick={() => setSearchQuery('')}>
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            )}
                             {filterStatus !== 'all' && (
                                 <span className="badge badge-primary flex items-center space-x-1">
                                     <span>Status: {filterStatus}</span>
@@ -225,6 +302,25 @@ function DeviceManagement() {
                                     </button>
                                 </span>
                             )}
+                            {filterLocation !== 'all' && (
+                                <span className="badge badge-primary flex items-center space-x-1">
+                                    <span>Location: {locations.find(l => l.id === parseInt(filterLocation))?.name}</span>
+                                    <button onClick={() => setFilterLocation('all')}>
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            )}
+                            <button
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setFilterStatus('all');
+                                    setFilterType('all');
+                                    setFilterLocation('all');
+                                }}
+                                className="text-sm text-blue-600 hover:text-blue-800 ml-2"
+                            >
+                                Clear all filters
+                            </button>
                         </div>
                     )}
                 </div>
@@ -239,7 +335,7 @@ function DeviceManagement() {
                         </div>
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 mb-1">{t('dashboard.totalDevices')}</p>
-                            <p className="text-3xl font-bold text-gray-900">{devices.length}</p>
+                            <p className="text-3xl font-bold text-gray-900">{allDevices.length}</p>
                         </div>
                     </div>
                 </div>
@@ -251,7 +347,7 @@ function DeviceManagement() {
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 mb-1">{t('dashboard.onlineDevices')}</p>
                             <p className="text-3xl font-bold text-green-600">
-                                {devices.filter(d => d.current_status === 'online' || d.status === 'online').length}
+                                {allDevices.filter(d => d.current_status === 'online' || d.status === 'online').length}
                             </p>
                         </div>
                     </div>
@@ -264,7 +360,7 @@ function DeviceManagement() {
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 mb-1">{t('dashboard.offlineDevices')}</p>
                             <p className="text-3xl font-bold text-gray-600">
-                                {devices.filter(d => d.current_status === 'offline' || d.status === 'offline').length}
+                                {allDevices.filter(d => d.current_status === 'offline' || d.status === 'offline').length}
                             </p>
                         </div>
                     </div>
@@ -277,7 +373,7 @@ function DeviceManagement() {
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 mb-1">{t('devices.alarmsActive', 'Active Alarms')}</p>
                             <p className="text-3xl font-bold text-red-600">
-                                {devices.filter(d => d.current_status === 'alarm' || d.status === 'alarm').length}
+                                {allDevices.filter(d => d.current_status === 'alarm' || d.status === 'alarm').length}
                             </p>
                         </div>
                     </div>
@@ -314,38 +410,130 @@ function DeviceManagement() {
                     </div>
                 ) : (
                     <div className="p-6">
-                        <div className="table-modern overflow-x-auto">
-                            <table className="w-full table-fixed">
+                        {/* Card view for mobile/tablet */}
+                        <div className="block lg:hidden space-y-4">
+                            {(devices || []).map((device, index) => (
+                                <div key={device.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                                device.current_status === 'online' ? 'bg-green-100' :
+                                                device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
+                                            }`}>
+                                                {getStatusIcon(device.current_status || device.status)}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900">{device.name}</h3>
+                                                <p className="text-xs text-gray-500 font-mono">ID: {device.id}</p>
+                                            </div>
+                                        </div>
+                                        <span className={`badge text-xs ${
+                                            (device.current_status || device.status) === 'online' ? 'badge-success' :
+                                            (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
+                                        }`}>
+                                            {(device.current_status || device.status || 'offline').toUpperCase()}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                                        <div>
+                                            <p className="text-gray-500 text-xs mb-1">{t('devices.deviceType')}</p>
+                                            <span className="badge badge-primary text-xs">{device.device_type || 'unknown'}</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-500 text-xs mb-1">{t('devices.firmwareVersion')}</p>
+                                            <p className="font-mono text-xs text-gray-900">{device.firmware_version || t('common.unknown')}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-500 text-xs mb-1">{t('devices.location')}</p>
+                                            <div className="flex items-center space-x-1">
+                                                <MapPin className="w-3 h-3 text-gray-400" />
+                                                <span className="text-xs text-gray-900">{device.location_name || t('common.unknown')}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-500 text-xs mb-1">{t('devices.ipAddress')}</p>
+                                            <p className="font-mono text-xs text-gray-600">{device.ip_address || '-'}</p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <p className="text-gray-500 text-xs mb-1">{t('devices.lastHeartbeat')}</p>
+                                            <div className="flex items-center space-x-1">
+                                                <Clock className="w-3 h-3 text-gray-400" />
+                                                <span className="text-xs text-gray-600">
+                                                    {device.last_heartbeat ?
+                                                        new Date(device.last_heartbeat).toLocaleString() :
+                                                        t('devices.never', 'Never')
+                                                    }
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end items-center space-x-2 pt-3 border-t border-gray-100">
+                                        <Link
+                                            to={`/devices/${device.id}`}
+                                            className="btn-ghost px-3 py-1.5 text-sm hover:bg-blue-50"
+                                        >
+                                            <Eye className="h-4 w-4 mr-1 inline" />
+                                            {t('devices.viewDetails', 'View')}
+                                        </Link>
+                                        <button
+                                            onClick={() => handleManageSensors(device)}
+                                            className="btn-ghost px-3 py-1.5 text-sm text-purple-600 hover:bg-purple-50"
+                                        >
+                                            <Cpu className="h-4 w-4 mr-1 inline" />
+                                            Sensors
+                                        </button>
+                                        <button
+                                            onClick={() => handleEditDevice(device)}
+                                            className="btn-ghost px-3 py-1.5 text-sm text-primary hover:bg-blue-50"
+                                        >
+                                            <Edit3 className="h-4 w-4 inline" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteDevice(device)}
+                                            className="btn-ghost px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+                                        >
+                                            <Trash2 className="h-4 w-4 inline" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Table view for desktop */}
+                        <div className="hidden lg:block overflow-x-auto">
+                            <table className="w-full table-modern">
                                 <thead>
                                     <tr>
-                                        <th className="text-left w-[25%]">{t('devices.deviceName')}</th>
-                                        <th className="text-left w-[10%]">{t('common.status')}</th>
-                                        <th className="text-left w-[10%] hidden lg:table-cell">{t('devices.deviceType')}</th>
-                                        <th className="text-left w-[12%] hidden xl:table-cell">{t('devices.location')}</th>
-                                        <th className="text-left w-[12%] hidden xl:table-cell">{t('devices.ipAddress')}</th>
-                                        <th className="text-left w-[13%] hidden md:table-cell">{t('devices.lastHeartbeat')}</th>
-                                        <th className="text-left w-[13%] hidden lg:table-cell">{t('devices.firmwareVersion')}</th>
-                                        <th className="text-right w-[5%]">{t('common.actions')}</th>
+                                        <th className="text-left">{t('devices.deviceName')}</th>
+                                        <th className="text-left">{t('common.status')}</th>
+                                        <th className="text-left">{t('devices.deviceType')}</th>
+                                        <th className="text-left">{t('devices.location')}</th>
+                                        <th className="text-left">{t('devices.ipAddress')}</th>
+                                        <th className="text-left">{t('devices.lastHeartbeat')}</th>
+                                        <th className="text-left">{t('devices.firmwareVersion')}</th>
+                                        <th className="text-right">{t('common.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {(devices || []).map((device, index) => (
                                         <tr key={device.id} className="animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
-                                            <td>
+                                            <td className="min-w-[200px]">
                                                 <div className="flex items-center space-x-3">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
                                                         device.current_status === 'online' ? 'bg-green-100' :
                                                         device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
                                                     }`}>
                                                         {getStatusIcon(device.current_status || device.status)}
                                                     </div>
-                                                    <div>
-                                                        <div className="font-medium text-gray-900">{device.name}</div>
-                                                        <div className="text-xs text-gray-500 font-mono">ID: {device.id}</div>
+                                                    <div className="min-w-0">
+                                                        <div className="font-medium text-gray-900 truncate">{device.name}</div>
+                                                        <div className="text-xs text-gray-500 font-mono truncate">ID: {device.id}</div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td className="whitespace-nowrap">
                                                 <span className={`badge text-xs ${
                                                     (device.current_status || device.status) === 'online' ? 'badge-success' :
                                                     (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
@@ -353,26 +541,26 @@ function DeviceManagement() {
                                                     {(device.current_status || device.status || 'offline').toUpperCase()}
                                                 </span>
                                             </td>
-                                            <td className="hidden lg:table-cell">
-                                                <span className="badge badge-primary text-xs truncate">
+                                            <td className="whitespace-nowrap">
+                                                <span className="badge badge-primary text-xs">
                                                     {device.device_type || 'unknown'}
                                                 </span>
                                             </td>
-                                            <td className="hidden xl:table-cell">
-                                                <div className="flex items-center space-x-1 text-sm text-gray-900 truncate">
+                                            <td>
+                                                <div className="flex items-center space-x-1 text-sm text-gray-900">
                                                     <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
                                                     <span className="truncate">{device.location_name || t('common.unknown')}</span>
                                                 </div>
                                             </td>
-                                            <td className="hidden xl:table-cell">
-                                                <span className="font-mono text-xs text-gray-600 truncate block">
+                                            <td>
+                                                <span className="font-mono text-xs text-gray-600">
                                                     {device.ip_address || '-'}
                                                 </span>
                                             </td>
-                                            <td className="hidden md:table-cell">
+                                            <td className="whitespace-nowrap">
                                                 <div className="flex items-center space-x-1 text-sm text-gray-500">
                                                     <Clock className="w-3 h-3 flex-shrink-0" />
-                                                    <span className="truncate">
+                                                    <span>
                                                         {device.last_heartbeat ?
                                                             new Date(device.last_heartbeat).toLocaleDateString() :
                                                             t('devices.never', 'Never')
@@ -380,40 +568,40 @@ function DeviceManagement() {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="hidden lg:table-cell">
-                                                <span className="font-mono text-xs text-gray-900 truncate block">
+                                            <td>
+                                                <span className="font-mono text-xs text-gray-900">
                                                     {device.firmware_version || t('common.unknown')}
                                                 </span>
                                             </td>
                                             <td>
-                                                <div className="flex justify-end items-center space-x-0.5">
+                                                <div className="flex justify-end items-center space-x-1">
                                                     <Link
                                                         to={`/devices/${device.id}`}
                                                         className="btn-ghost p-1.5 hover:bg-blue-50"
                                                         title={t('devices.viewDetails')}
                                                     >
-                                                        <Eye className="h-3.5 w-3.5" />
+                                                        <Eye className="h-4 w-4" />
                                                     </Link>
                                                     <button
                                                         onClick={() => handleManageSensors(device)}
                                                         className="btn-ghost p-1.5 text-purple-600 hover:bg-purple-50"
                                                         title={t('devices.manageSensors', 'Manage Sensors')}
                                                     >
-                                                        <Cpu className="h-3.5 w-3.5" />
+                                                        <Cpu className="h-4 w-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleEditDevice(device)}
                                                         className="btn-ghost p-1.5 text-primary hover:bg-blue-50"
                                                         title={t('common.edit')}
                                                     >
-                                                        <Edit3 className="h-3.5 w-3.5" />
+                                                        <Edit3 className="h-4 w-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteDevice(device)}
                                                         className="btn-ghost p-1.5 text-red-600 hover:bg-red-50"
                                                         title={t('common.delete')}
                                                     >
-                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        <Trash2 className="h-4 w-4" />
                                                     </button>
                                                 </div>
                                             </td>
@@ -422,6 +610,99 @@ function DeviceManagement() {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Pagination Controls */}
+                        {filteredDevices.length > 0 && (
+                            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200 pt-4">
+                                <div className="flex items-center space-x-2">
+                                    <label className="text-sm text-gray-600">Items per page:</label>
+                                    <select
+                                        value={itemsPerPage}
+                                        onChange={(e) => {
+                                            setItemsPerPage(parseInt(e.target.value));
+                                            setCurrentPage(1);
+                                        }}
+                                        className="input-field py-1 px-2 text-sm"
+                                    >
+                                        <option value="5">5</option>
+                                        <option value="10">10</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                    <span className="text-sm text-gray-600">
+                                        Showing {startIndex + 1}-{Math.min(endIndex, filteredDevices.length)} of {filteredDevices.length}
+                                    </span>
+                                </div>
+
+                                {totalPages > 1 && (
+                                    <div className="flex items-center space-x-1">
+                                        <button
+                                            onClick={() => setCurrentPage(1)}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            First
+                                        </button>
+                                        <button
+                                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Previous
+                                        </button>
+
+                                        {/* Page numbers */}
+                                        <div className="hidden sm:flex items-center space-x-1">
+                                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                                let pageNum;
+                                                if (totalPages <= 5) {
+                                                    pageNum = i + 1;
+                                                } else if (currentPage <= 3) {
+                                                    pageNum = i + 1;
+                                                } else if (currentPage >= totalPages - 2) {
+                                                    pageNum = totalPages - 4 + i;
+                                                } else {
+                                                    pageNum = currentPage - 2 + i;
+                                                }
+                                                return (
+                                                    <button
+                                                        key={pageNum}
+                                                        onClick={() => setCurrentPage(pageNum)}
+                                                        className={`px-3 py-1 text-sm border rounded ${
+                                                            currentPage === pageNum
+                                                                ? 'bg-blue-600 text-white border-blue-600'
+                                                                : 'border-gray-300 hover:bg-gray-50'
+                                                        }`}
+                                                    >
+                                                        {pageNum}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <span className="sm:hidden text-sm text-gray-600">
+                                            Page {currentPage} of {totalPages}
+                                        </span>
+
+                                        <button
+                                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Next
+                                        </button>
+                                        <button
+                                            onClick={() => setCurrentPage(totalPages)}
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Last
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

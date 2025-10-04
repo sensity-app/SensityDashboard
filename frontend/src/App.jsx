@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
@@ -193,7 +194,8 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
         }
     });
     const [isHeaderMinimal, setIsHeaderMinimal] = useState(false);
-    const dropdownRef = React.useRef(null);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+    const dropdownRefs = useRef({});
 
     const handleLanguageChange = async (languageCode) => {
         if (languageCode === (user?.preferred_language || i18n.language)) {
@@ -264,7 +266,12 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+            // Check if click is outside all dropdown elements
+            const isOutside = !Object.values(dropdownRefs.current).some(ref =>
+                ref && ref.contains(event.target)
+            );
+
+            if (isOutside && dropdownOpen !== null) {
                 setDropdownOpen(null);
             }
         };
@@ -328,10 +335,21 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
     ];
 
     const handleDropdownToggle = (index) => {
-        console.log('Dropdown toggle clicked:', index, 'Currently open:', dropdownOpen);
-        const newValue = dropdownOpen === index ? null : index;
-        setDropdownOpen(newValue);
-        console.log('Setting dropdown to:', newValue);
+        if (dropdownOpen === index) {
+            setDropdownOpen(null);
+        } else {
+            // Calculate position of the button
+            const buttonElement = dropdownRefs.current[`button-${index}`];
+            if (buttonElement) {
+                const rect = buttonElement.getBoundingClientRect();
+                setDropdownPosition({
+                    top: rect.bottom,
+                    left: rect.left,
+                    width: Math.max(rect.width, 200)
+                });
+            }
+            setDropdownOpen(index);
+        }
     };
 
     const isPathActive = (path, items) => {
@@ -407,10 +425,11 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                 <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
                     <div className="flex space-x-0.5 sm:space-x-1 scrollbar-hide" style={{ overflowX: 'auto', overflowY: 'visible' }}>
                         {navigationItems.map((item, index) => (
-                            <div key={item.path || index} className="flex-shrink-0" style={{ position: 'relative' }}>
+                            <div key={item.path || index} className="flex-shrink-0">
                                 {item.dropdown ? (
-                                    <div ref={dropdownOpen === index ? dropdownRef : null} style={{ position: 'relative' }}>
+                                    <>
                                         <button
+                                            ref={el => dropdownRefs.current[`button-${index}`] = el}
                                             onClick={() => handleDropdownToggle(index)}
                                             className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-t-lg whitespace-nowrap ${isPathActive(item.path, item.items)
                                                     ? 'text-white bg-gray-600 shadow-lg'
@@ -422,41 +441,38 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                             <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 ${dropdownOpen === index ? 'rotate-180' : ''
                                                 }`} />
                                         </button>
-                                        {dropdownOpen === index && (() => {
-                                            console.log('Rendering dropdown for index:', index);
-                                            return (
-                                                <div
-                                                    className="bg-white rounded-b-xl border border-gray-200 shadow-2xl"
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '100%',
-                                                        left: 0,
-                                                        minWidth: '200px',
-                                                        zIndex: 9999,
-                                                        marginTop: '0px',
-                                                        display: 'block'
-                                                    }}
-                                                >
-                                                    {item.items.map((subItem) => (
+                                        {dropdownOpen === index && createPortal(
+                                            <div
+                                                ref={el => dropdownRefs.current[`dropdown-${index}`] = el}
+                                                className="bg-white rounded-lg border border-gray-200 shadow-2xl"
+                                                style={{
+                                                    position: 'fixed',
+                                                    top: `${dropdownPosition.top}px`,
+                                                    left: `${dropdownPosition.left}px`,
+                                                    minWidth: `${dropdownPosition.width}px`,
+                                                    zIndex: 99999
+                                                }}
+                                            >
+                                                {item.items.map((subItem) => (
                                                     <button
                                                         key={subItem.path}
                                                         onClick={() => {
                                                             navigate(subItem.path);
                                                             setDropdownOpen(null);
                                                         }}
-                                                        className={`w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-left transition-all duration-200 first:rounded-t-none last:rounded-b-xl ${currentPath === subItem.path
-                                                                ? 'bg-primary/10 text-primary border-r-4 border-primary'
-                                                                : 'text-gray-700 hover:bg-white/50'
+                                                        className={`w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-left transition-all duration-200 first:rounded-t-lg last:rounded-b-lg hover:bg-gray-50 ${currentPath === subItem.path
+                                                                ? 'bg-blue-50 text-blue-600 font-semibold'
+                                                                : 'text-gray-700'
                                                             }`}
                                                     >
                                                         <span className="text-sm sm:text-base">{subItem.icon}</span>
                                                         <span>{subItem.label}</span>
                                                     </button>
                                                 ))}
-                                            </div>
-                                        );
-                                        })()}
-                                    </div>
+                                            </div>,
+                                            document.body
+                                        )}
+                                    </>
                                 ) : (
                                     <button
                                         onClick={() => navigate(item.path)}

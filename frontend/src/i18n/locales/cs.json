@@ -71,6 +71,8 @@
     "firmwareBuilder": "Stavitel firmwaru",
     "userManagement": "Uživatelé",
     "settings": "Nastavení",
+    "tools": "Nástroje",
+    "serialMonitor": "Sériový monitor",
     "silentMode": "Tichý režim"
   },
   "navigation": {

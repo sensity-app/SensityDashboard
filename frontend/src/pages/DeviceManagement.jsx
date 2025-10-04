@@ -315,17 +315,17 @@ function DeviceManagement() {
                 ) : (
                     <div className="p-6">
                         <div className="table-modern overflow-x-auto">
-                            <table className="w-full">
+                            <table className="w-full table-fixed">
                                 <thead>
                                     <tr>
-                                        <th className="text-left">{t('devices.deviceName')}</th>
-                                        <th className="text-left">{t('common.status')}</th>
-                                        <th className="text-left">{t('devices.deviceType')}</th>
-                                        <th className="text-left">{t('devices.location')}</th>
-                                        <th className="text-left">{t('devices.ipAddress')}</th>
-                                        <th className="text-left">{t('devices.lastHeartbeat')}</th>
-                                        <th className="text-left">{t('devices.firmwareVersion')}</th>
-                                        <th className="text-right">{t('common.actions')}</th>
+                                        <th className="text-left w-[25%]">{t('devices.deviceName')}</th>
+                                        <th className="text-left w-[10%]">{t('common.status')}</th>
+                                        <th className="text-left w-[10%] hidden lg:table-cell">{t('devices.deviceType')}</th>
+                                        <th className="text-left w-[12%] hidden xl:table-cell">{t('devices.location')}</th>
+                                        <th className="text-left w-[12%] hidden xl:table-cell">{t('devices.ipAddress')}</th>
+                                        <th className="text-left w-[13%] hidden md:table-cell">{t('devices.lastHeartbeat')}</th>
+                                        <th className="text-left w-[13%] hidden lg:table-cell">{t('devices.firmwareVersion')}</th>
+                                        <th className="text-right w-[5%]">{t('common.actions')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -346,33 +346,33 @@ function DeviceManagement() {
                                                 </div>
                                             </td>
                                             <td>
-                                                <span className={`badge ${
+                                                <span className={`badge text-xs ${
                                                     (device.current_status || device.status) === 'online' ? 'badge-success' :
                                                     (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
                                                 }`}>
                                                     {(device.current_status || device.status || 'offline').toUpperCase()}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <span className="badge badge-primary">
-                                                    {(device.device_type || 'unknown').toUpperCase()}
+                                            <td className="hidden lg:table-cell">
+                                                <span className="badge badge-primary text-xs truncate">
+                                                    {device.device_type || 'unknown'}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <div className="flex items-center space-x-1 text-sm text-gray-900">
-                                                    <MapPin className="w-3 h-3 text-gray-400" />
-                                                    <span>{device.location_name || t('common.unknown')}</span>
+                                            <td className="hidden xl:table-cell">
+                                                <div className="flex items-center space-x-1 text-sm text-gray-900 truncate">
+                                                    <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                                    <span className="truncate">{device.location_name || t('common.unknown')}</span>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <span className="font-mono text-xs text-gray-600">
+                                            <td className="hidden xl:table-cell">
+                                                <span className="font-mono text-xs text-gray-600 truncate block">
                                                     {device.ip_address || '-'}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td className="hidden md:table-cell">
                                                 <div className="flex items-center space-x-1 text-sm text-gray-500">
-                                                    <Clock className="w-3 h-3" />
-                                                    <span>
+                                                    <Clock className="w-3 h-3 flex-shrink-0" />
+                                                    <span className="truncate">
                                                         {device.last_heartbeat ?
                                                             new Date(device.last_heartbeat).toLocaleDateString() :
                                                             t('devices.never', 'Never')
@@ -380,40 +380,40 @@ function DeviceManagement() {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td>
-                                                <span className="font-mono text-xs text-gray-900">
+                                            <td className="hidden lg:table-cell">
+                                                <span className="font-mono text-xs text-gray-900 truncate block">
                                                     {device.firmware_version || t('common.unknown')}
                                                 </span>
                                             </td>
                                             <td>
-                                                <div className="flex justify-end space-x-1">
+                                                <div className="flex justify-end items-center space-x-0.5">
                                                     <Link
                                                         to={`/devices/${device.id}`}
-                                                        className="btn-ghost p-2"
+                                                        className="btn-ghost p-1.5 hover:bg-blue-50"
                                                         title={t('devices.viewDetails')}
                                                     >
-                                                        <Eye className="h-4 w-4" />
+                                                        <Eye className="h-3.5 w-3.5" />
                                                     </Link>
                                                     <button
                                                         onClick={() => handleManageSensors(device)}
-                                                        className="btn-ghost p-2 text-purple-600 hover:text-purple-700"
+                                                        className="btn-ghost p-1.5 text-purple-600 hover:bg-purple-50"
                                                         title={t('devices.manageSensors', 'Manage Sensors')}
                                                     >
-                                                        <Cpu className="h-4 w-4" />
+                                                        <Cpu className="h-3.5 w-3.5" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleEditDevice(device)}
-                                                        className="btn-ghost p-2 text-primary"
+                                                        className="btn-ghost p-1.5 text-primary hover:bg-blue-50"
                                                         title={t('common.edit')}
                                                     >
-                                                        <Edit3 className="h-4 w-4" />
+                                                        <Edit3 className="h-3.5 w-3.5" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteDevice(device)}
-                                                        className="btn-ghost p-2 text-red-600 hover:text-red-700"
+                                                        className="btn-ghost p-1.5 text-red-600 hover:bg-red-50"
                                                         title={t('common.delete')}
                                                     >
-                                                        <Trash2 className="h-4 w-4" />
+                                                        <Trash2 className="h-3.5 w-3.5" />
                                                     </button>
                                                 </div>
                                             </td>

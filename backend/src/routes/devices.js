@@ -401,7 +401,14 @@ router.post('/:id/heartbeat', [
 ], async (req, res) => {
     try {
         const { id } = req.params;
-        const { firmware_version, uptime, free_heap, wifi_rssi } = req.body;
+        const { firmware_version, uptime, free_heap, wifi_rssi, ip_address } = req.body;
+
+        // Use IP from request body if provided, otherwise use req.ip
+        // Extract IPv4 from IPv6-mapped address if needed
+        let deviceIp = ip_address || req.ip;
+        if (deviceIp && deviceIp.startsWith('::ffff:')) {
+            deviceIp = deviceIp.substring(7); // Remove ::ffff: prefix
+        }
 
         await db.query(`
             UPDATE devices
@@ -411,7 +418,7 @@ router.post('/:id/heartbeat', [
                 uptime_seconds = COALESCE($2, uptime_seconds),
                 ip_address = $3
             WHERE id = $4
-        `, [firmware_version, uptime, req.ip, id]);
+        `, [firmware_version, uptime, deviceIp, id]);
 
         res.json({
             message: 'Heartbeat received',

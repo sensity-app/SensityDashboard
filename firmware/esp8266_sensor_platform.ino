@@ -760,9 +760,16 @@ void connectToWiFi() {
 
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println();
-        Serial.println("WiFi connected!");
-        Serial.println("IP: " + WiFi.localIP().toString());
-        Serial.println("MAC: " + WiFi.macAddress());
+        Serial.println("========================================");
+        Serial.println("     WiFi Connection Established");
+        Serial.println("========================================");
+        Serial.println("WiFi Network: " + String(config.wifi_ssid));
+        Serial.println("Local IP:     " + WiFi.localIP().toString());
+        Serial.println("MAC Address:  " + WiFi.macAddress());
+        Serial.println("Firmware Ver: " + String(FIRMWARE_VERSION));
+        Serial.println("Device ID:    " + String(DEVICE_ID));
+        Serial.println("Server URL:   " + String(config.server_url));
+        Serial.println("========================================");
     } else {
         Serial.println();
         Serial.println("Failed to connect to WiFi - restarting");

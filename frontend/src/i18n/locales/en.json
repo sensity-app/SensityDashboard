@@ -69,7 +69,9 @@
     "alertRules": "Alert Rules",
     "userManagement": "Users",
     "settings": "Settings",
+    "tools": "Tools",
     "firmwareBuilder": "Firmware Builder",
+    "serialMonitor": "Serial Monitor",
     "silentMode": "Silent Mode"
   },
   "navigation": {

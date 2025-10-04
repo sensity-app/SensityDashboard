@@ -10,6 +10,8 @@ const WebFlasher = ({ config, onClose }) => {
     const [port, setPort] = useState(null);
     const [log, setLog] = useState([]);
     const [supportsWebSerial, setSupportsWebSerial] = useState(false);
+    const [isMonitoring, setIsMonitoring] = useState(false);
+    const [reader, setReader] = useState(null);
 
     const logRef = useRef(null);
 
@@ -249,11 +251,61 @@ const WebFlasher = ({ config, onClose }) => {
             setFlashStatus('Flash completed successfully!');
             addLog('Firmware flashed successfully!', 'success');
             addLog('Device should connect to WiFi and appear online shortly', 'success');
+            addLog('Click "Start Serial Monitor" to view device output', 'info');
 
         } catch (error) {
             addLog(`Flash error: ${error.message}`, 'error');
             throw error;
         }
+    };
+
+    const startSerialMonitor = async () => {
+        if (!port || isMonitoring) return;
+
+        try {
+            await port.open({ baudRate: 115200 });
+            setIsMonitoring(true);
+            addLog('Serial monitor started - Listening for device output...', 'info');
+
+            const textDecoder = new TextDecoderStream();
+            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            const newReader = textDecoder.readable.getReader();
+            setReader(newReader);
+
+            // Read serial data
+            while (true) {
+                const { value, done } = await newReader.read();
+                if (done) break;
+
+                // Add device output to log
+                const lines = value.split('\n');
+                lines.forEach(line => {
+                    if (line.trim()) {
+                        addLog(`[Device] ${line.trim()}`, 'info');
+                    }
+                });
+            }
+        } catch (error) {
+            if (error.message.includes('readable is locked')) {
+                addLog('Port is busy, please reconnect device', 'error');
+            } else {
+                addLog(`Serial monitor error: ${error.message}`, 'error');
+            }
+            setIsMonitoring(false);
+        }
+    };
+
+    const stopSerialMonitor = async () => {
+        if (reader) {
+            try {
+                await reader.cancel();
+                setReader(null);
+            } catch (error) {
+                console.error('Error stopping monitor:', error);
+            }
+        }
+        setIsMonitoring(false);
+        addLog('Serial monitor stopped', 'info');
     };
 
     const downloadInsteadOfFlash = async () => {
@@ -478,6 +530,19 @@ const WebFlasher = ({ config, onClose }) => {
                                 </>
                             )}
                         </button>
+                        {flashProgress === 100 && !isFlashing && (
+                            <button
+                                onClick={isMonitoring ? stopSerialMonitor : startSerialMonitor}
+                                className={`px-4 py-3 flex items-center space-x-2 border rounded-lg ${
+                                    isMonitoring
+                                        ? 'text-red-600 border-red-600 hover:bg-red-50'
+                                        : 'text-green-600 border-green-600 hover:bg-green-50'
+                                }`}
+                            >
+                                <Usb className="w-4 h-4" />
+                                <span>{isMonitoring ? 'Stop Monitor' : 'Serial Monitor'}</span>
+                            </button>
+                        )}
                         <button
                             onClick={downloadInsteadOfFlash}
                             disabled={isFlashing}

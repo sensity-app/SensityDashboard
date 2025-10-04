@@ -17,6 +17,7 @@ import DeviceManagement from './pages/DeviceManagement';
 import UserManagement from './pages/UserManagement';
 import Settings from './pages/Settings';
 import FirmwareBuilder from './pages/FirmwareBuilder';
+import SerialMonitor from './pages/SerialMonitor';
 
 import LanguageSelector from './components/LanguageSelector';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
@@ -192,6 +193,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
         }
     });
     const [isHeaderMinimal, setIsHeaderMinimal] = useState(false);
+    const dropdownRef = React.useRef(null);
 
     const handleLanguageChange = async (languageCode) => {
         if (languageCode === (user?.preferred_language || i18n.language)) {
@@ -259,6 +261,22 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
         return () => window.removeEventListener('storage', loadSettings);
     }, []);
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setDropdownOpen(null);
+            }
+        };
+
+        if (dropdownOpen !== null) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [dropdownOpen]);
+
     // Handle scroll for minimal header
     useEffect(() => {
         const handleScroll = () => {
@@ -290,7 +308,13 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                 { path: '/device-locations', label: t('nav.deviceLocations', 'Device Locations'), icon: '📍' }
             ]
         },
-        { path: '/firmware-builder', label: t('nav.firmwareBuilder', 'Firmware Builder'), icon: '🔧' },
+        {
+            label: t('nav.tools', 'Tools'), icon: '🔧', dropdown: true,
+            items: [
+                { path: '/firmware-builder', label: t('nav.firmwareBuilder', 'Firmware Builder'), icon: '⚙️' },
+                { path: '/serial-monitor', label: t('nav.serialMonitor', 'Serial Monitor'), icon: '📺' }
+            ]
+        },
         ...(user.role === 'admin' ? [
             {
                 label: t('nav.administration', 'Administration'), icon: '⚙️', dropdown: true,
@@ -382,7 +406,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                         {navigationItems.map((item, index) => (
                             <div key={item.path || index} className="relative flex-shrink-0">
                                 {item.dropdown ? (
-                                    <div className="relative">
+                                    <div className="relative" ref={dropdownOpen === index ? dropdownRef : null}>
                                         <button
                                             onClick={() => handleDropdownToggle(index)}
                                             className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-t-lg whitespace-nowrap ${isPathActive(item.path, item.items)
@@ -396,7 +420,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                                 }`} />
                                         </button>
                                         {dropdownOpen === index && (
-                                            <div className="absolute top-full left-0 w-48 sm:w-56 bg-white rounded-b-xl border border-gray-200 border-t-0 shadow-xl z-[70] animate-fade-in">
+                                            <div className="absolute top-full left-0 w-48 sm:w-56 bg-white rounded-b-xl border border-gray-200 border-t-0 shadow-xl z-[70] animate-fade-in overflow-hidden">
                                                 {item.items.map((subItem) => (
                                                     <button
                                                         key={subItem.path}
@@ -448,6 +472,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                     <Route path="/alert-rules" element={<AlertRulesManager />} />
                     <Route path="/silent-mode" element={<SilentModeManager />} />
                     <Route path="/firmware-builder" element={<FirmwareBuilder />} />
+                    <Route path="/serial-monitor" element={<SerialMonitor />} />
                     {user.role === 'admin' && (
                         <>
                             <Route path="/users" element={<UserManagement />} />

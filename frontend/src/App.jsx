@@ -400,9 +400,9 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
             </header>
 
             {/* Modern Navigation */}
-            <nav className="glass-dark relative border-t border-white/10 z-40">
+            <nav className="glass-dark relative border-t border-white/10 z-40 overflow-visible">
                 <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-                    <div className="flex space-x-0.5 sm:space-x-1 overflow-x-auto scrollbar-hide">
+                    <div className="flex space-x-0.5 sm:space-x-1 overflow-x-auto scrollbar-hide overflow-y-visible">
                         {navigationItems.map((item, index) => (
                             <div key={item.path || index} className="relative flex-shrink-0">
                                 {item.dropdown ? (
@@ -420,7 +420,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                                 }`} />
                                         </button>
                                         {dropdownOpen === index && (
-                                            <div className="absolute top-full left-0 w-48 sm:w-56 bg-white rounded-b-xl border border-gray-200 border-t-0 shadow-xl z-[70] animate-fade-in overflow-hidden">
+                                            <div className="absolute top-full left-0 min-w-[200px] sm:min-w-[224px] bg-white rounded-b-xl border border-gray-200 shadow-2xl z-[100] mt-0">
                                                 {item.items.map((subItem) => (
                                                     <button
                                                         key={subItem.path}

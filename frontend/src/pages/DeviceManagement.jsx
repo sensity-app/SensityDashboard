@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -158,7 +158,7 @@ function DeviceManagement() {
     const devices = filteredDevices.slice(startIndex, endIndex);
 
     // Reset to page 1 when filters change
-    React.useEffect(() => {
+    useEffect(() => {
         setCurrentPage(1);
     }, [filterStatus, filterType, filterLocation, searchQuery]);
 

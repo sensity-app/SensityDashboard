@@ -7,6 +7,7 @@ const db = require('../models/database');
 const logger = require('../utils/logger');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const emailService = require('../services/emailService');
+const { bruteForceProtection } = require('../middleware/bruteForceProtection');
 
 const router = express.Router();
 
@@ -202,6 +203,7 @@ router.post('/register', [
 
 // POST /api/auth/login
 router.post('/login', [
+    bruteForceProtection,
     body('email').isEmail().normalizeEmail(),
     body('password').notEmpty()
 ], async (req, res) => {
@@ -220,6 +222,10 @@ router.post('/login', [
         );
 
         if (result.rows.length === 0) {
+            // Record failed attempt - user not found
+            if (req.bruteForce) {
+                await req.bruteForce.recordFailure('user_not_found');
+            }
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -228,7 +234,16 @@ router.post('/login', [
         // Verify password
         const isValidPassword = await bcrypt.compare(password, user.password_hash);
         if (!isValidPassword) {
+            // Record failed attempt - invalid password
+            if (req.bruteForce) {
+                await req.bruteForce.recordFailure('invalid_password');
+            }
             return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Clear failed attempts on successful login
+        if (req.bruteForce) {
+            await req.bruteForce.clearAttempts();
         }
 
         // Generate JWT token

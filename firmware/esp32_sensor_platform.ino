@@ -7,6 +7,23 @@
 #include <DHT.h>
 #include "device_config.h"
 
+#define OTA_CONFIG_CHUNK "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+#define OTA_CONFIG_BLOCK4 OTA_CONFIG_CHUNK OTA_CONFIG_CHUNK OTA_CONFIG_CHUNK OTA_CONFIG_CHUNK
+#define OTA_CONFIG_BLOCK8 OTA_CONFIG_BLOCK4 OTA_CONFIG_BLOCK4
+#define OTA_CONFIG_BLOCK16 OTA_CONFIG_BLOCK8 OTA_CONFIG_BLOCK8
+#define OTA_CONFIG_BLOCK32 OTA_CONFIG_BLOCK16 OTA_CONFIG_BLOCK16
+
+const char OTA_CONFIG_PLACEHOLDER[] =
+    "__CONFIG_START__"
+    OTA_CONFIG_BLOCK32
+    "__CONFIG_END__";
+
+#undef OTA_CONFIG_BLOCK32
+#undef OTA_CONFIG_BLOCK16
+#undef OTA_CONFIG_BLOCK8
+#undef OTA_CONFIG_BLOCK4
+#undef OTA_CONFIG_CHUNK
+
 // Configuration structure
 struct DeviceConfig {
     char wifi_ssid[64];

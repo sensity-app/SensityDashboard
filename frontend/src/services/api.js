@@ -237,6 +237,9 @@ export const apiService = {
     deleteProtocolSettings: (deviceId) => apiClient.delete(`/protocol-settings/${deviceId}`),
     getMqttConfig: () => apiClient.get('/protocol-settings/mqtt/config'),
     testProtocolConnection: (connectionData) => apiClient.post('/protocol-settings/test-connection', connectionData),
+
+    // OTA Updates
+    triggerOTA: (deviceId) => apiClient.post(`/devices/${deviceId}/ota`),
 };
 
 export default apiService;

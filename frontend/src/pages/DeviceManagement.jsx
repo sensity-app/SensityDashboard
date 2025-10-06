@@ -19,7 +19,10 @@ import {
     Clock,
     RefreshCw,
     X,
-    Cpu
+    Cpu,
+    Upload,
+    List,
+    Grid
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
@@ -39,6 +42,8 @@ function DeviceManagement() {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [viewMode, setViewMode] = useState('compact'); // 'compact' or 'detailed'
+    const [otaDevice, setOtaDevice] = useState(null);
 
     // Query devices
     const { data: devicesData, isLoading: devicesLoading } = useQuery(
@@ -83,6 +88,10 @@ function DeviceManagement() {
 
     const handleManageSensors = (device) => {
         setManagingSensorsDevice(device);
+    };
+
+    const handleOTAUpdate = (device) => {
+        setOtaDevice(device);
     };
 
     const getStatusIcon = (status) => {
@@ -387,7 +396,31 @@ function DeviceManagement() {
                         <Monitor className="w-6 h-6 text-primary" />
                         <span>{t('devices.deviceList')}</span>
                     </h2>
-                    <span className="badge badge-primary">{devices.length} devices</span>
+                    <div className="flex items-center space-x-3">
+                        <div className="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
+                            <button
+                                onClick={() => setViewMode('compact')}
+                                className={`px-3 py-1 text-sm rounded ${
+                                    viewMode === 'compact'
+                                        ? 'bg-white shadow text-gray-900'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                                Compact
+                            </button>
+                            <button
+                                onClick={() => setViewMode('detailed')}
+                                className={`px-3 py-1 text-sm rounded ${
+                                    viewMode === 'detailed'
+                                        ? 'bg-white shadow text-gray-900'
+                                        : 'text-gray-600 hover:text-gray-900'
+                                }`}
+                            >
+                                Detailed
+                            </button>
+                        </div>
+                        <span className="badge badge-primary">{filteredDevices.length} devices</span>
+                    </div>
                 </div>
                 {devices.length === 0 ? (
                     <div className="p-12 text-center">
@@ -470,6 +503,13 @@ function DeviceManagement() {
                                     </div>
 
                                     <div className="flex justify-end items-center space-x-2 pt-3 border-t border-gray-100">
+                                        <button
+                                            onClick={() => handleOTAUpdate(device)}
+                                            className="btn-ghost px-3 py-1.5 text-sm text-orange-600 hover:bg-orange-50"
+                                        >
+                                            <Upload className="h-4 w-4 mr-1 inline" />
+                                            OTA
+                                        </button>
                                         <Link
                                             to={`/devices/${device.id}`}
                                             className="btn-ghost px-3 py-1.5 text-sm hover:bg-blue-50"
@@ -501,115 +541,218 @@ function DeviceManagement() {
                             ))}
                         </div>
 
-                        {/* Table view for desktop */}
-                        <div className="hidden lg:block overflow-x-auto">
-                            <table className="w-full table-modern">
-                                <thead>
-                                    <tr>
-                                        <th className="text-left">{t('devices.deviceName')}</th>
-                                        <th className="text-left">{t('common.status')}</th>
-                                        <th className="text-left">{t('devices.deviceType')}</th>
-                                        <th className="text-left">{t('devices.location')}</th>
-                                        <th className="text-left">{t('devices.ipAddress')}</th>
-                                        <th className="text-left">{t('devices.lastHeartbeat')}</th>
-                                        <th className="text-left">{t('devices.firmwareVersion')}</th>
-                                        <th className="text-right">{t('common.actions')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {(devices || []).map((device, index) => (
-                                        <tr key={device.id} className="animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
-                                            <td className="min-w-[200px]">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                                        device.current_status === 'online' ? 'bg-green-100' :
-                                                        device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
-                                                    }`}>
-                                                        {getStatusIcon(device.current_status || device.status)}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <div className="font-medium text-gray-900 truncate">{device.name}</div>
-                                                        <div className="text-xs text-gray-500 font-mono truncate">ID: {device.id}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="whitespace-nowrap">
-                                                <span className={`badge text-xs ${
-                                                    (device.current_status || device.status) === 'online' ? 'badge-success' :
-                                                    (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
-                                                }`}>
-                                                    {(device.current_status || device.status || 'offline').toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td className="whitespace-nowrap">
-                                                <span className="badge badge-primary text-xs">
-                                                    {device.device_type || 'unknown'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="flex items-center space-x-1 text-sm text-gray-900">
-                                                    <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                                                    <span className="truncate">{device.location_name || t('common.unknown')}</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className="font-mono text-xs text-gray-600">
-                                                    {device.ip_address || '-'}
-                                                </span>
-                                            </td>
-                                            <td className="whitespace-nowrap">
-                                                <div className="flex items-center space-x-1 text-sm text-gray-500">
-                                                    <Clock className="w-3 h-3 flex-shrink-0" />
-                                                    <span>
-                                                        {device.last_heartbeat ?
-                                                            new Date(device.last_heartbeat).toLocaleDateString() :
-                                                            t('devices.never', 'Never')
-                                                        }
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className="font-mono text-xs text-gray-900">
-                                                    {device.firmware_version || t('common.unknown')}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="flex justify-end items-center space-x-1">
-                                                    <Link
-                                                        to={`/devices/${device.id}`}
-                                                        className="btn-ghost p-1.5 hover:bg-blue-50"
-                                                        title={t('devices.viewDetails')}
-                                                    >
-                                                        <Eye className="h-4 w-4" />
-                                                    </Link>
-                                                    <button
-                                                        onClick={() => handleManageSensors(device)}
-                                                        className="btn-ghost p-1.5 text-purple-600 hover:bg-purple-50"
-                                                        title={t('devices.manageSensors', 'Manage Sensors')}
-                                                    >
-                                                        <Cpu className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleEditDevice(device)}
-                                                        className="btn-ghost p-1.5 text-primary hover:bg-blue-50"
-                                                        title={t('common.edit')}
-                                                    >
-                                                        <Edit3 className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteDevice(device)}
-                                                        className="btn-ghost p-1.5 text-red-600 hover:bg-red-50"
-                                                        title={t('common.delete')}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
+                        {/* Compact Table view for desktop */}
+                        {viewMode === 'compact' && (
+                            <div className="hidden lg:block">
+                                <table className="w-full table-modern">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left w-1/4">{t('devices.deviceName')}</th>
+                                            <th className="text-left w-20">{t('common.status')}</th>
+                                            <th className="text-left w-24">{t('devices.deviceType')}</th>
+                                            <th className="text-left w-32">{t('devices.firmwareVersion')}</th>
+                                            <th className="text-right">{t('common.actions')}</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {(devices || []).map((device, index) => (
+                                            <tr key={device.id} className="animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
+                                                <td>
+                                                    <div className="flex items-center space-x-2">
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                                            device.current_status === 'online' ? 'bg-green-100' :
+                                                            device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
+                                                        }`}>
+                                                            {getStatusIcon(device.current_status || device.status)}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="font-medium text-gray-900 truncate text-sm">{device.name}</div>
+                                                            <div className="text-xs text-gray-500 truncate">{device.location_name || 'No location'}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className={`badge text-xs ${
+                                                        (device.current_status || device.status) === 'online' ? 'badge-success' :
+                                                        (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
+                                                    }`}>
+                                                        {(device.current_status || device.status || 'offline').toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span className="badge badge-primary text-xs">
+                                                        {device.device_type || 'unknown'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span className="font-mono text-xs text-gray-900">
+                                                        {device.firmware_version || 'N/A'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="flex justify-end items-center space-x-1">
+                                                        <button
+                                                            onClick={() => handleOTAUpdate(device)}
+                                                            className="btn-ghost p-1.5 text-orange-600 hover:bg-orange-50"
+                                                            title="OTA Update"
+                                                        >
+                                                            <Upload className="h-4 w-4" />
+                                                        </button>
+                                                        <Link
+                                                            to={`/devices/${device.id}`}
+                                                            className="btn-ghost p-1.5 hover:bg-blue-50"
+                                                            title={t('devices.viewDetails')}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Link>
+                                                        <button
+                                                            onClick={() => handleManageSensors(device)}
+                                                            className="btn-ghost p-1.5 text-purple-600 hover:bg-purple-50"
+                                                            title={t('devices.manageSensors', 'Manage Sensors')}
+                                                        >
+                                                            <Cpu className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleEditDevice(device)}
+                                                            className="btn-ghost p-1.5 text-primary hover:bg-blue-50"
+                                                            title={t('common.edit')}
+                                                        >
+                                                            <Edit3 className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteDevice(device)}
+                                                            className="btn-ghost p-1.5 text-red-600 hover:bg-red-50"
+                                                            title={t('common.delete')}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* Detailed Table view for desktop */}
+                        {viewMode === 'detailed' && (
+                            <div className="hidden lg:block overflow-x-auto">
+                                <table className="w-full table-modern">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left">{t('devices.deviceName')}</th>
+                                            <th className="text-left">{t('common.status')}</th>
+                                            <th className="text-left">{t('devices.deviceType')}</th>
+                                            <th className="text-left">{t('devices.location')}</th>
+                                            <th className="text-left">{t('devices.ipAddress')}</th>
+                                            <th className="text-left">{t('devices.lastHeartbeat')}</th>
+                                            <th className="text-left">{t('devices.firmwareVersion')}</th>
+                                            <th className="text-right">{t('common.actions')}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(devices || []).map((device, index) => (
+                                            <tr key={device.id} className="animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
+                                                <td className="min-w-[200px]">
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                                                            device.current_status === 'online' ? 'bg-green-100' :
+                                                            device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
+                                                        }`}>
+                                                            {getStatusIcon(device.current_status || device.status)}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="font-medium text-gray-900 truncate">{device.name}</div>
+                                                            <div className="text-xs text-gray-500 font-mono truncate">ID: {device.id}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="whitespace-nowrap">
+                                                    <span className={`badge text-xs ${
+                                                        (device.current_status || device.status) === 'online' ? 'badge-success' :
+                                                        (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
+                                                    }`}>
+                                                        {(device.current_status || device.status || 'offline').toUpperCase()}
+                                                    </span>
+                                                </td>
+                                                <td className="whitespace-nowrap">
+                                                    <span className="badge badge-primary text-xs">
+                                                        {device.device_type || 'unknown'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="flex items-center space-x-1 text-sm text-gray-900">
+                                                        <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                                        <span className="truncate">{device.location_name || t('common.unknown')}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className="font-mono text-xs text-gray-600">
+                                                        {device.ip_address || '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="whitespace-nowrap">
+                                                    <div className="flex items-center space-x-1 text-sm text-gray-500">
+                                                        <Clock className="w-3 h-3 flex-shrink-0" />
+                                                        <span>
+                                                            {device.last_heartbeat ?
+                                                                new Date(device.last_heartbeat).toLocaleDateString() :
+                                                                t('devices.never', 'Never')
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className="font-mono text-xs text-gray-900">
+                                                        {device.firmware_version || t('common.unknown')}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="flex justify-end items-center space-x-1">
+                                                        <button
+                                                            onClick={() => handleOTAUpdate(device)}
+                                                            className="btn-ghost p-1.5 text-orange-600 hover:bg-orange-50"
+                                                            title="OTA Update"
+                                                        >
+                                                            <Upload className="h-4 w-4" />
+                                                        </button>
+                                                        <Link
+                                                            to={`/devices/${device.id}`}
+                                                            className="btn-ghost p-1.5 hover:bg-blue-50"
+                                                            title={t('devices.viewDetails')}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Link>
+                                                        <button
+                                                            onClick={() => handleManageSensors(device)}
+                                                            className="btn-ghost p-1.5 text-purple-600 hover:bg-purple-50"
+                                                            title={t('devices.manageSensors', 'Manage Sensors')}
+                                                        >
+                                                            <Cpu className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleEditDevice(device)}
+                                                            className="btn-ghost p-1.5 text-primary hover:bg-blue-50"
+                                                            title={t('common.edit')}
+                                                        >
+                                                            <Edit3 className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteDevice(device)}
+                                                            className="btn-ghost p-1.5 text-red-600 hover:bg-red-50"
+                                                            title={t('common.delete')}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
 
                         {/* Pagination Controls */}
                         {filteredDevices.length > 0 && (
@@ -724,6 +867,14 @@ function DeviceManagement() {
                 <SensorManagementModal
                     device={managingSensorsDevice}
                     onClose={() => setManagingSensorsDevice(null)}
+                />
+            )}
+
+            {/* OTA Update Modal */}
+            {otaDevice && (
+                <OTAUpdateModal
+                    device={otaDevice}
+                    onClose={() => setOtaDevice(null)}
                 />
             )}
         </div>
@@ -1455,6 +1606,201 @@ function AddSensorForm({ onSave, onCancel, isLoading, availablePins, pinMapping,
                     </button>
                 </div>
             </form>
+        </div>
+    );
+}
+
+// OTA Update Modal Component
+function OTAUpdateModal({ device, onClose }) {
+    const { t } = useTranslation();
+    const queryClient = useQueryClient();
+    const [otaStatus, setOtaStatus] = useState('idle'); // 'idle', 'uploading', 'success', 'error'
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [errorMessage, setErrorMessage] = useState('');
+
+    const triggerOTAMutation = useMutation(
+        () => apiService.triggerOTA(device.id),
+        {
+            onSuccess: () => {
+                setOtaStatus('success');
+                queryClient.invalidateQueries('devices');
+                toast.success('OTA update initiated successfully');
+                setTimeout(() => {
+                    onClose();
+                }, 2000);
+            },
+            onError: (error) => {
+                setOtaStatus('error');
+                setErrorMessage(error.response?.data?.error || error.message || 'Failed to initiate OTA update');
+                toast.error('Failed to initiate OTA update');
+            }
+        }
+    );
+
+    const handleStartOTA = () => {
+        setOtaStatus('uploading');
+        setUploadProgress(0);
+
+        // Simulate progress for better UX
+        const interval = setInterval(() => {
+            setUploadProgress(prev => {
+                if (prev >= 90) {
+                    clearInterval(interval);
+                    return prev;
+                }
+                return prev + 10;
+            });
+        }, 300);
+
+        triggerOTAMutation.mutate();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fade-in">
+            <div className="card w-full max-w-md animate-scale-in">
+                <div className="card-header">
+                    <h2 className="card-title">
+                        <Upload className="w-5 h-5 text-orange-600" />
+                        <span>OTA Firmware Update</span>
+                    </h2>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="btn-ghost p-2"
+                        disabled={otaStatus === 'uploading'}
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    {/* Device Info */}
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Device:</span>
+                            <span className="font-medium text-gray-900">{device.name}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Type:</span>
+                            <span className="badge badge-primary text-xs">{device.device_type}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Current Firmware:</span>
+                            <span className="font-mono text-xs text-gray-900">{device.firmware_version || 'Unknown'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Status:</span>
+                            <span className={`badge text-xs ${
+                                device.current_status === 'online' ? 'badge-success' : 'badge-warning'
+                            }`}>
+                                {device.current_status?.toUpperCase() || 'OFFLINE'}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* OTA Status */}
+                    {otaStatus === 'idle' && (
+                        <div className="space-y-3">
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p className="text-sm text-blue-800">
+                                    <strong>Note:</strong> The device will be sent a command to download and install the latest firmware from the server. Make sure the device is online and connected to the internet.
+                                </p>
+                            </div>
+                            {device.current_status !== 'online' && (
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                    <p className="text-sm text-yellow-800">
+                                        <strong>Warning:</strong> The device appears to be offline. OTA update may fail.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {otaStatus === 'uploading' && (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-center">
+                                <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
+                            </div>
+                            <p className="text-center text-gray-600">Sending OTA update command...</p>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                    className="bg-orange-600 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${uploadProgress}%` }}
+                                ></div>
+                            </div>
+                            <p className="text-center text-sm text-gray-500">{uploadProgress}%</p>
+                        </div>
+                    )}
+
+                    {otaStatus === 'success' && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-center space-x-3">
+                                <div className="flex-shrink-0">
+                                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <p className="font-medium text-green-900">OTA Update Initiated</p>
+                                    <p className="text-sm text-green-700 mt-1">
+                                        The device will download and install the firmware. This may take a few minutes.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {otaStatus === 'error' && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-center space-x-3">
+                                <div className="flex-shrink-0">
+                                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                                        <X className="w-6 h-6 text-red-600" />
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <p className="font-medium text-red-900">Update Failed</p>
+                                    <p className="text-sm text-red-700 mt-1">{errorMessage}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="btn-secondary"
+                            disabled={otaStatus === 'uploading'}
+                        >
+                            {otaStatus === 'success' || otaStatus === 'error' ? 'Close' : 'Cancel'}
+                        </button>
+                        {otaStatus === 'idle' && (
+                            <button
+                                type="button"
+                                onClick={handleStartOTA}
+                                className="btn-primary flex items-center space-x-2"
+                            >
+                                <Upload className="w-4 h-4" />
+                                <span>Start OTA Update</span>
+                            </button>
+                        )}
+                        {otaStatus === 'error' && (
+                            <button
+                                type="button"
+                                onClick={handleStartOTA}
+                                className="btn-primary flex items-center space-x-2"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                <span>Retry</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

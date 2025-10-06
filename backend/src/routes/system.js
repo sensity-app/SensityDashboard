@@ -2,6 +2,7 @@ const express = require('express');
 const os = require('os');
 const path = require('path');
 const fs = require('fs').promises;
+const fsConstants = require('fs').constants;
 const { promisify } = require('util');
 const exec = promisify(require('child_process').exec);
 const { spawn } = require('child_process');
@@ -60,7 +61,7 @@ async function downloadUpdateScriptFromGitHub(scriptName, targetPath) {
 async function ensureUpdateScript(scriptPath, scriptName) {
     try {
         // Check if script exists
-        await fs.access(scriptPath, fs.constants.F_OK);
+        await fs.access(scriptPath, fsConstants.F_OK);
         logger.info(`Update script found: ${scriptPath}`);
         return true;
     } catch (error) {

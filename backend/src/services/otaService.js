@@ -99,7 +99,7 @@ class OTAService {
             const deviceResult = await db.query(`
                 SELECT d.*, dc.ota_enabled
                 FROM devices d
-                INNER JOIN device_config dc ON d.id = dc.device_id
+                INNER JOIN device_configs dc ON d.id = dc.device_id
                 WHERE d.id = $1
             `, [deviceId]);
 
@@ -149,26 +149,82 @@ class OTAService {
     }
 
     async updateOTAStatus(deviceId, status, progressPercent = 0, errorMessage = null) {
-        await db.query(`
+        const normalizedStatus = this.normalizeStatus(status);
+        const clampedProgress = Math.max(0, Math.min(100, Number.isFinite(progressPercent) ? progressPercent : 0));
+
+        const updateResult = await db.query(`
             UPDATE ota_updates
             SET status = $2,
                 progress_percent = $3,
                 error_message = $4,
-                started_at = CASE WHEN status = 'pending' AND $2 = 'downloading' THEN NOW() ELSE started_at END,
-                completed_at = CASE WHEN $2 IN ('completed', 'failed') THEN NOW() ELSE completed_at END
-            WHERE device_id = $1 AND status NOT IN ('completed', 'failed')
-        `, [deviceId, status, progressPercent, errorMessage]);
+                started_at = CASE
+                    WHEN status = 'pending' AND $2 IN ('downloading', 'installing') THEN NOW()
+                    ELSE started_at
+                END,
+                completed_at = CASE
+                    WHEN $2 IN ('completed', 'failed', 'cancelled') THEN NOW()
+                    ELSE completed_at
+                END
+            WHERE device_id = $1
+              AND status NOT IN ('completed', 'failed', 'cancelled')
+            RETURNING *
+        `, [deviceId, normalizedStatus, clampedProgress, errorMessage]);
 
-        // If completed successfully, update device firmware version
-        if (status === 'completed') {
+        if (updateResult.rows.length === 0) {
+            logger.warn(`No active OTA update found for device ${deviceId} when applying status ${normalizedStatus}`);
+            return null;
+        }
+
+        const otaUpdate = updateResult.rows[0];
+
+        if (normalizedStatus === 'completed') {
             await db.query(`
                 UPDATE devices
-                SET firmware_version = target_firmware_version
+                SET firmware_version = target_firmware_version,
+                    target_firmware_version = NULL
+                WHERE id = $1
+            `, [deviceId]);
+        } else if (normalizedStatus === 'failed') {
+            // Clear target version so future deployments can reschedule cleanly
+            await db.query(`
+                UPDATE devices
+                SET target_firmware_version = NULL
                 WHERE id = $1
             `, [deviceId]);
         }
 
-        logger.info(`OTA status updated for device ${deviceId}: ${status} (${progressPercent}%)`);
+        const firmwareResult = await db.query(
+            'SELECT version FROM firmware_versions WHERE id = $1',
+            [otaUpdate.firmware_version_id]
+        );
+
+        const firmwareVersion = firmwareResult.rows[0]?.version || null;
+
+        logger.info(`OTA status updated for device ${deviceId}: ${normalizedStatus} (${clampedProgress}%)`);
+
+        return {
+            ...otaUpdate,
+            version: firmwareVersion
+        };
+    }
+
+    normalizeStatus(status) {
+        const normalized = (status || '').toLowerCase();
+
+        switch (normalized) {
+            case 'pending':
+            case 'downloading':
+            case 'installing':
+            case 'completed':
+            case 'failed':
+            case 'cancelled':
+                return normalized;
+            case 'started':
+            case 'progress':
+                return 'downloading';
+            default:
+                throw new Error(`Unsupported OTA status: ${status}`);
+        }
     }
 
     async getOTAStatus(deviceId) {
@@ -242,7 +298,7 @@ class OTAService {
                     ps.http_endpoint,
                     ps.heartbeat_interval as protocol_heartbeat_interval
                 FROM devices d
-                LEFT JOIN device_config dc ON d.id = dc.device_id
+                LEFT JOIN device_configs dc ON d.id = dc.device_id
                 LEFT JOIN locations l ON d.location_id = l.id
                 LEFT JOIN protocol_settings ps ON d.id = ps.device_id
                 WHERE d.id = $1
@@ -492,4 +548,7 @@ class OTAService {
     }
 }
 
-module.exports = OTAService;
+const otaServiceInstance = new OTAService();
+
+module.exports = otaServiceInstance;
+module.exports.OTAService = OTAService;

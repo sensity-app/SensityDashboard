@@ -11,9 +11,10 @@ const WebFlasher = ({ config, onClose }) => {
     const [log, setLog] = useState([]);
     const [supportsWebSerial, setSupportsWebSerial] = useState(false);
     const [isMonitoring, setIsMonitoring] = useState(false);
-    const [reader, setReader] = useState(null);
 
     const logRef = useRef(null);
+    const monitorReaderRef = useRef(null);
+    const monitorStreamClosedRef = useRef(null);
 
     React.useEffect(() => {
         // Check if browser supports WebSerial API
@@ -58,6 +59,23 @@ const WebFlasher = ({ config, onClose }) => {
         setLog(prev => [...prev, { message, type, timestamp }]);
     };
 
+    const closePortIfOpen = async (serialPort) => {
+        if (!serialPort) return;
+        const isClosed = !serialPort.readable && !serialPort.writable;
+
+        if (isClosed) {
+            return;
+        }
+
+        try {
+            await serialPort.close();
+        } catch (error) {
+            if (error.name !== 'InvalidStateError') {
+                throw error;
+            }
+        }
+    };
+
     const connectToDevice = async () => {
         try {
             addLog('Requesting device connection...', 'info');
@@ -65,21 +83,32 @@ const WebFlasher = ({ config, onClose }) => {
             // Request serial port
             const newPort = await navigator.serial.requestPort();
 
-            // Open the port with common ESP8266 settings
-            await newPort.open({
-                baudRate: 115200,
-                dataBits: 8,
-                parity: 'none',
-                stopBits: 1,
-                flowControl: 'none'
-            });
+            // Basic sanity check: open and immediately close to ensure the port is available
+            try {
+                await newPort.open({
+                    baudRate: 115200,
+                    dataBits: 8,
+                    parity: 'none',
+                    stopBits: 1,
+                    flowControl: 'none'
+                });
+                await newPort.close();
+            } catch (portError) {
+                console.error('Port initialization failed:', portError);
+                addLog(`Failed to initialize device: ${portError.message}`, 'error');
+                try {
+                    await newPort.close();
+                } catch (closeError) {
+                    if (closeError.name !== 'InvalidStateError') {
+                        console.error('Error closing port after initialization failure:', closeError);
+                    }
+                }
+                return;
+            }
 
             setPort(newPort);
             setIsConnected(true);
-            addLog('Connected to ESP8266 device', 'success');
-
-            // Start reading from the device
-            startReading(newPort);
+            addLog('Serial device ready for flashing', 'success');
 
         } catch (error) {
             console.error('Connection failed:', error);
@@ -87,41 +116,42 @@ const WebFlasher = ({ config, onClose }) => {
         }
     };
 
-    const startReading = async (serialPort) => {
-        try {
-            const reader = serialPort.readable.getReader();
-
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-
-                // Convert uint8 array to text
-                const text = new TextDecoder().decode(value);
-                addLog(`Device: ${text.trim()}`, 'device');
-            }
-        } catch (error) {
-            console.error('Read error:', error);
-            addLog(`Read error: ${error.message}`, 'error');
-        }
-    };
-
     const disconnect = async () => {
-        if (port) {
-            try {
-                await port.close();
-                setPort(null);
-                setIsConnected(false);
-                addLog('Disconnected from device', 'info');
-            } catch (error) {
-                console.error('Disconnect error:', error);
-                addLog(`Disconnect error: ${error.message}`, 'error');
-            }
+        if (!port) return;
+
+        await stopSerialMonitor({ silent: true });
+
+        try {
+            await closePortIfOpen(port);
+            addLog('Disconnected from device', 'info');
+        } catch (error) {
+            console.error('Disconnect error:', error);
+            addLog(`Disconnect error: ${error.message}`, 'error');
+        } finally {
+            setPort(null);
+            setIsConnected(false);
         }
     };
 
     const flashFirmware = async () => {
         if (!isConnected || !port) {
             addLog('Please connect to device first', 'error');
+            return;
+        }
+
+        const requestedPlatform = config?.platform || config?.device_type;
+        if (requestedPlatform && requestedPlatform !== 'esp8266') {
+            addLog(`Web flashing currently supports ESP8266 only (selected platform: ${requestedPlatform}).`, 'error');
+            addLog('Use the download option and flash the binary with a platform-appropriate tool.', 'info');
+            return;
+        }
+
+        try {
+            await stopSerialMonitor({ silent: true });
+            await closePortIfOpen(port);
+        } catch (error) {
+            console.error('Pre-flash port cleanup failed:', error);
+            addLog(`Failed to prepare port: ${error.message}`, 'error');
             return;
         }
 
@@ -169,27 +199,36 @@ const WebFlasher = ({ config, onClose }) => {
             throw new Error('Device not connected');
         }
 
+        let transport;
+
         try {
             setFlashStatus('Connecting to ESP8266...');
             addLog('Initializing ESPTool...', 'info');
             setFlashProgress(25);
 
-            // Create transport
-            const transport = new Transport(port);
+            transport = new Transport(port);
+            await transport.connect(115200, {
+                dataBits: 8,
+                stopBits: 1,
+                parity: 'none',
+                flowControl: 'none'
+            });
 
-            // Create ESPLoader
-            const esploader = new ESPLoader(transport, 115200, undefined);
+            const esploader = new ESPLoader({
+                transport,
+                baudrate: 115200,
+                romBaudrate: 115200,
+                debugLogging: false
+            });
 
             setFlashStatus('Connecting to chip...');
             addLog('Connecting to ESP8266...', 'info');
 
-            // Connect to chip
             const chip = await esploader.main();
 
             addLog(`Connected to ${chip}`, 'success');
             setFlashProgress(35);
 
-            // Prepare flash files
             setFlashStatus('Preparing flash data...');
             addLog('Preparing firmware for flashing...', 'info');
 
@@ -207,7 +246,6 @@ const WebFlasher = ({ config, onClose }) => {
 
             setFlashProgress(45);
 
-            // Flash firmware
             setFlashStatus('Erasing flash...');
             addLog('Erasing flash memory...', 'info');
 
@@ -218,12 +256,11 @@ const WebFlasher = ({ config, onClose }) => {
             setFlashStatus('Writing firmware...');
             addLog('Writing firmware to flash...', 'info');
 
-            // Write firmware
             const flashOptions = {
-                fileArray: fileArray,
-                flashSize: "keep",
-                flashMode: "keep",
-                flashFreq: "keep",
+                fileArray,
+                flashSize: 'keep',
+                flashMode: 'keep',
+                flashFreq: 'keep',
                 eraseAll: false,
                 compress: true,
                 reportProgress: (fileIndex, written, total) => {
@@ -252,60 +289,140 @@ const WebFlasher = ({ config, onClose }) => {
             addLog('Firmware flashed successfully!', 'success');
             addLog('Device should connect to WiFi and appear online shortly', 'success');
             addLog('Click "Start Serial Monitor" to view device output', 'info');
-
         } catch (error) {
             addLog(`Flash error: ${error.message}`, 'error');
             throw error;
+        } finally {
+            if (transport) {
+                try {
+                    await transport.disconnect();
+                } catch (disconnectError) {
+                    console.warn('Transport disconnect failed:', disconnectError);
+                    addLog(`Warning: failed to release serial port cleanly (${disconnectError.message})`, 'error');
+                } finally {
+                    try {
+                        await closePortIfOpen(port);
+                    } catch (closeError) {
+                        if (closeError.name !== 'InvalidStateError') {
+                            console.error('Port close after flash failed:', closeError);
+                        }
+                    }
+                }
+            }
         }
     };
 
     const startSerialMonitor = async () => {
-        if (!port || isMonitoring) return;
+        if (!port) {
+            addLog('Please connect to a device first', 'error');
+            return;
+        }
+
+        if (isMonitoring) {
+            addLog('Serial monitor is already running', 'info');
+            return;
+        }
 
         try {
             await port.open({ baudRate: 115200 });
-            setIsMonitoring(true);
-            addLog('Serial monitor started - Listening for device output...', 'info');
-
-            const textDecoder = new TextDecoderStream();
-            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-            const newReader = textDecoder.readable.getReader();
-            setReader(newReader);
-
-            // Read serial data
-            while (true) {
-                const { value, done } = await newReader.read();
-                if (done) break;
-
-                // Add device output to log
-                const lines = value.split('\n');
-                lines.forEach(line => {
-                    if (line.trim()) {
-                        addLog(`[Device] ${line.trim()}`, 'info');
-                    }
-                });
-            }
         } catch (error) {
-            if (error.message.includes('readable is locked')) {
-                addLog('Port is busy, please reconnect device', 'error');
-            } else {
+            if (error.name !== 'InvalidStateError') {
+                console.error('Serial monitor error:', error);
                 addLog(`Serial monitor error: ${error.message}`, 'error');
+                return;
             }
-            setIsMonitoring(false);
+            // Port already open - continue
         }
+
+        const textDecoder = new TextDecoderStream();
+        const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+        monitorStreamClosedRef.current = readableStreamClosed;
+
+        const reader = textDecoder.readable.getReader();
+        monitorReaderRef.current = reader;
+        setIsMonitoring(true);
+        addLog('Serial monitor started - Listening for device output...', 'info');
+
+        (async () => {
+            try {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (!value) continue;
+
+                    value.split('\n').forEach(line => {
+                        if (line.trim()) {
+                            addLog(`[Device] ${line.trim()}`, 'info');
+                        }
+                    });
+                }
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Serial monitor error:', error);
+                    addLog(`Serial monitor error: ${error.message}`, 'error');
+                }
+            } finally {
+                try {
+                    reader.releaseLock();
+                } catch (_) {
+                    // ignore
+                }
+                monitorReaderRef.current = null;
+
+                try {
+                    await readableStreamClosed.catch(() => {});
+                } catch (_) {
+                    // ignore
+                }
+                monitorStreamClosedRef.current = null;
+
+                try {
+                    await closePortIfOpen(port);
+                } catch (error) {
+                    if (error.name !== 'InvalidStateError') {
+                        console.error('Error closing port after monitor:', error);
+                    }
+                }
+
+                setIsMonitoring(false);
+            }
+        })();
     };
 
-    const stopSerialMonitor = async () => {
-        if (reader) {
+    const stopSerialMonitor = async ({ silent = false } = {}) => {
+        const hadMonitor = Boolean(monitorReaderRef.current || isMonitoring);
+
+        if (!hadMonitor) {
+            return;
+        }
+
+        if (monitorReaderRef.current) {
             try {
-                await reader.cancel();
-                setReader(null);
+                await monitorReaderRef.current.cancel();
             } catch (error) {
-                console.error('Error stopping monitor:', error);
+                if (error.name !== 'AbortError') {
+                    console.error('Error stopping serial monitor:', error);
+                    if (!silent) {
+                        addLog(`Serial monitor stop error: ${error.message}`, 'error');
+                    }
+                }
             }
         }
+
+        if (monitorStreamClosedRef.current) {
+            try {
+                await monitorStreamClosedRef.current.catch(() => {});
+            } catch (_) {
+                // ignore errors from pipeline closure
+            }
+            monitorStreamClosedRef.current = null;
+        }
+
+        if (!silent) {
+            addLog('Serial monitor stopped', 'info');
+        }
+
         setIsMonitoring(false);
-        addLog('Serial monitor stopped', 'info');
     };
 
     const downloadInsteadOfFlash = async () => {

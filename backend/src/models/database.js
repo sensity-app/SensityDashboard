@@ -143,6 +143,9 @@ const createTables = async () => {
             notification_sms BOOLEAN DEFAULT false,
             notification_push BOOLEAN DEFAULT true,
             preferred_language VARCHAR(5) DEFAULT 'en',
+            telegram_chat_id VARCHAR(255),
+            notification_telegram BOOLEAN DEFAULT false,
+            telegram_enabled BOOLEAN DEFAULT false,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -423,6 +426,31 @@ const createTables = async () => {
             ip_address INET
         );
 
+        -- Telegram configuration
+        CREATE TABLE IF NOT EXISTS telegram_config (
+            id SERIAL PRIMARY KEY,
+            bot_token VARCHAR(255),
+            bot_username VARCHAR(255),
+            bot_name VARCHAR(255),
+            enabled BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Telegram notifications log
+        CREATE TABLE IF NOT EXISTS telegram_notifications (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+            chat_id VARCHAR(255) NOT NULL,
+            message_text TEXT NOT NULL,
+            notification_type VARCHAR(50),
+            alert_id INTEGER REFERENCES alerts(id) ON DELETE SET NULL,
+            device_id VARCHAR(50) REFERENCES devices(id) ON DELETE SET NULL,
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            success BOOLEAN DEFAULT true,
+            error_message TEXT
+        );
+
         -- Silent mode schedules for quiet hours
         CREATE TABLE IF NOT EXISTS silent_mode_schedules (
             id SERIAL PRIMARY KEY,
@@ -515,6 +543,8 @@ const createTables = async () => {
         CREATE INDEX IF NOT EXISTS idx_silent_mode_device_enabled ON silent_mode_schedules(device_id, enabled);
         CREATE INDEX IF NOT EXISTS idx_silent_mode_location_enabled ON silent_mode_schedules(location_id, enabled);
         CREATE INDEX IF NOT EXISTS idx_protocol_settings_device ON protocol_settings(device_id);
+        CREATE INDEX IF NOT EXISTS idx_telegram_notifications_user_id ON telegram_notifications(user_id);
+        CREATE INDEX IF NOT EXISTS idx_telegram_notifications_sent_at ON telegram_notifications(sent_at);
 
         -- Indexes for new tables
         CREATE INDEX IF NOT EXISTS idx_device_group_members_group ON device_group_members(group_id);
@@ -552,6 +582,17 @@ const createTables = async () => {
             ('Distance', 'cm', 0, 400, 'Ultrasonic distance sensor', 'ruler')
         `);
         logger.info('Default sensor types created');
+    }
+
+    // Seed Telegram configuration with a disabled default entry if missing
+    try {
+        await query(`
+            INSERT INTO telegram_config (enabled)
+            SELECT false
+            WHERE NOT EXISTS (SELECT 1 FROM telegram_config)
+        `);
+    } catch (error) {
+        logger.warn('Unable to seed telegram_config table:', error.message);
     }
 };
 
@@ -637,6 +678,45 @@ const runMigrations = async () => {
 
                 UPDATE alerts
                     SET escalation_level = COALESCE(escalation_level, 0);
+            `
+        },
+        {
+            name: '004_add_telegram_support',
+            sql: `
+                ALTER TABLE IF EXISTS users
+                    ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(255),
+                    ADD COLUMN IF NOT EXISTS notification_telegram BOOLEAN DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS telegram_enabled BOOLEAN DEFAULT false;
+
+                CREATE TABLE IF NOT EXISTS telegram_config (
+                    id SERIAL PRIMARY KEY,
+                    bot_token VARCHAR(255),
+                    bot_username VARCHAR(255),
+                    bot_name VARCHAR(255),
+                    enabled BOOLEAN DEFAULT false,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS telegram_notifications (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                    chat_id VARCHAR(255) NOT NULL,
+                    message_text TEXT NOT NULL,
+                    notification_type VARCHAR(50),
+                    alert_id INTEGER REFERENCES alerts(id) ON DELETE SET NULL,
+                    device_id VARCHAR(50) REFERENCES devices(id) ON DELETE SET NULL,
+                    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    success BOOLEAN DEFAULT true,
+                    error_message TEXT
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_telegram_notifications_user_id ON telegram_notifications(user_id);
+                CREATE INDEX IF NOT EXISTS idx_telegram_notifications_sent_at ON telegram_notifications(sent_at);
+
+                INSERT INTO telegram_config (enabled)
+                SELECT false
+                WHERE NOT EXISTS (SELECT 1 FROM telegram_config);
             `
         }
     ];

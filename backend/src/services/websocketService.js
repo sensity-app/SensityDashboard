@@ -287,6 +287,14 @@ class WebSocketService {
         });
     }
 
+    broadcastOTAStatus(deviceId, otaStatus) {
+        this.io.to(`device:${deviceId}`).emit('ota_progress', {
+            device_id: deviceId,
+            ...otaStatus,
+            timestamp: new Date().toISOString()
+        });
+    }
+
     broadcastNewAlert(alert) {
         this.io.to('alerts:global').emit('alert:new', {
             ...alert,

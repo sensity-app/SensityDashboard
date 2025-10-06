@@ -3,6 +3,7 @@ const { body, param, query, validationResult } = require('express-validator');
 const db = require('../models/database');
 const logger = require('../utils/logger');
 const { authenticateToken, authenticateDevice, requireAdmin } = require('../middleware/auth');
+const otaService = require('../services/otaService');
 
 const router = express.Router();
 
@@ -517,22 +518,60 @@ router.post('/:id/ota-status', [
         const { id } = req.params;
         const { status, progress, error } = req.body;
 
-        logger.info(`OTA status update for device ${id}: ${status} ${progress ? `(${progress}%)` : ''}`);
+        let progressPercent = progress !== undefined ? parseInt(progress, 10) : 0;
+        if (!Number.isFinite(progressPercent)) {
+            progressPercent = 0;
+        }
+        progressPercent = Math.max(0, Math.min(100, progressPercent));
 
-        // Update device if OTA completed successfully
-        if (status === 'completed') {
-            const device = await db.query('SELECT target_firmware_version FROM devices WHERE id = $1', [id]);
-            if (device.rows.length > 0) {
-                await db.query(`
-                    UPDATE devices
-                    SET firmware_version = target_firmware_version,
-                        target_firmware_version = NULL
-                    WHERE id = $1
-                `, [id]);
-            }
+        let statusForUpdate;
+        switch ((status || '').toLowerCase()) {
+            case 'started':
+                statusForUpdate = 'downloading';
+                progressPercent = 0;
+                break;
+            case 'progress':
+                statusForUpdate = 'downloading';
+                break;
+            case 'completed':
+                statusForUpdate = 'completed';
+                if (progress === undefined) {
+                    progressPercent = 100;
+                }
+                break;
+            case 'failed':
+                statusForUpdate = 'failed';
+                break;
+            default:
+                return res.status(400).json({ error: `Unsupported OTA status: ${status}` });
         }
 
-        res.json({ message: 'OTA status received' });
+        const otaUpdate = await otaService.updateOTAStatus(
+            id,
+            statusForUpdate,
+            progressPercent,
+            error || null
+        );
+
+        if (!otaUpdate) {
+            return res.status(404).json({ error: 'No OTA update in progress for this device' });
+        }
+
+        const payload = {
+            ota_update_id: otaUpdate.id,
+            status: otaUpdate.status,
+            progress_percent: otaUpdate.progress_percent ?? progressPercent,
+            error_message: otaUpdate.error_message,
+            version: otaUpdate.version
+        };
+
+        if (req.websocketService && typeof req.websocketService.broadcastOTAStatus === 'function') {
+            req.websocketService.broadcastOTAStatus(id, payload);
+        }
+
+        logger.info(`OTA status update for device ${id}: ${statusForUpdate} (${payload.progress_percent}%)`);
+
+        res.json({ message: 'OTA status received', ota: payload });
     } catch (error) {
         logger.error('OTA status error:', error);
         res.status(500).json({ error: 'Failed to process OTA status' });

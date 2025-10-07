@@ -72,12 +72,20 @@ function DeviceManagement() {
 
     // Query device groups for dropdown
     const { data: deviceGroups = [] } = useQuery('device-groups', apiService.getDeviceGroups, {
-        select: (data) => data.groups || data || []
+        select: (data) => data.groups || data || [],
+        onError: (error) => {
+            console.error('Error fetching device groups:', error);
+        },
+        retry: 1
     });
 
     // Query device tags for dropdown
     const { data: deviceTags = [] } = useQuery('device-tags', apiService.getDeviceTags, {
-        select: (data) => data.tags || data || []
+        select: (data) => data.tags || data || [],
+        onError: (error) => {
+            console.error('Error fetching device tags:', error);
+        },
+        retry: 1
     });
 
     // Delete device mutation
@@ -328,7 +336,7 @@ function DeviceManagement() {
                                 className="input-field"
                             >
                                 <option value="all">{t('common.all', 'All')}</option>
-                                {deviceGroups.map(group => (
+                                {(deviceGroups || []).map(group => (
                                     <option key={group.id} value={group.id}>
                                         {group.name}
                                     </option>
@@ -346,7 +354,7 @@ function DeviceManagement() {
                                 className="input-field"
                             >
                                 <option value="all">{t('common.all', 'All')}</option>
-                                {deviceTags.map(tag => (
+                                {(deviceTags || []).map(tag => (
                                     <option key={tag.id} value={tag.id}>
                                         {tag.name}
                                     </option>
@@ -389,19 +397,19 @@ function DeviceManagement() {
                                     </button>
                                 </span>
                             )}
-                            {filterGroup !== 'all' && (
-                                <span className="badge flex items-center space-x-1" style={{backgroundColor: deviceGroups.find(g => g.id === parseInt(filterGroup))?.color || '#3B82F6', color: 'white'}}>
+                            {filterGroup !== 'all' && deviceGroups && (
+                                <span className="badge flex items-center space-x-1" style={{backgroundColor: (deviceGroups || []).find(g => g.id === parseInt(filterGroup))?.color || '#3B82F6', color: 'white'}}>
                                     <Folder className="w-3 h-3" />
-                                    <span>{deviceGroups.find(g => g.id === parseInt(filterGroup))?.name}</span>
+                                    <span>{(deviceGroups || []).find(g => g.id === parseInt(filterGroup))?.name}</span>
                                     <button onClick={() => setFilterGroup('all')}>
                                         <X className="w-3 h-3" />
                                     </button>
                                 </span>
                             )}
-                            {filterTag !== 'all' && (
-                                <span className="badge flex items-center space-x-1" style={{backgroundColor: deviceTags.find(t => t.id === parseInt(filterTag))?.color || '#6B7280', color: 'white'}}>
+                            {filterTag !== 'all' && deviceTags && (
+                                <span className="badge flex items-center space-x-1" style={{backgroundColor: (deviceTags || []).find(t => t.id === parseInt(filterTag))?.color || '#6B7280', color: 'white'}}>
                                     <Tag className="w-3 h-3" />
-                                    <span>{deviceTags.find(t => t.id === parseInt(filterTag))?.name}</span>
+                                    <span>{(deviceTags || []).find(t => t.id === parseInt(filterTag))?.name}</span>
                                     <button onClick={() => setFilterTag('all')}>
                                         <X className="w-3 h-3" />
                                     </button>

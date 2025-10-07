@@ -22,7 +22,14 @@ import {
     Cpu,
     Upload,
     List,
-    Grid
+    Grid,
+    Tag,
+    Folder,
+    XCircle,
+    CheckCircle,
+    Info,
+    Zap,
+    BarChart3
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
@@ -39,11 +46,14 @@ function DeviceManagement() {
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterType, setFilterType] = useState('all');
     const [filterLocation, setFilterLocation] = useState('all');
+    const [filterGroup, setFilterGroup] = useState('all');
+    const [filterTag, setFilterTag] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [viewMode, setViewMode] = useState('compact'); // 'compact' or 'detailed'
     const [otaDevice, setOtaDevice] = useState(null);
+    const [detailDevice, setDetailDevice] = useState(null);
 
     // Query devices
     const { data: devicesData, isLoading: devicesLoading } = useQuery(
@@ -58,6 +68,16 @@ function DeviceManagement() {
     // Query locations for dropdown
     const { data: locations = [] } = useQuery('locations', apiService.getLocations, {
         select: (data) => data.locations || data || []
+    });
+
+    // Query device groups for dropdown
+    const { data: deviceGroups = [] } = useQuery('device-groups', apiService.getDeviceGroups, {
+        select: (data) => data.groups || data || []
+    });
+
+    // Query device tags for dropdown
+    const { data: deviceTags = [] } = useQuery('device-tags', apiService.getDeviceTags, {
+        select: (data) => data.tags || data || []
     });
 
     // Delete device mutation
@@ -143,6 +163,18 @@ function DeviceManagement() {
             return false;
         }
 
+        // Group filter
+        if (filterGroup !== 'all') {
+            const hasGroup = device.groups?.some(g => g.id === parseInt(filterGroup));
+            if (!hasGroup) return false;
+        }
+
+        // Tag filter
+        if (filterTag !== 'all') {
+            const hasTag = device.tags?.some(t => t.id === parseInt(filterTag));
+            if (!hasTag) return false;
+        }
+
         // Search query
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
@@ -151,8 +183,10 @@ function DeviceManagement() {
             const matchesType = device.device_type?.toLowerCase().includes(query);
             const matchesLocation = device.location_name?.toLowerCase().includes(query);
             const matchesIp = device.ip_address?.toLowerCase().includes(query);
+            const matchesGroups = device.groups?.some(g => g.name.toLowerCase().includes(query));
+            const matchesTags = device.tags?.some(t => t.name.toLowerCase().includes(query));
 
-            if (!matchesName && !matchesId && !matchesType && !matchesLocation && !matchesIp) {
+            if (!matchesName && !matchesId && !matchesType && !matchesLocation && !matchesIp && !matchesGroups && !matchesTags) {
                 return false;
             }
         }
@@ -169,7 +203,7 @@ function DeviceManagement() {
     // Reset to page 1 when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [filterStatus, filterType, filterLocation, searchQuery]);
+    }, [filterStatus, filterType, filterLocation, filterGroup, filterTag, searchQuery]);
 
     return (
         <div className="space-y-8 animate-fade-in">
@@ -216,8 +250,8 @@ function DeviceManagement() {
                     </div>
                 </div>
                 <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="form-group">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                        <div className="form-group md:col-span-2 xl:col-span-2">
                             <label className="form-label">
                                 <Search className="w-4 h-4 inline mr-1" />
                                 Search
@@ -226,7 +260,7 @@ function DeviceManagement() {
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Name, ID, IP..."
+                                placeholder="Name, ID, IP, Groups, Tags..."
                                 className="input-field"
                             />
                         </div>
@@ -283,8 +317,44 @@ function DeviceManagement() {
                                 ))}
                             </select>
                         </div>
+                        <div className="form-group">
+                            <label className="form-label">
+                                <Folder className="w-4 h-4 inline mr-1" />
+                                Group
+                            </label>
+                            <select
+                                value={filterGroup}
+                                onChange={(e) => setFilterGroup(e.target.value)}
+                                className="input-field"
+                            >
+                                <option value="all">{t('common.all', 'All')}</option>
+                                {deviceGroups.map(group => (
+                                    <option key={group.id} value={group.id}>
+                                        {group.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">
+                                <Tag className="w-4 h-4 inline mr-1" />
+                                Tag
+                            </label>
+                            <select
+                                value={filterTag}
+                                onChange={(e) => setFilterTag(e.target.value)}
+                                className="input-field"
+                            >
+                                <option value="all">{t('common.all', 'All')}</option>
+                                {deviceTags.map(tag => (
+                                    <option key={tag.id} value={tag.id}>
+                                        {tag.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
-                    {(filterStatus !== 'all' || filterType !== 'all' || filterLocation !== 'all' || searchQuery.trim()) && (
+                    {(filterStatus !== 'all' || filterType !== 'all' || filterLocation !== 'all' || filterGroup !== 'all' || filterTag !== 'all' || searchQuery.trim()) && (
                         <div className="mt-4 flex flex-wrap items-center gap-2">
                             <span className="text-sm text-gray-500">Active filters:</span>
                             {searchQuery.trim() && (
@@ -319,12 +389,32 @@ function DeviceManagement() {
                                     </button>
                                 </span>
                             )}
+                            {filterGroup !== 'all' && (
+                                <span className="badge flex items-center space-x-1" style={{backgroundColor: deviceGroups.find(g => g.id === parseInt(filterGroup))?.color || '#3B82F6', color: 'white'}}>
+                                    <Folder className="w-3 h-3" />
+                                    <span>{deviceGroups.find(g => g.id === parseInt(filterGroup))?.name}</span>
+                                    <button onClick={() => setFilterGroup('all')}>
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            )}
+                            {filterTag !== 'all' && (
+                                <span className="badge flex items-center space-x-1" style={{backgroundColor: deviceTags.find(t => t.id === parseInt(filterTag))?.color || '#6B7280', color: 'white'}}>
+                                    <Tag className="w-3 h-3" />
+                                    <span>{deviceTags.find(t => t.id === parseInt(filterTag))?.name}</span>
+                                    <button onClick={() => setFilterTag('all')}>
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            )}
                             <button
                                 onClick={() => {
                                     setSearchQuery('');
                                     setFilterStatus('all');
                                     setFilterType('all');
                                     setFilterLocation('all');
+                                    setFilterGroup('all');
+                                    setFilterTag('all');
                                 }}
                                 className="text-sm text-blue-600 hover:text-blue-800 ml-2"
                             >
@@ -502,6 +592,54 @@ function DeviceManagement() {
                                         </div>
                                     </div>
 
+                                    {/* Groups and Tags */}
+                                    {(device.groups?.length > 0 || device.tags?.length > 0) && (
+                                        <div className="mb-3 space-y-2">
+                                            {device.groups?.length > 0 && (
+                                                <div>
+                                                    <p className="text-gray-500 text-xs mb-1.5 flex items-center">
+                                                        <Folder className="w-3 h-3 mr-1" />
+                                                        Groups
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {device.groups.map(group => (
+                                                            <button
+                                                                key={group.id}
+                                                                onClick={() => setFilterGroup(group.id.toString())}
+                                                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
+                                                                style={{backgroundColor: group.color, color: 'white'}}
+                                                                title={`Filter by group: ${group.name}`}
+                                                            >
+                                                                {group.name}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {device.tags?.length > 0 && (
+                                                <div>
+                                                    <p className="text-gray-500 text-xs mb-1.5 flex items-center">
+                                                        <Tag className="w-3 h-3 mr-1" />
+                                                        Tags
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {device.tags.map(tag => (
+                                                            <button
+                                                                key={tag.id}
+                                                                onClick={() => setFilterTag(tag.id.toString())}
+                                                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
+                                                                style={{backgroundColor: tag.color, color: 'white'}}
+                                                                title={`Filter by tag: ${tag.name}`}
+                                                            >
+                                                                {tag.name}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <div className="flex justify-end items-center space-x-2 pt-3 border-t border-gray-100">
                                         <button
                                             onClick={() => handleOTAUpdate(device)}
@@ -547,10 +685,11 @@ function DeviceManagement() {
                                 <table className="w-full table-modern">
                                     <thead>
                                         <tr>
-                                            <th className="text-left w-1/4">{t('devices.deviceName')}</th>
+                                            <th className="text-left w-1/5">{t('devices.deviceName')}</th>
                                             <th className="text-left w-20">{t('common.status')}</th>
                                             <th className="text-left w-24">{t('devices.deviceType')}</th>
-                                            <th className="text-left w-32">{t('devices.firmwareVersion')}</th>
+                                            <th className="text-left w-28">{t('devices.firmwareVersion')}</th>
+                                            <th className="text-left w-1/4">Groups & Tags</th>
                                             <th className="text-right">{t('common.actions')}</th>
                                         </tr>
                                     </thead>
@@ -588,6 +727,46 @@ function DeviceManagement() {
                                                     <span className="font-mono text-xs text-gray-900">
                                                         {device.firmware_version || 'N/A'}
                                                     </span>
+                                                </td>
+                                                <td>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {device.groups?.slice(0, 2).map(group => (
+                                                            <button
+                                                                key={group.id}
+                                                                onClick={() => setFilterGroup(group.id.toString())}
+                                                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
+                                                                style={{backgroundColor: group.color, color: 'white'}}
+                                                                title={`Filter by group: ${group.name}`}
+                                                            >
+                                                                <Folder className="w-2.5 h-2.5 mr-0.5" />
+                                                                {group.name}
+                                                            </button>
+                                                        ))}
+                                                        {device.tags?.slice(0, 2).map(tag => (
+                                                            <button
+                                                                key={tag.id}
+                                                                onClick={() => setFilterTag(tag.id.toString())}
+                                                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
+                                                                style={{backgroundColor: tag.color, color: 'white'}}
+                                                                title={`Filter by tag: ${tag.name}`}
+                                                            >
+                                                                <Tag className="w-2.5 h-2.5 mr-0.5" />
+                                                                {tag.name}
+                                                            </button>
+                                                        ))}
+                                                        {((device.groups?.length || 0) + (device.tags?.length || 0)) > 4 && (
+                                                            <button
+                                                                onClick={() => setDetailDevice(device)}
+                                                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                                                title="View all groups and tags"
+                                                            >
+                                                                +{((device.groups?.length || 0) + (device.tags?.length || 0)) - 4}
+                                                            </button>
+                                                        )}
+                                                        {!device.groups?.length && !device.tags?.length && (
+                                                            <span className="text-xs text-gray-400">-</span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <div className="flex justify-end items-center space-x-1">
@@ -645,6 +824,7 @@ function DeviceManagement() {
                                             <th className="text-left">{t('common.status')}</th>
                                             <th className="text-left">{t('devices.deviceType')}</th>
                                             <th className="text-left">{t('devices.location')}</th>
+                                            <th className="text-left">Groups & Tags</th>
                                             <th className="text-left">{t('devices.ipAddress')}</th>
                                             <th className="text-left">{t('devices.lastHeartbeat')}</th>
                                             <th className="text-left">{t('devices.firmwareVersion')}</th>
@@ -685,6 +865,37 @@ function DeviceManagement() {
                                                     <div className="flex items-center space-x-1 text-sm text-gray-900">
                                                         <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />
                                                         <span className="truncate">{device.location_name || t('common.unknown')}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="min-w-[150px]">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {device.groups?.map(group => (
+                                                            <button
+                                                                key={group.id}
+                                                                onClick={() => setFilterGroup(group.id.toString())}
+                                                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
+                                                                style={{backgroundColor: group.color, color: 'white'}}
+                                                                title={`Filter by group: ${group.name}`}
+                                                            >
+                                                                <Folder className="w-2.5 h-2.5 mr-0.5" />
+                                                                {group.name}
+                                                            </button>
+                                                        ))}
+                                                        {device.tags?.map(tag => (
+                                                            <button
+                                                                key={tag.id}
+                                                                onClick={() => setFilterTag(tag.id.toString())}
+                                                                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
+                                                                style={{backgroundColor: tag.color, color: 'white'}}
+                                                                title={`Filter by tag: ${tag.name}`}
+                                                            >
+                                                                <Tag className="w-2.5 h-2.5 mr-0.5" />
+                                                                {tag.name}
+                                                            </button>
+                                                        ))}
+                                                        {!device.groups?.length && !device.tags?.length && (
+                                                            <span className="text-xs text-gray-400">-</span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td>

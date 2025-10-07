@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -135,17 +135,49 @@ function DeviceManagement() {
         }
     };
 
+    const formatStatusLabel = (status) => {
+        if (!status) return t('deviceDetail.status.unknown');
+        const normalized = (status || '').toLowerCase();
+        const key = `deviceDetail.status.${normalized}`;
+        return t(key, { defaultValue: status });
+    };
+
 
     const deviceTypes = ['esp8266', 'esp32', 'arduino', 'raspberry_pi'];
     const statusOptions = ['all', 'online', 'offline', 'alarm'];
 
     if (devicesLoading) {
         return (
-            <div className="space-y-8 animate-fade-in">
-                <div className="card p-8">
-                    <div className="flex justify-center items-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
-                        <span className="ml-3 text-gray-600">{t('common.loading')}</span>
+            <div className="space-y-6 animate-fade-in">
+                <div className="card p-6">
+                    <div className="animate-pulse space-y-4">
+                        <div className="h-5 w-48 rounded bg-gray-200" />
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            {[...Array(4)].map((_, index) => (
+                                <div key={index} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-12 w-12 rounded-2xl bg-gray-200" />
+                                        <div className="flex-1 space-y-2">
+                                            <div className="h-3 w-20 rounded bg-gray-200" />
+                                            <div className="h-5 w-16 rounded bg-gray-200" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <div className="card p-6">
+                    <div className="animate-pulse space-y-6">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="h-6 w-40 rounded bg-gray-200" />
+                            <div className="h-9 w-56 rounded-full bg-gray-200" />
+                        </div>
+                        <div className="space-y-3">
+                            {[...Array(5)].map((_, index) => (
+                                <div key={index} className="h-12 rounded-lg bg-gray-100" />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -153,6 +185,46 @@ function DeviceManagement() {
     }
 
     const allDevices = devicesData || [];
+
+    const onlineCount = useMemo(
+        () => allDevices.filter(d => (d.current_status || d.status) === 'online').length,
+        [allDevices]
+    );
+    const offlineCount = useMemo(
+        () => allDevices.filter(d => (d.current_status || d.status) === 'offline').length,
+        [allDevices]
+    );
+    const alarmCount = useMemo(
+        () => allDevices.filter(d => (d.current_status || d.status) === 'alarm').length,
+        [allDevices]
+    );
+
+    const quickStatusFilters = useMemo(() => [
+        {
+            key: 'all',
+            label: t('deviceManagement.quickFilters.all'),
+            count: allDevices.length,
+            icon: Monitor
+        },
+        {
+            key: 'online',
+            label: t('deviceManagement.quickFilters.online'),
+            count: onlineCount,
+            icon: Wifi
+        },
+        {
+            key: 'offline',
+            label: t('deviceManagement.quickFilters.offline'),
+            count: offlineCount,
+            icon: WifiOff
+        },
+        {
+            key: 'alarm',
+            label: t('deviceManagement.quickFilters.alarm'),
+            count: alarmCount,
+            icon: AlertTriangle
+        }
+    ], [allDevices.length, onlineCount, offlineCount, alarmCount, t]);
 
     // Apply filters and search
     const filteredDevices = allDevices.filter(device => {
@@ -223,8 +295,8 @@ function DeviceManagement() {
                             <Monitor className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900">{t('devices.management', 'Device Management')}</h1>
-                            <p className="text-gray-600 mt-1">{t('devices.managementSubtitle', 'Manage and monitor your IoT devices')}</p>
+                            <h1 className="text-3xl font-bold text-gray-900">{t('deviceManagement.header.title')}</h1>
+                            <p className="text-gray-600 mt-1">{t('deviceManagement.header.subtitle')}</p>
                         </div>
                     </div>
                     <div className="flex items-center space-x-3">
@@ -233,16 +305,48 @@ function DeviceManagement() {
                             className="btn-secondary flex items-center space-x-2"
                         >
                             <RefreshCw className="h-4 w-4" />
-                            <span>Refresh</span>
+                            <span>{t('deviceManagement.actions.refresh')}</span>
                         </button>
                         <button
                             onClick={() => navigate('/firmware-builder')}
                             className="btn-primary flex items-center space-x-2"
                         >
                             <Cpu className="h-4 w-4" />
-                            <span>Build & Add Device</span>
+                            <span>{t('deviceManagement.actions.build')}</span>
                         </button>
                     </div>
+                </div>
+            </div>
+
+            {/* Quick status filters */}
+            <div className="card animate-slide-up" style={{animationDelay: '60ms'}}>
+                <div className="flex flex-wrap gap-3">
+                    {quickStatusFilters.map((filter) => {
+                        const Icon = filter.icon;
+                        const isActive = filterStatus === filter.key;
+                        return (
+                            <button
+                                key={filter.key}
+                                onClick={() => {
+                                    setFilterStatus(filter.key);
+                                    setCurrentPage(1);
+                                }}
+                                className={`inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-medium transition-all ${
+                                    isActive
+                                        ? 'border-indigo-600 bg-indigo-600 text-white shadow'
+                                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                                }`}
+                            >
+                                <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-indigo-500'}`} />
+                                <span>{filter.label}</span>
+                                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                    isActive ? 'bg-white text-indigo-700' : 'bg-white text-gray-700'
+                                }`}>
+                                    {filter.count}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -251,10 +355,10 @@ function DeviceManagement() {
                 <div className="card-header">
                     <h3 className="card-title">
                         <Filter className="w-5 h-5 text-primary" />
-                        <span>Filter & Search</span>
+                        <span>{t('deviceManagement.filters.title')}</span>
                     </h3>
                     <div className="text-sm text-gray-500">
-                        {filteredDevices.length} of {allDevices.length} devices
+                        {t('deviceManagement.badge.deviceCount', { count: filteredDevices.length, total: allDevices.length })}
                     </div>
                 </div>
                 <div className="p-6">
@@ -262,29 +366,32 @@ function DeviceManagement() {
                         <div className="form-group md:col-span-2 xl:col-span-2">
                             <label className="form-label">
                                 <Search className="w-4 h-4 inline mr-1" />
-                                Search
+                                {t('deviceManagement.filters.searchLabel')}
                             </label>
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Name, ID, IP, Groups, Tags..."
+                                placeholder={t('deviceManagement.filters.searchPlaceholder')}
                                 className="input-field"
                             />
                         </div>
                         <div className="form-group">
                             <label className="form-label">
                                 <Activity className="w-4 h-4 inline mr-1" />
-                                Status
+                                {t('common.status')}
                             </label>
                             <select
                                 value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
+                                onChange={(e) => {
+                                    setFilterStatus(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="input-field"
                             >
                                 {statusOptions.map(status => (
                                     <option key={status} value={status}>
-                                        {status === 'all' ? t('common.all', 'All') : status.charAt(0).toUpperCase() + status.slice(1)}
+                                        {status === 'all' ? t('common.all') : formatStatusLabel(status)}
                                     </option>
                                 ))}
                             </select>
@@ -292,14 +399,17 @@ function DeviceManagement() {
                         <div className="form-group">
                             <label className="form-label">
                                 <Monitor className="w-4 h-4 inline mr-1" />
-                                Type
+                                {t('devices.deviceType')}
                             </label>
                             <select
                                 value={filterType}
-                                onChange={(e) => setFilterType(e.target.value)}
+                                onChange={(e) => {
+                                    setFilterType(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="input-field"
                             >
-                                <option value="all">{t('common.all', 'All')}</option>
+                                <option value="all">{t('common.all')}</option>
                                 {deviceTypes.map(type => (
                                     <option key={type} value={type}>
                                         {type.toUpperCase()}
@@ -310,14 +420,17 @@ function DeviceManagement() {
                         <div className="form-group">
                             <label className="form-label">
                                 <MapPin className="w-4 h-4 inline mr-1" />
-                                Location
+                                {t('devices.location')}
                             </label>
                             <select
                                 value={filterLocation}
-                                onChange={(e) => setFilterLocation(e.target.value)}
+                                onChange={(e) => {
+                                    setFilterLocation(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="input-field"
                             >
-                                <option value="all">{t('common.all', 'All')}</option>
+                                <option value="all">{t('common.all')}</option>
                                 {locations.map(location => (
                                     <option key={location.id} value={location.id}>
                                         {location.name}
@@ -328,14 +441,17 @@ function DeviceManagement() {
                         <div className="form-group">
                             <label className="form-label">
                                 <Folder className="w-4 h-4 inline mr-1" />
-                                Group
+                                {t('deviceManagement.filters.groupLabel')}
                             </label>
                             <select
                                 value={filterGroup}
-                                onChange={(e) => setFilterGroup(e.target.value)}
+                                onChange={(e) => {
+                                    setFilterGroup(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="input-field"
                             >
-                                <option value="all">{t('common.all', 'All')}</option>
+                                <option value="all">{t('common.all')}</option>
                                 {(deviceGroups || []).map(group => (
                                     <option key={group.id} value={group.id}>
                                         {group.name}
@@ -346,14 +462,17 @@ function DeviceManagement() {
                         <div className="form-group">
                             <label className="form-label">
                                 <Tag className="w-4 h-4 inline mr-1" />
-                                Tag
+                                {t('deviceManagement.filters.tagLabel')}
                             </label>
                             <select
                                 value={filterTag}
-                                onChange={(e) => setFilterTag(e.target.value)}
+                                onChange={(e) => {
+                                    setFilterTag(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="input-field"
                             >
-                                <option value="all">{t('common.all', 'All')}</option>
+                                <option value="all">{t('common.all')}</option>
                                 {(deviceTags || []).map(tag => (
                                     <option key={tag.id} value={tag.id}>
                                         {tag.name}
@@ -364,10 +483,10 @@ function DeviceManagement() {
                     </div>
                     {(filterStatus !== 'all' || filterType !== 'all' || filterLocation !== 'all' || filterGroup !== 'all' || filterTag !== 'all' || searchQuery.trim()) && (
                         <div className="mt-4 flex flex-wrap items-center gap-2">
-                            <span className="text-sm text-gray-500">Active filters:</span>
+                            <span className="text-sm text-gray-500">{t('deviceManagement.activeFilters.title')}</span>
                             {searchQuery.trim() && (
                                 <span className="badge badge-primary flex items-center space-x-1">
-                                    <span>Search: "{searchQuery}"</span>
+                                    <span>{t('deviceManagement.activeFilters.search', { query: searchQuery.trim() })}</span>
                                     <button onClick={() => setSearchQuery('')}>
                                         <X className="w-3 h-3" />
                                     </button>
@@ -375,7 +494,7 @@ function DeviceManagement() {
                             )}
                             {filterStatus !== 'all' && (
                                 <span className="badge badge-primary flex items-center space-x-1">
-                                    <span>Status: {filterStatus}</span>
+                                    <span>{t('deviceManagement.activeFilters.status', { label: formatStatusLabel(filterStatus) })}</span>
                                     <button onClick={() => setFilterStatus('all')}>
                                         <X className="w-3 h-3" />
                                     </button>
@@ -383,7 +502,7 @@ function DeviceManagement() {
                             )}
                             {filterType !== 'all' && (
                                 <span className="badge badge-primary flex items-center space-x-1">
-                                    <span>Type: {filterType}</span>
+                                    <span>{t('deviceManagement.activeFilters.type', { label: filterType.toUpperCase() })}</span>
                                     <button onClick={() => setFilterType('all')}>
                                         <X className="w-3 h-3" />
                                     </button>
@@ -391,7 +510,9 @@ function DeviceManagement() {
                             )}
                             {filterLocation !== 'all' && (
                                 <span className="badge badge-primary flex items-center space-x-1">
-                                    <span>Location: {locations.find(l => l.id === parseInt(filterLocation))?.name}</span>
+                                    <span>{t('deviceManagement.activeFilters.location', {
+                                        label: locations.find(l => l.id === parseInt(filterLocation))?.name || t('deviceManagement.labels.noLocation')
+                                    })}</span>
                                     <button onClick={() => setFilterLocation('all')}>
                                         <X className="w-3 h-3" />
                                     </button>
@@ -400,7 +521,9 @@ function DeviceManagement() {
                             {filterGroup !== 'all' && deviceGroups && (
                                 <span className="badge flex items-center space-x-1" style={{backgroundColor: (deviceGroups || []).find(g => g.id === parseInt(filterGroup))?.color || '#3B82F6', color: 'white'}}>
                                     <Folder className="w-3 h-3" />
-                                    <span>{(deviceGroups || []).find(g => g.id === parseInt(filterGroup))?.name}</span>
+                                    <span>{t('deviceManagement.activeFilters.group', {
+                                        label: (deviceGroups || []).find(g => g.id === parseInt(filterGroup))?.name || t('deviceManagement.labels.unknownType')
+                                    })}</span>
                                     <button onClick={() => setFilterGroup('all')}>
                                         <X className="w-3 h-3" />
                                     </button>
@@ -409,7 +532,9 @@ function DeviceManagement() {
                             {filterTag !== 'all' && deviceTags && (
                                 <span className="badge flex items-center space-x-1" style={{backgroundColor: (deviceTags || []).find(t => t.id === parseInt(filterTag))?.color || '#6B7280', color: 'white'}}>
                                     <Tag className="w-3 h-3" />
-                                    <span>{(deviceTags || []).find(t => t.id === parseInt(filterTag))?.name}</span>
+                                    <span>{t('deviceManagement.activeFilters.tag', {
+                                        label: (deviceTags || []).find(t => t.id === parseInt(filterTag))?.name || t('deviceManagement.labels.unknownType')
+                                    })}</span>
                                     <button onClick={() => setFilterTag('all')}>
                                         <X className="w-3 h-3" />
                                     </button>
@@ -426,7 +551,7 @@ function DeviceManagement() {
                                 }}
                                 className="text-sm text-blue-600 hover:text-blue-800 ml-2"
                             >
-                                Clear all filters
+                                {t('deviceManagement.activeFilters.clear')}
                             </button>
                         </div>
                     )}
@@ -504,7 +629,7 @@ function DeviceManagement() {
                                         : 'text-gray-600 hover:text-gray-900'
                                 }`}
                             >
-                                Compact
+                                {t('deviceManagement.view.compact')}
                             </button>
                             <button
                                 onClick={() => setViewMode('detailed')}
@@ -514,10 +639,12 @@ function DeviceManagement() {
                                         : 'text-gray-600 hover:text-gray-900'
                                 }`}
                             >
-                                Detailed
+                                {t('deviceManagement.view.detailed')}
                             </button>
                         </div>
-                        <span className="badge badge-primary">{filteredDevices.length} devices</span>
+                        <span className="badge badge-primary">
+                            {t('deviceManagement.badge.filtered', { count: filteredDevices.length })}
+                        </span>
                     </div>
                 </div>
                 {devices.length === 0 ? (
@@ -977,7 +1104,7 @@ function DeviceManagement() {
                         {filteredDevices.length > 0 && (
                             <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200 pt-4">
                                 <div className="flex items-center space-x-2">
-                                    <label className="text-sm text-gray-600">Items per page:</label>
+                                    <label className="text-sm text-gray-600">{t('deviceManagement.pagination.perPage')}</label>
                                     <select
                                         value={itemsPerPage}
                                         onChange={(e) => {
@@ -993,7 +1120,11 @@ function DeviceManagement() {
                                         <option value="100">100</option>
                                     </select>
                                     <span className="text-sm text-gray-600">
-                                        Showing {startIndex + 1}-{Math.min(endIndex, filteredDevices.length)} of {filteredDevices.length}
+                                        {t('deviceManagement.pagination.range', {
+                                            start: startIndex + 1,
+                                            end: Math.min(endIndex, filteredDevices.length),
+                                            total: filteredDevices.length
+                                        })}
                                     </span>
                                 </div>
 
@@ -1004,14 +1135,14 @@ function DeviceManagement() {
                                             disabled={currentPage === 1}
                                             className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            First
+                                            {t('deviceManagement.pagination.first')}
                                         </button>
                                         <button
                                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                             disabled={currentPage === 1}
                                             className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Previous
+                                            {t('deviceManagement.pagination.previous')}
                                         </button>
 
                                         {/* Page numbers */}
@@ -1044,7 +1175,7 @@ function DeviceManagement() {
                                         </div>
 
                                         <span className="sm:hidden text-sm text-gray-600">
-                                            Page {currentPage} of {totalPages}
+                                            {t('deviceManagement.pagination.page', { current: currentPage, total: totalPages })}
                                         </span>
 
                                         <button
@@ -1052,14 +1183,14 @@ function DeviceManagement() {
                                             disabled={currentPage === totalPages}
                                             className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Next
+                                            {t('deviceManagement.pagination.next')}
                                         </button>
                                         <button
                                             onClick={() => setCurrentPage(totalPages)}
                                             disabled={currentPage === totalPages}
                                             className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Last
+                                            {t('deviceManagement.pagination.last')}
                                         </button>
                                     </div>
                                 )}
@@ -1394,11 +1525,13 @@ function SensorManagementModal({ device, onClose }) {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries(['device-sensors', device.id]);
-                toast.success('Sensor updated successfully');
+                toast.success(t('deviceManagement.toast.sensorUpdated'));
                 setEditingSensor(null);
             },
             onError: (error) => {
-                toast.error('Failed to update sensor: ' + (error.response?.data?.error || error.message));
+                toast.error(t('deviceManagement.toast.sensorUpdateFailed', {
+                    message: error.response?.data?.error || error.message
+                }));
             }
         }
     );
@@ -1408,11 +1541,13 @@ function SensorManagementModal({ device, onClose }) {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries(['device-sensors', device.id]);
-                toast.success('Sensor created successfully');
+                toast.success(t('deviceManagement.toast.sensorCreated'));
                 setShowAddSensor(false);
             },
             onError: (error) => {
-                toast.error('Failed to create sensor: ' + (error.response?.data?.error || error.message));
+                toast.error(t('deviceManagement.toast.sensorCreateFailed', {
+                    message: error.response?.data?.error || error.message
+                }));
             }
         }
     );
@@ -1843,15 +1978,15 @@ function OTAUpdateModal({ device, onClose }) {
             onSuccess: () => {
                 setOtaStatus('success');
                 queryClient.invalidateQueries('devices');
-                toast.success('OTA update initiated successfully');
+                toast.success(t('deviceManagement.toast.otaStarted'));
                 setTimeout(() => {
                     onClose();
                 }, 2000);
             },
             onError: (error) => {
                 setOtaStatus('error');
-                setErrorMessage(error.response?.data?.error || error.message || 'Failed to initiate OTA update');
-                toast.error('Failed to initiate OTA update');
+                setErrorMessage(error.response?.data?.error || error.message || t('deviceManagement.toast.otaFailed'));
+                toast.error(t('deviceManagement.toast.otaFailed'));
             }
         }
     );

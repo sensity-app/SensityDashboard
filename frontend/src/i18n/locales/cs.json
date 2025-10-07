@@ -411,6 +411,69 @@
     "noDevices": "Nebyla nalezena žádná zařízení",
     "addFirstDevice": "Přidejte své první IoT zařízení pro začátek."
   },
+  "deviceManagement": {
+    "toast": {
+      "sensorUpdated": "Senzor byl úspěšně aktualizován",
+      "sensorUpdateFailed": "Aktualizace senzoru se nezdařila: {{message}}",
+      "sensorCreated": "Senzor byl úspěšně vytvořen",
+      "sensorCreateFailed": "Vytvoření senzoru se nezdařilo: {{message}}",
+      "otaStarted": "OTA aktualizace byla úspěšně zahájena",
+      "otaFailed": "OTA aktualizaci se nepodařilo spustit"
+    }
+    ,
+    "header": {
+      "title": "Správa zařízení",
+      "subtitle": "Spravujte a monitorujte svá IoT zařízení"
+    },
+    "actions": {
+      "refresh": "Obnovit",
+      "build": "Sestavit zařízení"
+    },
+    "filters": {
+      "title": "Filtr a hledání",
+      "searchLabel": "Hledat",
+      "searchPlaceholder": "Název, ID, IP, skupiny, štítky…",
+      "groupLabel": "Skupina",
+      "tagLabel": "Štítek"
+    },
+    "badge": {
+      "deviceCount": "{{count}} z {{total}} zařízení",
+      "filtered": "{{count}} zařízení"
+    },
+    "view": {
+      "compact": "Kompaktní",
+      "detailed": "Podrobný"
+    },
+    "quickFilters": {
+      "all": "Všechna zařízení",
+      "online": "Online",
+      "offline": "Offline",
+      "alarm": "Alarm"
+    },
+    "activeFilters": {
+      "title": "Aktivní filtry:",
+      "search": "Hledat: \"{{query}}\"",
+      "status": "Stav: {{label}}",
+      "type": "Typ: {{label}}",
+      "location": "Lokalita: {{label}}",
+      "group": "Skupina: {{label}}",
+      "tag": "Štítek: {{label}}",
+      "clear": "Zrušit všechny filtry"
+    },
+    "labels": {
+      "noLocation": "Bez lokality",
+      "unknownType": "Neznámé"
+    },
+    "pagination": {
+      "perPage": "Položek na stránku:",
+      "range": "Zobrazuji {{start}}-{{end}} z {{total}}",
+      "page": "Stránka {{current}} z {{total}}",
+      "first": "První",
+      "previous": "Předchozí",
+      "next": "Další",
+      "last": "Poslední"
+    }
+  },
   "sensors": {
     "title": "Senzory",
     "sensorType": "Typ senzoru",

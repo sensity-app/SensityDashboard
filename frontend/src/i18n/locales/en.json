@@ -411,6 +411,69 @@
     "noDevices": "No devices found",
     "addFirstDevice": "Add your first IoT device to get started."
   },
+  "deviceManagement": {
+    "toast": {
+      "sensorUpdated": "Sensor updated successfully",
+      "sensorUpdateFailed": "Failed to update sensor: {{message}}",
+      "sensorCreated": "Sensor created successfully",
+      "sensorCreateFailed": "Failed to create sensor: {{message}}",
+      "otaStarted": "OTA update initiated successfully",
+      "otaFailed": "Failed to initiate OTA update"
+    }
+    ,
+    "header": {
+      "title": "Device Management",
+      "subtitle": "Manage and monitor your IoT devices"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "build": "Build & Add Device"
+    },
+    "filters": {
+      "title": "Filter & Search",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Name, ID, IP, groups, tags…",
+      "groupLabel": "Group",
+      "tagLabel": "Tag"
+    },
+    "badge": {
+      "deviceCount": "{{count}} of {{total}} devices",
+      "filtered": "{{count}} devices"
+    },
+    "view": {
+      "compact": "Compact",
+      "detailed": "Detailed"
+    },
+    "quickFilters": {
+      "all": "All devices",
+      "online": "Online",
+      "offline": "Offline",
+      "alarm": "Alarm"
+    },
+    "activeFilters": {
+      "title": "Active filters:",
+      "search": "Search: \"{{query}}\"",
+      "status": "Status: {{label}}",
+      "type": "Type: {{label}}",
+      "location": "Location: {{label}}",
+      "group": "Group: {{label}}",
+      "tag": "Tag: {{label}}",
+      "clear": "Clear all filters"
+    },
+    "labels": {
+      "noLocation": "No location",
+      "unknownType": "Unknown"
+    },
+    "pagination": {
+      "perPage": "Items per page:",
+      "range": "Showing {{start}}-{{end}} of {{total}}",
+      "page": "Page {{current}} of {{total}}",
+      "first": "First",
+      "previous": "Previous",
+      "next": "Next",
+      "last": "Last"
+    }
+  },
   "sensors": {
     "title": "Sensors",
     "sensorType": "Sensor Type",

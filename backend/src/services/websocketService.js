@@ -287,6 +287,29 @@ class WebSocketService {
         });
     }
 
+    broadcastTelemetryUpdate(deviceId, sensors) {
+        if (!sensors || (Array.isArray(sensors) && sensors.length === 0)) {
+            return;
+        }
+
+        const payloadArray = Array.isArray(sensors) ? sensors : [sensors];
+        const timestamp = new Date().toISOString();
+
+        for (const sensor of payloadArray) {
+            this.io.to(`device:${deviceId}`).emit('telemetry_update', {
+                device_id: deviceId,
+                pin: sensor.pin,
+                type: sensor.type,
+                name: sensor.name,
+                raw_value: sensor.raw_value ?? sensor.value ?? null,
+                processed_value: sensor.processed_value ?? sensor.value ?? null,
+                unit: sensor.unit,
+                timestamp: sensor.timestamp || timestamp,
+                metadata: sensor.metadata || {}
+            });
+        }
+    }
+
     broadcastOTAStatus(deviceId, otaStatus) {
         this.io.to(`device:${deviceId}`).emit('ota_progress', {
             device_id: deviceId,

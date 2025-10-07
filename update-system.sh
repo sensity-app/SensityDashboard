@@ -141,8 +141,9 @@ update_system() {
 
     print_status "Updating and building frontend..."
     cd "$APP_DIR/frontend"
-    sudo -u "$APP_USER" npm install
-    sudo -u "$APP_USER" npm run build
+    sudo -u "$APP_USER" npm install --include=dev
+    sudo -u "$APP_USER" NODE_ENV=production npm run build
+    sudo -u "$APP_USER" npm prune --omit=dev || true
 
     # Restart services
     print_status "Restarting services..."

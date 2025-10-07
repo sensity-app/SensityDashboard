@@ -180,7 +180,7 @@ update_development_system() {
     if [ -f "backend/package.json" ]; then
         print_status "Updating backend dependencies..."
         cd "$PROJECT_DIR/backend"
-        npm install || {
+        npm install --include=dev || {
             print_error "Backend npm install failed"
             cd "$PROJECT_DIR"
             rollback_from_backup
@@ -192,14 +192,14 @@ update_development_system() {
     if [ -f "frontend/package.json" ]; then
         print_status "Updating and building frontend..."
         cd "$PROJECT_DIR/frontend"
-        npm install || {
+        npm install --include=dev || {
             print_error "Frontend npm install failed"
             cd "$PROJECT_DIR"
             rollback_from_backup
             return 1
         }
 
-        npm run build || {
+        NODE_ENV=production npm run build || {
             print_error "Frontend build failed"
             cd "$PROJECT_DIR"
             rollback_from_backup

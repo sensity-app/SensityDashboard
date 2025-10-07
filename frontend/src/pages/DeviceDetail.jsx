@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
-import { Wifi, WifiOff, AlertTriangle, Settings, Download, Zap } from 'lucide-react';
+import { Wifi, WifiOff, AlertTriangle, Settings, Zap, Clock, Activity, Signal, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiService } from '../services/api';
 import { websocketService } from '../services/websocket';
@@ -21,7 +21,6 @@ function DeviceDetail() {
     const [showSensorEditor, setShowSensorEditor] = useState(false);
     const [editingSensor, setEditingSensor] = useState(null);
 
-    // Device data query
     const { data: device, isLoading } = useQuery(
         ['device', id],
         () => apiService.getDevice(id),
@@ -32,23 +31,21 @@ function DeviceDetail() {
         }
     );
 
-    // Device sensors query
     const { data: sensors = [], isLoading: sensorsLoading, error: sensorsError } = useQuery(
         ['device-sensors', id],
         () => apiService.getDeviceSensors(id),
         {
             enabled: !!id,
-            select: (data) => {
-                console.log('Sensors API response:', data);
-                return data.sensors || data || [];
-            },
-            onError: (error) => {
-                console.error('Failed to fetch sensors:', error);
-            }
+            select: (data) => data.sensors || data || []
         }
     );
 
-    // Device stats query
+    useEffect(() => {
+        if (!selectedSensor && sensors && sensors.length > 0) {
+            setSelectedSensor(sensors[0]);
+        }
+    }, [sensors, selectedSensor]);
+
     const { data: stats = [] } = useQuery(
         ['device-stats', id],
         () => apiService.getDeviceStats(id, '24h'),
@@ -59,7 +56,6 @@ function DeviceDetail() {
         }
     );
 
-    // Recent alerts query
     const { data: alerts = [] } = useQuery(
         ['device-alerts', id],
         () => apiService.getDeviceAlerts(id),
@@ -70,26 +66,15 @@ function DeviceDetail() {
         }
     );
 
-    // Configuration update mutation
-    const updateConfigMutation = useMutation(
-        (config) => apiService.updateDeviceConfig(id, config),
-        {
-            onSuccess: () => {
-                queryClient.invalidateQueries(['device', id]);
-                toast.success('Device configuration updated');
-            },
-            onError: () => {
-                toast.error('Failed to update device configuration');
-            }
-        }
+    const updateSensorMutation = useMutation(
+        ({ deviceId, sensorId, payload }) => apiService.updateSensor(deviceId, sensorId, payload)
     );
 
-    // WebSocket real-time updates
     useEffect(() => {
         if (!id) return;
 
         const handleTelemetryUpdate = (data) => {
-            setRealtimeData(prev => ({
+            setRealtimeData((prev) => ({
                 ...prev,
                 [data.pin]: {
                     ...data,
@@ -99,18 +84,16 @@ function DeviceDetail() {
         };
 
         const handleDeviceUpdate = (data) => {
-            queryClient.setQueryData(['device', id], old => ({
+            queryClient.setQueryData(['device', id], (old) => ({
                 ...old,
                 ...data
             }));
         };
 
-        const handleConfigUpdate = (data) => {
+        const handleConfigUpdate = () => {
             queryClient.invalidateQueries(['device', id]);
-            toast.success(`Configuration updated by ${data.updatedBy}`);
         };
 
-        // Initialize WebSocket connection only if service is available
         if (websocketService && typeof websocketService.subscribe === 'function') {
             websocketService.subscribe('device', id);
             websocketService.on(`device:${id}:telemetry`, handleTelemetryUpdate);
@@ -128,269 +111,514 @@ function DeviceDetail() {
         };
     }, [id, queryClient]);
 
-    const handleConfigUpdate = (field, value) => {
-        const config = {
-            ...device,
-            [field]: value
-        };
-        updateConfigMutation.mutate(config);
+    const formatRelativeTime = (date) => {
+        if (!date) return 'Never';
+        const value = typeof date === 'string' ? new Date(date) : date;
+        const diff = Date.now() - value.getTime();
+        if (diff < 0) return 'Just now';
+        const minutes = Math.floor(diff / (1000 * 60));
+        if (minutes < 1) return 'Just now';
+        if (minutes < 60) return `${minutes} min ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ${minutes % 60}m ago`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+        return value.toLocaleString();
     };
+
+    const formatDuration = (seconds) => {
+        if (!seconds && seconds !== 0) return '—';
+        const totalMinutes = Math.floor(seconds / 60);
+        const days = Math.floor(totalMinutes / (60 * 24));
+        const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+        const minutes = totalMinutes % 60;
+        if (days > 0) return `${days}d ${hours}h`;
+        if (hours > 0) return `${hours}h ${minutes}m`;
+        return `${minutes}m`;
+    };
+
+    const formatSignalStrength = (value) => {
+        if (value === null || value === undefined) return '—';
+        return `${value} dBm`;
+    };
+
+    const getSignalQualityLabel = (value) => {
+        if (value === null || value === undefined) return 'No data';
+        if (value >= -55) return 'Excellent';
+        if (value >= -65) return 'Very good';
+        if (value >= -75) return 'Fair';
+        if (value >= -90) return 'Weak';
+        return 'Poor';
+    };
+
+    const statsByPin = useMemo(() => {
+        const map = new Map();
+        (stats || []).forEach((entry) => map.set(entry.pin, entry));
+        return map;
+    }, [stats]);
+
+    const sortedSensors = useMemo(() => {
+        return Array.isArray(sensors)
+            ? [...sensors].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+            : [];
+    }, [sensors]);
+
+    const activeAlerts = useMemo(() => (Array.isArray(alerts) ? alerts.slice(0, 5) : []), [alerts]);
 
     const getStatusIcon = (status) => {
         switch (status) {
             case 'online':
-                return <Wifi className="h-5 w-5 text-green-600" />;
+                return <Wifi className="h-12 w-12 text-white" />;
             case 'offline':
-                return <WifiOff className="h-5 w-5 text-gray-600" />;
+                return <WifiOff className="h-12 w-12 text-white" />;
             case 'alarm':
-                return <AlertTriangle className="h-5 w-5 text-red-600" />;
+                return <AlertTriangle className="h-12 w-12 text-white" />;
             default:
-                return <WifiOff className="h-5 w-5 text-gray-600" />;
+                return <WifiOff className="h-12 w-12 text-white" />;
         }
     };
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'online': return 'bg-green-100 text-green-800';
-            case 'offline': return 'bg-gray-100 text-gray-800';
-            case 'alarm': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
+            case 'online':
+                return 'bg-green-100 text-green-800';
+            case 'offline':
+                return 'bg-gray-100 text-gray-800';
+            case 'alarm':
+                return 'bg-red-100 text-red-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const getSensorStateBadge = (state) => {
+        switch (state) {
+            case 'fresh':
+                return { label: 'Live', className: 'bg-emerald-100 text-emerald-700' };
+            case 'stale':
+                return { label: 'Stale', className: 'bg-amber-100 text-amber-700' };
+            default:
+                return { label: 'Awaiting data', className: 'bg-gray-100 text-gray-600' };
+        }
+    };
+
+    const formatStat = (value) => {
+        const numeric = parseFloat(value);
+        return Number.isFinite(numeric) ? numeric.toFixed(2) : '—';
+    };
+
+    const getSensorDisplayData = (sensor) => {
+        const realtime = realtimeData[sensor.pin];
+        const stat = statsByPin.get(sensor.pin);
+        const value = realtime
+            ? realtime.processed_value
+            : (stat?.avg_value ? parseFloat(stat.avg_value) : null);
+        const timestamp = realtime?.timestamp ? new Date(realtime.timestamp) : null;
+        const state = realtime
+            ? (Date.now() - new Date(realtime.timestamp).getTime() <= 120000 ? 'fresh' : 'stale')
+            : 'unknown';
+
+        return {
+            value,
+            timestamp,
+            state,
+            unit: realtime?.unit || sensor.unit || stat?.unit || '',
+            stat
+        };
+    };
+
+    const lastHeartbeatLabel = formatRelativeTime(device?.last_heartbeat ? new Date(device.last_heartbeat) : null);
+    const uptimeLabel = formatDuration(device?.uptime_seconds);
+    const wifiStrengthLabel = formatSignalStrength(device?.wifi_signal_strength);
+    const targetFirmware = device?.target_firmware_version && device?.target_firmware_version !== device?.firmware_version
+        ? device.target_firmware_version
+        : null;
+
+    const deviceMetrics = [
+        {
+            label: t('deviceDetail.metrics.status'),
+            value: statusLabel,
+            icon: Activity,
+            hint: t('deviceDetail.metrics.statusHint', { when: lastHeartbeatLabel })
+        },
+        {
+            label: t('deviceDetail.metrics.uptime'),
+            value: uptimeLabel,
+            icon: Clock,
+            hint: device?.uptime_seconds
+                ? t('deviceDetail.metrics.uptimeHint', { hours: Math.max(1, Math.floor(device.uptime_seconds / 3600)) })
+                : t('deviceDetail.metrics.uptimeUnknown')
+        },
+        {
+            label: t('deviceDetail.metrics.signal'),
+            value: wifiStrengthLabel,
+            icon: Signal,
+            hint: signalQualityLabel
+        },
+        {
+            label: t('deviceDetail.metrics.firmware'),
+            value: device?.firmware_version || t('deviceDetail.metrics.firmwareUnknown'),
+            icon: TrendingUp,
+            hint: targetFirmware
+                ? t('deviceDetail.metrics.firmwareTarget', { version: targetFirmware })
+                : t('deviceDetail.metrics.firmwareCurrent')
+        }
+    ];
+
+    const severityColors = {
+        low: 'bg-emerald-50 text-emerald-700',
+        medium: 'bg-amber-50 text-amber-700',
+        high: 'bg-orange-50 text-orange-700',
+        critical: 'bg-red-50 text-red-700'
+    };
+
+    const handleSensorHistory = (sensor) => {
+        if (!sensor) return;
+        setSelectedSensor(sensor);
+        const historySection = document.getElementById('sensor-history');
+        if (historySection) {
+            historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     };
 
     if (isLoading) {
-        return <div className="p-6">Loading device...</div>;
+        return <div className="p-6">{t('deviceDetail.loadingDevice')}</div>;
     }
 
     if (!device) {
-        return <div className="p-6">Device not found</div>;
+        return <div className="p-6">{t('deviceDetail.notFound')}</div>;
     }
 
     return (
         <div className="p-6 space-y-6">
-            {/* Device Header */}
-            <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                        {getStatusIcon(device.status)}
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">{device.name}</h1>
-                            <p className="text-gray-500">{device.location_name}</p>
-                        </div>
-                        <span className={`px-2 py-1 text-sm font-medium rounded-full ${getStatusColor(device.status)}`}>
-                            {device.status.toUpperCase()}
-                        </span>
-                    </div>
-
-                    <div className="flex space-x-2">
-                        <button
-                            onClick={() => setShowRuleEditor(true)}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                        >
-                            <Settings className="h-4 w-4 inline mr-1" />
-                            Rules
-                        </button>
-                        <button
-                            onClick={() => setShowOTAManager(true)}
-                            className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200"
-                        >
-                            <Zap className="h-4 w-4 inline mr-1" />
-                            OTA Update
-                        </button>
-                    </div>
-                </div>
-
-                {/* Device Info Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Device ID</p>
-                        <p className="text-sm text-gray-900">{device.id}</p>
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Firmware Version</p>
-                        <p className="text-sm text-gray-900">{device.firmware_version || 'Unknown'}</p>
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">IP Address</p>
-                        <p className="text-sm text-gray-900">{device.ip_address || 'Unknown'}</p>
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Last Seen</p>
-                        <p className="text-sm text-gray-900">
-                            {device.last_heartbeat ?
-                                new Date(device.last_heartbeat).toLocaleString() :
-                                'Never'
-                            }
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Real-time Sensor Data */}
-            <div className="mb-4">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900">
-                        Sensors {sensors.length > 0 && <span className="text-sm text-gray-500">({sensors.length})</span>}
-                    </h2>
-                </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sensorsLoading ? (
-                    <div className="col-span-full text-center py-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                        <p className="text-gray-500 mt-4">Loading sensors...</p>
-                    </div>
-                ) : sensorsError ? (
-                    <div className="col-span-full text-center py-12 bg-red-50 rounded-lg">
-                        <p className="text-red-600 mb-2">Failed to load sensors</p>
-                        <p className="text-sm text-red-500">{sensorsError.message}</p>
-                    </div>
-                ) : sensors.length === 0 ? (
-                    <div className="col-span-full text-center py-12 bg-white rounded-lg shadow">
-                        <p className="text-gray-500 mb-4">No sensors configured for this device</p>
-                        <p className="text-sm text-gray-400">Sensors are configured during firmware building in the Firmware Builder</p>
-                    </div>
-                ) : sensors.map((sensor) => {
-                    const realtimeValue = realtimeData[sensor.pin];
-                    const stat = Array.isArray(stats) ? stats.find(s => s.pin === sensor.pin) : null;
-
-                    return (
-                        <div key={sensor.id} className="bg-white rounded-lg shadow p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 className="text-lg font-medium text-gray-900">{sensor.name}</h3>
-                                    <p className="text-sm text-gray-500">Pin {sensor.pin} • {sensor.sensor_type}</p>
+            <div className="space-y-6">
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-500 text-white shadow-lg">
+                    <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top,_#a855f7,_transparent_45%)]" />
+                    <div className="relative z-10 flex flex-col gap-6 p-6 lg:p-8">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                            <div className="flex items-start gap-4">
+                                <div className="flex-shrink-0">
+                                    {getStatusIcon(device.status)}
                                 </div>
-                                <div className="flex space-x-2">
-                                    <button
-                                        onClick={() => {
-                                            setEditingSensor(sensor);
-                                            setShowSensorEditor(true);
-                                        }}
-                                        className="text-gray-600 hover:text-gray-800"
-                                        title="Edit sensor configuration"
-                                    >
-                                        <Settings className="h-5 w-5" />
-                                    </button>
+                                <div>
+                                    <p className="uppercase text-xs tracking-[0.3em] text-indigo-100">{t('deviceDetail.eyebrow')}</p>
+                                    <h1 className="text-3xl font-semibold text-white">{device.name}</h1>
+                                    <p className="text-indigo-100">{device.location_name || t('deviceDetail.unassigned')}</p>
                                 </div>
                             </div>
-
-                            {/* Current Value */}
-                            <div className="mb-4">
-                                <div className="flex items-end space-x-2">
-                                    <span className="text-3xl font-bold text-gray-900">
-                                        {realtimeValue ?
-                                            realtimeValue.processed_value.toFixed(2) :
-                                            (stat?.avg_value ? parseFloat(stat.avg_value).toFixed(2) : '--')
+                            <div className="flex flex-wrap gap-3">
+                                <button
+                                    onClick={() => {
+                                        if (sortedSensors.length === 0) {
+                                            toast.error(t('deviceDetail.manageRulesEmpty'));
+                                            return;
                                         }
-                                    </span>
-                                    <span className="text-gray-500 text-sm">{sensor.unit || ''}</span>
+                                        setSelectedSensor(sortedSensors[0]);
+                                        setShowRuleEditor(true);
+                                    }}
+                                    className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+                                >
+                                    <Settings className="h-4 w-4" />
+                                    {t('deviceDetail.manageRules')}
+                                </button>
+                                <button
+                                    onClick={() => setShowOTAManager(true)}
+                                    className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-indigo-600 shadow hover:bg-indigo-50"
+                                >
+                                    <Zap className="h-4 w-4" />
+                                    {t('deviceDetail.otaUpdate')}
+                                </button>
+                            </div>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <div className="rounded-xl bg-white/10 p-4 backdrop-blur">
+                                <p className="text-sm text-indigo-100">{t('devices.deviceId')}</p>
+                                <p className="text-lg font-semibold break-all">{device.id}</p>
+                                <p className="mt-1 text-xs text-indigo-100/80">{t('deviceDetail.metrics.statusHint', { when: lastHeartbeatLabel })}</p>
+                            </div>
+                            <div className="rounded-xl bg-white/10 p-4 backdrop-blur">
+                                <p className="text-sm text-indigo-100">{t('deviceDetail.metrics.firmware')}</p>
+                                <p className="text-lg font-semibold">{device.firmware_version || t('deviceDetail.metrics.firmwareUnknown')}</p>
+                                <p className="mt-1 text-xs text-indigo-100/80">{targetFirmware ? t('deviceDetail.metrics.firmwareTarget', { version: targetFirmware }) : t('deviceDetail.metrics.firmwareCurrent')}</p>
+                            </div>
+                            <div className="rounded-xl bg-white/10 p-4 backdrop-blur">
+                                <p className="text-sm text-indigo-100">{t('deviceDetail.ipAddress')}</p>
+                                <p className="text-lg font-semibold">{device.ip_address || t('deviceDetail.valueUnknown')}</p>
+                                <p className="mt-1 text-xs text-indigo-100/80">{t('deviceDetail.metrics.uptimeLabel', { value: uptimeLabel })}</p>
+                            </div>
+                            <div className="rounded-xl bg-white/10 p-4 backdrop-blur">
+                                <p className="text-sm text-indigo-100">{t('deviceDetail.wifiSignal')}</p>
+                                <p className="text-lg font-semibold">{wifiStrengthLabel}</p>
+                                <p className="mt-1 text-xs text-indigo-100/80">{signalQualityLabel}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+                    <div className="space-y-6">
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                            {deviceMetrics.map(({ label, value, icon: Icon, hint }) => (
+                                <div key={label} className="flex items-start gap-4 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+                                        <Icon className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500">{label}</p>
+                                        <p className="text-lg font-semibold text-gray-900">{value || '—'}</p>
+                                        <p className="mt-1 text-xs text-gray-400">{hint}</p>
+                                    </div>
                                 </div>
-                                {realtimeValue && (
-                                    <p className="text-xs text-gray-400">
-                                        {realtimeValue.timestamp.toLocaleTimeString()}
+                            ))}
+                        </div>
+
+                        <section className="space-y-4">
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <h2 className="text-xl font-semibold text-gray-900">{t('deviceDetail.sensorSectionTitle')}</h2>
+                                    <p className="text-sm text-gray-500">
+                                    {sortedSensors.length
+                                        ? t('deviceDetail.sensorSectionDescription')
+                                        : t('deviceDetail.sensorSectionEmptyHint')}
                                     </p>
+                                </div>
+                                {sortedSensors.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            onClick={() => handleSensorHistory(selectedSensor || sortedSensors[0])}
+                                            className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                        >
+                                            View history
+                                        </button>
+                                    </div>
                                 )}
                             </div>
 
-                            {/* 24h Stats */}
-                            {stat && (
-                                <div className="grid grid-cols-3 gap-2 text-sm">
-                                    <div>
-                                        <p className="text-gray-500">Min</p>
-                                        <p className="font-medium">{parseFloat(stat.min_value).toFixed(2)}</p>
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                                {sensorsLoading ? (
+                                    <div className="col-span-full flex flex-col items-center justify-center rounded-xl border border-dashed border-indigo-200 bg-indigo-50/40 p-12 text-center">
+                                        <div className="h-12 w-12 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent"></div>
+                                    <p className="mt-4 text-sm text-indigo-500">{t('deviceDetail.loadingSensors')}</p>
                                     </div>
-                                    <div>
-                                        <p className="text-gray-500">Avg</p>
-                                        <p className="font-medium">{parseFloat(stat.avg_value).toFixed(2)}</p>
+                                ) : sensorsError ? (
+                                    <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+                                    <p className="font-medium text-red-600">{t('deviceDetail.loadSensorsError')}</p>
+                                        <p className="mt-1 text-sm text-red-500">{sensorsError.message}</p>
                                     </div>
-                                    <div>
-                                        <p className="text-gray-500">Max</p>
-                                        <p className="font-medium">{parseFloat(stat.max_value).toFixed(2)}</p>
+                                ) : !sortedSensors.length ? (
+                                    <div className="col-span-full rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+                                    <p className="font-medium text-gray-700">{t('deviceDetail.sensorSectionEmpty')}</p>
+                                    <p className="mt-1 text-sm text-gray-500">{t('deviceDetail.sensorSectionEmptyHint')}</p>
                                     </div>
-                                </div>
-                            )}
+                                ) : (
+                                    sortedSensors.map((sensor) => {
+                                        const display = getSensorDisplayData(sensor);
+                                        const badge = getSensorStateBadge(display.state);
+                                        const isActive = selectedSensor?.id === sensor.id;
 
-                            {/* Rules Status */}
-                            {sensor.rules && sensor.rules.length > 0 && (
-                                <div className="mt-4 pt-4 border-t">
-                                    <p className="text-xs text-gray-500 mb-2">Active Rules</p>
-                                    <div className="flex flex-wrap gap-1">
-                                        {sensor.rules.map((rule, index) => (
-                                            <span
-                                                key={index}
-                                                className={`px-2 py-1 text-xs rounded-full ${
-                                                    rule.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'
+                                        return (
+                                            <div
+                                                key={sensor.id}
+                                                className={`relative flex h-full flex-col gap-4 rounded-xl border bg-white p-5 transition-all ${
+                                                    isActive ? 'border-indigo-400 shadow-lg ring-2 ring-indigo-100' : 'border-gray-100 shadow-sm hover:shadow-md'
                                                 }`}
                                             >
-                                                {rule.rule_name}
-                                            </span>
-                                        ))}
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div>
+                                                        <h3 className="text-lg font-semibold text-gray-900">{sensor.name || t('deviceDetail.defaultSensorName', { pin: sensor.pin })}</h3>
+                                                        <p className="text-xs text-gray-500">{t('deviceDetail.sensorPinType', { pin: sensor.pin, type: sensor.sensor_type || sensor.type })}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge.className}`}>
+                                                            {badge.label}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingSensor(sensor);
+                                                                setShowSensorEditor(true);
+                                                            }}
+                                                            className="rounded-full border border-gray-200 p-2 text-gray-500 hover:text-gray-700"
+                                                            title={t('deviceDetail.calibrateSensor')}
+                                                        >
+                                                            <Settings className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-end gap-3">
+                                                    <span className="text-3xl font-semibold text-gray-900">
+                                                        {display.value !== null && display.value !== undefined ? display.value.toFixed(2) : '—'}
+                                                    </span>
+                                                    {display.unit && <span className="text-sm text-gray-500">{display.unit}</span>}
+                                                </div>
+                                                <p className="text-xs text-gray-500">
+                                                    {display.timestamp
+                                                        ? t('deviceDetail.lastUpdated', { when: formatRelativeTime(display.timestamp) })
+                                                        : t('deviceDetail.awaitingFirstReading')}
+                                                </p>
+
+                                                {display.stat && (
+                                                    <div className="grid grid-cols-3 gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm">
+                                                        <div>
+                                                            <p className="text-xs text-gray-500">{t('deviceDetail.metricMin')}</p>
+                                                            <p className="font-medium text-gray-900">{formatStat(display.stat.min_value)}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-gray-500">{t('deviceDetail.metricAvg')}</p>
+                                                            <p className="font-medium text-gray-900">{formatStat(display.stat.avg_value)}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-gray-500">{t('deviceDetail.metricMax')}</p>
+                                                            <p className="font-medium text-gray-900">{formatStat(display.stat.max_value)}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="mt-auto flex flex-wrap gap-2 pt-2 text-sm">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedSensor(sensor);
+                                                            setShowRuleEditor(true);
+                                                        }}
+                                                        className="inline-flex items-center gap-2 rounded-full border border-indigo-200 px-3 py-1.5 font-medium text-indigo-600 hover:bg-indigo-50"
+                                                    >
+                                                        {t('deviceDetail.manageRules')}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleSensorHistory(sensor)}
+                                                        className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 font-medium text-gray-600 hover:bg-gray-50"
+                                                    >
+                                                        {t('deviceDetail.viewHistory')}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </section>
+
+                        <section id="sensor-history" className="space-y-4">
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                <h2 className="text-xl font-semibold text-gray-900">{t('deviceDetail.historyTitle')}</h2>
+                                <p className="text-sm text-gray-500">
+                                    {selectedSensor
+                                        ? t('deviceDetail.historySubtitle', { sensor: selectedSensor.name || t('deviceDetail.defaultSensorName', { pin: selectedSensor.pin }) })
+                                        : t('deviceDetail.historyPrompt')}
+                                </p>
+                                </div>
+                                {sortedSensors.length > 0 && (
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-sm text-gray-600">{t('deviceDetail.sensorLabel')}</label>
+                                        <select
+                                            value={selectedSensor?.id || ''}
+                                            onChange={(e) => {
+                                                const next = sortedSensors.find((sensor) => String(sensor.id) === e.target.value);
+                                                if (next) {
+                                                    setSelectedSensor(next);
+                                                }
+                                            }}
+                                            className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                        >
+                                            <option value="" disabled>{t('deviceDetail.historySelectPlaceholder')}</option>
+                                            {sortedSensors.map((sensor) => (
+                                                <option key={sensor.id} value={sensor.id}>
+                                                    {sensor.name || t('deviceDetail.defaultSensorName', { pin: sensor.pin })}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
+                                )}
+                            </div>
+
+                            {selectedSensor ? (
+                                <HistoricalChart
+                                    deviceId={id}
+                                    sensorPin={selectedSensor.pin}
+                                    sensorName={selectedSensor.name || t('deviceDetail.defaultSensorName', { pin: selectedSensor.pin })}
+                                    sensorUnit={selectedSensor.unit || ''}
+                                />
+                            ) : (
+                                <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
+                                    {t('deviceDetail.historyNoSensor')}
                                 </div>
                             )}
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Historical Charts */}
-            <div className="space-y-6">
-                <h2 className="text-xl font-bold text-gray-900">Historical Data</h2>
-                {sensors.map((sensor) => (
-                    <HistoricalChart
-                        key={sensor.id}
-                        deviceId={id}
-                        sensorPin={sensor.pin}
-                        sensorName={sensor.name}
-                        sensorUnit={sensor.unit || ''}
-                    />
-                ))}
-            </div>
-
-            {/* Recent Alerts */}
-            {alerts.length > 0 && (
-                <div className="bg-white rounded-lg shadow">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-lg font-medium text-gray-900">Recent Alerts</h2>
+                        </section>
                     </div>
-                    <div className="divide-y divide-gray-200">
-                        {(alerts || []).slice(0, 5).map((alert) => (
-                            <div key={alert.id} className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                            alert.severity === 'critical' ? 'bg-red-100 text-red-800' :
-                                            alert.severity === 'high' ? 'bg-orange-100 text-orange-800' :
-                                            'bg-yellow-100 text-yellow-800'
-                                        }`}>
-                                            {alert.severity.toUpperCase()}
-                                        </span>
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900">{alert.alert_type}</p>
-                                            <p className="text-sm text-gray-500">{alert.message}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-sm text-gray-500">
-                                            {new Date(alert.created_at).toLocaleString()}
-                                        </p>
-                                        <span className={`text-xs px-2 py-1 rounded-full ${
-                                            alert.status === 'OPEN' ? 'bg-red-100 text-red-800' :
-                                            alert.status === 'ACK' ? 'bg-yellow-100 text-yellow-800' :
-                                            'bg-green-100 text-green-800'
-                                        }`}>
-                                            {alert.status}
-                                        </span>
-                                    </div>
-                                </div>
+
+                    <aside className="space-y-6">
+                        <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-gray-900">{t('deviceDetail.liveConnection')}</h3>
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(device.status)}`}>
+                                    {(device.status ? t(`deviceDetail.status.${device.status}`, { defaultValue: device.status }) : t('deviceDetail.status.unknown')).toUpperCase()}
+                                </span>
                             </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+                            <dl className="mt-4 space-y-3 text-sm">
+                                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                                    <dt className="text-gray-500">{t('deviceDetail.lastHeartbeat')}</dt>
+                                    <dd className="font-medium text-gray-900">{lastHeartbeatLabel}</dd>
+                                </div>
+                                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                                    <dt className="text-gray-500">{t('deviceDetail.ipAddress')}</dt>
+                                    <dd className="font-medium text-gray-900">{device.ip_address || t('deviceDetail.valueUnknown')}</dd>
+                                </div>
+                                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                                    <dt className="text-gray-500">{t('deviceDetail.wifiSignal')}</dt>
+                                    <dd className="font-medium text-gray-900">{wifiStrengthLabel}</dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-gray-500">{t('deviceDetail.targetFirmware')}</dt>
+                                    <dd className="font-medium text-gray-900">{targetFirmware || t('deviceDetail.targetFirmwareNone')}</dd>
+                                </div>
+                            </dl>
+                        </div>
 
-            {/* Modals */}
+                        <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-gray-900">{t('deviceDetail.alertsHeading')}</h3>
+                                <span className="text-xs text-gray-400">{t('deviceDetail.alertsCount', { count: activeAlerts.length })}</span>
+                            </div>
+                            <div className="mt-4 space-y-3">
+                                {activeAlerts.length === 0 ? (
+                                    <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                                        {t('deviceDetail.alertsEmpty')}
+                                    </p>
+                                ) : (
+                                    activeAlerts.map((alert) => (
+                                        <div key={alert.id || `${alert.alert_type}-${alert.triggered_at || alert.created_at}`} className="rounded-lg border border-gray-200 p-4">
+                                            <div className="flex items-start justify-between">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900">{alert.alert_type || 'Alert'}</p>
+                                                    <p className="mt-1 text-xs text-gray-500">{alert.message || 'No additional context'}</p>
+                                                </div>
+                                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${severityColors[alert.severity?.toLowerCase?.()] || 'bg-gray-100 text-gray-700'}`}>
+                                                    {alert.severity ? alert.severity.toUpperCase() : 'INFO'}
+                                                </span>
+                                            </div>
+                                            <p className="mt-3 text-xs text-gray-400">
+                                                {t('deviceDetail.triggeredAgo', {
+                                                    when: formatRelativeTime(alert.triggered_at ? new Date(alert.triggered_at) : alert.created_at ? new Date(alert.created_at) : null)
+                                                })}
+                                            </p>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                            <div className="mt-4 text-right">
+                                <a
+                                    href={`/alerts?device=${id}`}
+                                    className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                                >
+                                    {t('deviceDetail.viewAllAlerts')}
+                                </a>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+
             {showRuleEditor && selectedSensor && (
                 <SensorRuleEditor
                     sensor={selectedSensor}
@@ -421,14 +649,15 @@ function DeviceDetail() {
                         setShowSensorEditor(false);
                         setEditingSensor(null);
                     }}
+                    mutation={updateSensorMutation}
                 />
             )}
         </div>
     );
 }
 
-// Sensor Editor Modal Component
-function SensorEditorModal({ sensor, deviceId, onClose, onSave }) {
+function SensorEditorModal({ sensor, deviceId, onClose, onSave, mutation }) {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({
         name: sensor?.name || '',
         calibration_offset: sensor?.calibration_offset || 0,
@@ -437,129 +666,111 @@ function SensorEditorModal({ sensor, deviceId, onClose, onSave }) {
     });
     const [triggerOTA, setTriggerOTA] = useState(true);
 
-    const updateSensorMutation = useMutation(
-        (data) => apiService.updateSensor(deviceId, sensor.id, data),
-        {
-            onSuccess: async () => {
-                toast.success('Sensor updated successfully');
-
-                if (triggerOTA) {
-                    toast.info('Triggering OTA update to apply sensor changes...');
-                    // Note: OTA update trigger would go here
-                    // For now, just show a message
-                    setTimeout(() => {
-                        toast.success('Sensor configuration will be applied on next device sync');
-                    }, 1000);
-                }
-
-                onSave();
-            },
-            onError: (error) => {
-                toast.error('Failed to update sensor: ' + (error.response?.data?.error || error.message));
-            }
-        }
-    );
-
     const handleSubmit = (e) => {
         e.preventDefault();
-        updateSensorMutation.mutate(formData);
+        mutation.mutate(
+            {
+                deviceId,
+                sensorId: sensor.id,
+                payload: formData
+            },
+            {
+                onSuccess: () => {
+                    toast.success(t('deviceDetail.toast.sensorUpdated'));
+                    if (triggerOTA) {
+                        toast.info(t('deviceDetail.toast.otaQueued'));
+                    }
+                    onSave();
+                },
+                onError: (error) => {
+                    toast.error(t('deviceDetail.toast.sensorUpdateFailed', {
+                        message: error.response?.data?.error || error.message
+                    }));
+                }
+            }
+        );
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Edit Sensor: {sensor.name}
-                </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+                <h3 className="text-lg font-semibold text-gray-900">{t('deviceDetail.modal.title', { name: sensor.name })}</h3>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Sensor Name
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700">{t('deviceDetail.modal.name')}</label>
                         <input
                             type="text"
                             value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                            className="input w-full"
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
                             required
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Calibration Offset
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={formData.calibration_offset}
-                            onChange={(e) => setFormData({...formData, calibration_offset: parseFloat(e.target.value)})}
-                            className="input w-full"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Value added to raw sensor reading</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Calibration Multiplier
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={formData.calibration_multiplier}
-                            onChange={(e) => setFormData({...formData, calibration_multiplier: parseFloat(e.target.value)})}
-                            className="input w-full"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Value multiplied with raw sensor reading</p>
-                    </div>
-
-                    <div className="flex items-center">
-                        <input
-                            type="checkbox"
-                            id="enabled"
-                            checked={formData.enabled}
-                            onChange={(e) => setFormData({...formData, enabled: e.target.checked})}
-                            className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                        />
-                        <label htmlFor="enabled" className="ml-2 block text-sm text-gray-700">
-                            Sensor enabled
-                        </label>
-                    </div>
-
-                    <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                        <div className="flex items-start">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">{t('deviceDetail.modal.offset')}</label>
                             <input
-                                type="checkbox"
-                                id="triggerOTA"
-                                checked={triggerOTA}
-                                onChange={(e) => setTriggerOTA(e.target.checked)}
-                                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5"
+                                type="number"
+                                step="0.01"
+                                value={formData.calibration_offset}
+                                onChange={(e) => setFormData({ ...formData, calibration_offset: parseFloat(e.target.value) })}
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
                             />
-                            <label htmlFor="triggerOTA" className="ml-2 block text-sm text-gray-700">
-                                <span className="font-medium">Trigger OTA Update</span>
-                                <p className="text-xs text-gray-600 mt-1">
-                                    Device will receive updated configuration on next sync
-                                </p>
-                            </label>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">{t('deviceDetail.modal.multiplier')}</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value={formData.calibration_multiplier}
+                                onChange={(e) => setFormData({ ...formData, calibration_multiplier: parseFloat(e.target.value) })}
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+                            />
                         </div>
                     </div>
 
-                    <div className="flex justify-end space-x-3 pt-4">
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                            type="checkbox"
+                            checked={formData.enabled}
+                            onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        {t('deviceDetail.modal.enabled')}
+                    </label>
+
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                        <label className="flex items-start gap-2 text-sm text-blue-700">
+                            <input
+                                type="checkbox"
+                                checked={triggerOTA}
+                                onChange={(e) => setTriggerOTA(e.target.checked)}
+                                className="mt-1 h-4 w-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>
+                                {t('deviceDetail.modal.triggerOta')}
+                                <p className="text-xs text-blue-600/80">{t('deviceDetail.modal.triggerOtaHint')}</p>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="btn-secondary px-4 py-2"
-                            disabled={updateSensorMutation.isLoading}
+                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={mutation.isLoading}
                         >
-                            Cancel
+                            {t('deviceDetail.modal.cancel')}
                         </button>
                         <button
                             type="submit"
-                            className="btn-primary px-4 py-2"
-                            disabled={updateSensorMutation.isLoading}
+                            className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={mutation.isLoading}
                         >
-                            {updateSensorMutation.isLoading ? 'Saving...' : 'Save Changes'}
+                            {mutation.isLoading ? t('deviceDetail.modal.saving') : t('deviceDetail.modal.save')}
                         </button>
                     </div>
                 </form>

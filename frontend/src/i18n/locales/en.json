@@ -1036,7 +1036,10 @@
       "author": "Author",
       "date": "Date",
       "unknown": "unknown",
-      "refresh": "Refresh Version Info"
+      "refresh": "Refresh Version Info",
+      "branchLabel": "Branch",
+      "dateLabel": "Build date",
+      "commitLabel": "Commit"
     },
     "availability": {
       "title": "Platform Update",

@@ -46,6 +46,21 @@ function Settings() {
         return value ?? fallback;
     };
 
+    const resolveValue = (value, fallbackKey = 'settings.system.unknown') => {
+        if (value === undefined || value === null) {
+            return t(fallbackKey, 'Unknown');
+        }
+
+        if (typeof value === 'string') {
+            const trimmed = value.trim().toLowerCase();
+            if (!trimmed || trimmed === 'unknown' || trimmed === 'n/a') {
+                return t(fallbackKey, 'Unknown');
+            }
+        }
+
+        return value;
+    };
+
     const [activeTab, setActiveTab] = useState('system');
     const [backupLoading, setBackupLoading] = useState(false);
     const [envVars, setEnvVars] = useState({});
@@ -156,6 +171,13 @@ function Settings() {
             }
         }
     );
+
+    const versionInfo = systemInfo?.version || {};
+    const versionNumberDisplay = versionInfo.version && versionInfo.version !== 'unknown' ? versionInfo.version : null;
+    const commitDisplay = versionInfo.commit && versionInfo.commit !== 'unknown' ? versionInfo.commit : null;
+    const branchDisplay = versionInfo.branch && versionInfo.branch !== 'unknown' ? versionInfo.branch : null;
+    const dateDisplay = versionInfo.date && versionInfo.date !== 'unknown' ? new Date(versionInfo.date).toLocaleDateString() : null;
+    const nodeVersionDisplay = resolveValue(systemInfo?.nodeVersion);
 
     const handleBackupDatabase = async () => {
         setBackupLoading(true);
@@ -411,7 +433,7 @@ function Settings() {
                                             {t('settings.system.uptime', 'Uptime')}
                                         </h4>
                                         <p className="text-gray-900">
-                                            {systemHealth?.uptime || t('settings.system.unknown', 'Unknown')}
+                                            {resolveValue(systemHealth?.uptimeHuman)}
                                         </p>
                                     </div>
 
@@ -422,16 +444,21 @@ function Settings() {
                                         </h4>
                                         <div className="space-y-1">
                                             <p className="text-gray-900 font-mono text-sm">
-                                                {systemInfo?.version?.commit || 'unknown'}
+                                                {versionNumberDisplay || commitDisplay || t('settings.update.currentVersion.unknown', 'unknown')}
                                             </p>
-                                            {systemInfo?.version?.branch && (
-                                                <p className="text-xs text-gray-600">
-                                                    {systemInfo.version.branch} branch
+                                            {versionNumberDisplay && commitDisplay && (
+                                                <p className="text-xs text-gray-500">
+                                                    {t('settings.update.currentVersion.commitLabel', 'Commit')}: {commitDisplay}
                                                 </p>
                                             )}
-                                            {systemInfo?.version?.date && (
+                                            {branchDisplay && (
+                                                <p className="text-xs text-gray-600">
+                                                    {t('settings.update.currentVersion.branchLabel', 'Branch')}: {branchDisplay}
+                                                </p>
+                                            )}
+                                            {dateDisplay && (
                                                 <p className="text-xs text-gray-500">
-                                                    {new Date(systemInfo.version.date).toLocaleDateString()}
+                                                    {t('settings.update.currentVersion.dateLabel', 'Build date')}: {dateDisplay}
                                                 </p>
                                             )}
                                         </div>
@@ -442,7 +469,7 @@ function Settings() {
                                             {t('settings.system.nodeVersion', 'Node.js Version')}
                                         </h4>
                                         <p className="text-gray-900">
-                                            {systemInfo?.nodeVersion || 'Unknown'}
+                                            {nodeVersionDisplay}
                                         </p>
                                     </div>
                                 </div>

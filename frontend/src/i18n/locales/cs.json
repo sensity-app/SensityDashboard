@@ -842,11 +842,14 @@
         "title": "Aktuální verze",
         "commit": "Commit",
         "branch": "Větev",
-        "author": "Autor",
-        "date": "Datum",
-        "unknown": "neznámé",
-        "refresh": "Obnovit informace o verzi"
-      },
+    "author": "Autor",
+    "date": "Datum",
+    "unknown": "neznámé",
+    "refresh": "Obnovit informace o verzi",
+    "branchLabel": "Větev",
+    "dateLabel": "Datum sestavení",
+    "commitLabel": "Commit"
+  },
       "availability": {
         "title": "Aktualizace platformy",
         "available": "Je dostupná aktualizace",

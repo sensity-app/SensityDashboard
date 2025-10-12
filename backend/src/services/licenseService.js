@@ -10,7 +10,18 @@ const logger = require('../utils/logger');
 const os = require('os');
 
 // License server URL (configure in .env)
-const LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL || 'https://license.sensity.app/api/v1';
+const DEFAULT_LICENSE_ENDPOINTS = [
+    'https://licenses.sensity.app/api/v1',
+    'https://license.sensity.app/api/v1'
+];
+const LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL || DEFAULT_LICENSE_ENDPOINTS[0];
+
+const getLicenseEndpoints = () => {
+    const configured = process.env.LICENSE_SERVER_URL
+        ? [process.env.LICENSE_SERVER_URL]
+        : DEFAULT_LICENSE_ENDPOINTS;
+    return Array.from(new Set(configured.filter(Boolean)));
+};
 const LICENSE_CHECK_INTERVAL = parseInt(process.env.LICENSE_CHECK_INTERVAL || '86400000'); // 24 hours
 const GRACE_PERIOD_DAYS = parseInt(process.env.LICENSE_GRACE_PERIOD_DAYS || '7');
 const OFFLINE_MAX_FAILURES = parseInt(process.env.LICENSE_OFFLINE_MAX_FAILURES || '3');
@@ -89,62 +100,81 @@ class LicenseService {
      * Validate license key with remote server
      */
     async validateWithServer(licenseKey) {
-        try {
-            const instanceId = await this.getInstanceId();
-            const hardwareId = this.getHardwareId();
+        const endpoints = getLicenseEndpoints();
+        let lastError = null;
+        let lastConnectionFailure = false;
 
-            // Get current usage stats
+        for (const baseUrl of endpoints) {
+            try {
+                const instanceId = await this.getInstanceId();
+                const hardwareId = this.getHardwareId();
+
+                // Get current usage stats
             const [devicesCount, usersCount] = await Promise.all([
                 db.query('SELECT COUNT(*) as count FROM devices'),
                 db.query('SELECT COUNT(*) as count FROM users')
             ]);
 
-            const response = await axios.post(
-                `${LICENSE_SERVER_URL}/licenses/validate`,
-                {
-                    license_key: licenseKey,
-                    instance_id: instanceId,
-                    hardware_id: hardwareId,
-                    platform_version: process.env.npm_package_version || '1.0.0',
-                    device_count: parseInt(devicesCount.rows[0].count),
-                    user_count: parseInt(usersCount.rows[0].count)
-                },
-                {
-                    timeout: 10000, // 10 seconds timeout
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'User-Agent': 'Sensity-Platform/1.0'
+                const response = await axios.post(
+                    `${baseUrl}/licenses/validate`,
+                    {
+                        license_key: licenseKey,
+                        instance_id: instanceId,
+                        hardware_id: hardwareId,
+                        platform_version: process.env.npm_package_version || '1.0.0',
+                        device_count: parseInt(devicesCount.rows[0].count),
+                        user_count: parseInt(usersCount.rows[0].count)
+                    },
+                    {
+                        timeout: 10000, // 10 seconds timeout
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'User-Agent': 'Sensity-Platform/1.0'
+                        }
                     }
+                );
+
+                if (response.data.valid) {
+                    // Update local cache
+                    await this.updateLocalCache(response.data);
+                    logger.info(`License validated successfully via ${baseUrl}`);
+                    return {
+                        valid: true,
+                        endpoint: baseUrl,
+                        ...response.data
+                    };
+                } else {
+                    logger.warn(`License validation failed via ${baseUrl}:`, response.data.message);
+                    return {
+                        valid: false,
+                        endpoint: baseUrl,
+                        message: response.data.message
+                    };
                 }
-            );
+            } catch (error) {
+                lastError = error;
+                const isConnectionError = ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNRESET'].includes(error.code);
+                lastConnectionFailure = isConnectionError;
 
-            if (response.data.valid) {
-                // Update local cache
-                await this.updateLocalCache(response.data);
-                logger.info('License validated successfully');
-                return {
-                    valid: true,
-                    ...response.data
-                };
-            } else {
-                logger.warn('License validation failed:', response.data.message);
-                return {
-                    valid: false,
-                    message: response.data.message
-                };
-            }
-        } catch (error) {
-            if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-                logger.warn('Cannot reach license server, entering grace period');
-                return await this.handleOfflineValidation(licenseKey);
-            }
+                const errorMessage = error.response?.data?.message || error.message;
+                logger.warn(`License validation attempt failed via ${baseUrl}: ${errorMessage}`);
 
-            logger.error('License validation error:', error.message);
-            return {
-                valid: false,
-                message: 'License validation failed: ' + error.message
-            };
+                if (!isConnectionError) {
+                    break; // No point trying other endpoints for non-connection issues
+                }
+            }
         }
+
+        if (lastConnectionFailure) {
+            logger.warn('All configured license endpoints unavailable, attempting offline validation');
+            return await this.handleOfflineValidation(licenseKey);
+        }
+
+        logger.error('License validation error:', lastError?.message || 'Unknown error');
+        return {
+            valid: false,
+            message: 'License validation failed: ' + (lastError?.message || 'Unknown error')
+        };
     }
 
     /**

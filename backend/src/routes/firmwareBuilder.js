@@ -13,7 +13,7 @@ function convertSensorArrayToObject(sensorsArray) {
     const sensorsObject = {};
 
     if (!Array.isArray(sensorsArray)) {
-        console.log('Sensors is not an array, returning as-is');
+        logger.debug('Sensors is not an array, returning as-is');
         return sensorsArray || {};
     }
 
@@ -203,12 +203,12 @@ router.post('/build', authenticateToken, async (req, res) => {
         } = req.body;
 
         // Debug: Log the received data
-        console.log('Firmware builder request body:', JSON.stringify(req.body, null, 2));
-        console.log('Extracted fields:', { device_id, device_name, wifi_ssid, wifi_password: wifi_password ? '***' : undefined, open_wifi, server_url });
+        logger.debug('Firmware builder request body:', JSON.stringify(req.body, null, 2));
+        logger.debug('Extracted fields:', { device_id, device_name, wifi_ssid, wifi_password: wifi_password ? '***' : undefined, open_wifi, server_url });
 
         // Convert sensor array to object format expected by generateDeviceConfig
         const sensorsObject = convertSensorArrayToObject(sensors);
-        console.log('Converted sensors object:', sensorsObject);
+        logger.debug('Converted sensors object:', sensorsObject);
 
         // Validate required fields
         if (!device_id || !device_name || !wifi_ssid || !server_url) {

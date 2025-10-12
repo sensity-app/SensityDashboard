@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const logger = require('../utils/logger');
 
 // Predefined firmware templates for common use cases
 const templates = {
@@ -539,7 +540,7 @@ router.post('/:templateId/build', async (req, res) => {
                 'Content-Length': buffer.length
             });
 
-            console.log(`Generated firmware from template: ${templateId} for device: ${device_id}`);
+            logger.info(`Generated firmware from template: ${templateId} for device: ${device_id}`);
             res.send(buffer);
         } else {
             const error = await buildResponse.json();
@@ -547,7 +548,7 @@ router.post('/:templateId/build', async (req, res) => {
         }
 
     } catch (error) {
-        console.error('Template firmware generation error:', error);
+        logger.error('Template firmware generation error:', error);
         res.status(500).json({
             success: false,
             error: 'Failed to generate firmware from template'

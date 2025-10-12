@@ -10,6 +10,16 @@ const db = require('../models/database');
 const logger = require('../utils/logger');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
+let backendPackageVersion = 'unknown';
+try {
+    const backendPackageJson = require('../../package.json');
+    if (backendPackageJson?.version) {
+        backendPackageVersion = backendPackageJson.version;
+    }
+} catch (error) {
+    logger.warn('Could not read backend package version:', error.message);
+}
+
 const router = express.Router();
 
 function formatDuration(seconds) {
@@ -168,7 +178,11 @@ router.get('/info', authenticateToken, async (req, res) => {
             gitInfo.date = envDate;
         }
 
-        const packageVersion = process.env.APP_VERSION || process.env.npm_package_version || gitInfo.commit;
+        const packageVersion =
+            process.env.APP_VERSION ||
+            process.env.npm_package_version ||
+            backendPackageVersion ||
+            gitInfo.commit;
         const uptimeSeconds = process.uptime();
         const uptimeHuman = formatDuration(uptimeSeconds);
 

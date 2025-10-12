@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
     Settings as SettingsIcon,
     Database,
@@ -21,14 +22,18 @@ import {
     EyeOff,
     GitBranch,
     RotateCcw,
-    Clock
+    Clock,
+    Key
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { apiService } from '../services/api';
+import LicenseManagerPanel from '../components/LicenseManagerPanel';
 
 function Settings() {
     const { t } = useTranslation();
+    const location = useLocation();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
 
     const updateCopy = useMemo(() => {
@@ -84,6 +89,23 @@ function Settings() {
         primaryColor: '#2563eb',
         accentColor: '#1d4ed8'
     });
+
+    // Sync tab selection with query parameter for deep links
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const tabParam = params.get('tab');
+        if (tabParam && tabParam !== activeTab) {
+            setActiveTab(tabParam);
+        }
+    }, [location.search]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (activeTab !== params.get('tab')) {
+            params.set('tab', activeTab);
+            navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+        }
+    }, [activeTab, location.pathname, location.search, navigate]);
 
     // Load settings from localStorage on mount as fallback
     useEffect(() => {
@@ -357,6 +379,7 @@ function Settings() {
 
     const tabs = [
         { id: 'system', label: t('settings.tabs.system', 'System'), icon: Server },
+        { id: 'license', label: t('settings.tabs.license', 'License'), icon: Key },
         { id: 'platform', label: t('settings.tabs.platform', 'Platform Update'), icon: RotateCcw },
         { id: 'branding', label: t('settings.tabs.branding', 'Branding'), icon: Image },
         { id: 'environment', label: t('settings.tabs.environment', 'Environment'), icon: Code },
@@ -513,6 +536,13 @@ function Settings() {
                                         </label>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* License Tab */}
+                        {activeTab === 'license' && (
+                            <div className="p-6">
+                                <LicenseManagerPanel />
                             </div>
                         )}
 

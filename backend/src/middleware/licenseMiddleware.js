@@ -9,11 +9,23 @@ const logger = require('../utils/logger');
 /**
  * Check if license is valid
  */
+const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 const requireValidLicense = async (req, res, next) => {
     try {
         const status = await licenseService.getLicenseStatus();
 
         if (!status.valid) {
+            if (READ_METHODS.has(req.method)) {
+                logger.warn('License inactive - allowing read-only access', {
+                    path: req.originalUrl,
+                    method: req.method
+                });
+                req.license = status;
+                res.setHeader('X-License-Warning', status.message || 'License inactive');
+                return next();
+            }
+
             return res.status(403).json({
                 error: 'Invalid or expired license',
                 message: status.message || 'Please activate a valid license to continue',

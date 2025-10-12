@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Menu, X } from 'lucide-react';
+import { ChevronDown, Menu, X, AlertTriangle } from 'lucide-react';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -31,6 +31,7 @@ import SilentModeManager from './components/SilentModeManager';
 import ProtocolSettingsManager from './components/ProtocolSettingsManager';
 import ErrorBoundary from './components/ErrorBoundary';
 import { apiService } from './services/api';
+import LicenseManagerPanel from './components/LicenseManagerPanel';
 
 // Utility function to adjust color brightness
 const adjustColorBrightness = (hexColor, amount) => {
@@ -296,6 +297,18 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    const { data: licenseStatusData, isLoading: licenseStatusLoading } = useQuery(
+        'license-status',
+        () => apiService.getLicenseStatus(),
+        {
+            refetchInterval: 60000,
+            staleTime: 30000
+        }
+    );
+    const licenseStatus = licenseStatusData?.license;
+    const shouldBlockForLicense = !licenseStatusLoading && licenseStatus && licenseStatus.valid === false;
+    const isAdminUser = user.role === 'admin';
+
     const navigationItems = [
         { path: '/', label: t('nav.dashboard', 'Dashboard'), icon: '📊' },
         { path: '/devices', label: t('nav.devices', 'Devices'), icon: '🔧' },
@@ -363,6 +376,56 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
 
     return (
         <div className="min-h-screen">
+            {shouldBlockForLicense && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/90 px-4">
+                    <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="px-6 py-4 bg-red-600 text-white flex items-center space-x-3">
+                            <AlertTriangle className="w-6 h-6" />
+                            <div>
+                                <h2 className="text-xl font-semibold">
+                                    {t('license.blocker.title', 'License Required')}
+                                </h2>
+                                <p className="text-sm text-red-100">
+                                    {licenseStatus?.requires_activation
+                                        ? t('license.blocker.requiresActivation', 'Activate your license to continue using the platform.')
+                                        : t('license.blocker.expired', 'Your license has expired. Please renew to regain access.')}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 bg-red-50 text-red-700 text-sm border-b border-red-100">
+                            {isAdminUser
+                                ? t('license.blocker.adminMessage', 'Enter a valid license key below to restore access for all users.')
+                                : t('license.blocker.userMessage', 'Access is temporarily limited until an administrator renews the license.')}
+                        </div>
+                        {isAdminUser ? (
+                            <div className="flex-1 overflow-y-auto px-6 py-6 bg-white">
+                                <LicenseManagerPanel />
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center bg-white px-6 py-10">
+                                <div className="max-w-md text-center space-y-4">
+                                    <p className="text-gray-600">
+                                        {licenseStatus?.expires_at
+                                            ? t('license.blocker.expiredAt', 'Previous license expired on {{date}}.', {
+                                                date: new Date(licenseStatus.expires_at).toLocaleDateString()
+                                            })
+                                            : t('license.blocker.noLicense', 'No active license is currently configured.')}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                        {t('license.blocker.contactAdmin', 'Please contact your administrator to reactivate the platform.')}
+                                    </p>
+                                    <button
+                                        onClick={onLogout}
+                                        className="btn-secondary mx-auto"
+                                    >
+                                        {t('auth.logout', 'Logout')}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
             {/* Modern Header */}
             <header className={`nav-modern transition-all duration-300 sticky top-0 z-50 ${isHeaderMinimal ? 'py-2' : 'py-4'
                 }`}>

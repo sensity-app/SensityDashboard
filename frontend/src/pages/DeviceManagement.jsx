@@ -226,44 +226,6 @@ function DeviceManagement() {
         }
     ], [allDevices.length, onlineCount, offlineCount, alarmCount, t]);
 
-    if (devicesLoading) {
-        return (
-            <div className="space-y-6 animate-fade-in">
-                <div className="card p-6">
-                    <div className="animate-pulse space-y-4">
-                        <div className="h-5 w-48 rounded bg-gray-200" />
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            {[...Array(4)].map((_, index) => (
-                                <div key={index} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-2xl bg-gray-200" />
-                                        <div className="flex-1 space-y-2">
-                                            <div className="h-3 w-20 rounded bg-gray-200" />
-                                            <div className="h-5 w-16 rounded bg-gray-200" />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-                <div className="card p-6">
-                    <div className="animate-pulse space-y-6">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div className="h-6 w-40 rounded bg-gray-200" />
-                            <div className="h-9 w-56 rounded-full bg-gray-200" />
-                        </div>
-                        <div className="space-y-3">
-                            {[...Array(5)].map((_, index) => (
-                                <div key={index} className="h-12 rounded-lg bg-gray-100" />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     // Apply filters and search - Memoized to prevent unnecessary re-renders
     const filteredDevices = useMemo(() => {
         return allDevices.filter(device => {
@@ -324,6 +286,44 @@ function DeviceManagement() {
     useEffect(() => {
         setCurrentPage(1);
     }, [filterStatus, filterType, filterLocation, filterGroup, filterTag, searchQuery]);
+
+    if (devicesLoading) {
+        return (
+            <div className="space-y-6 animate-fade-in">
+                <div className="card p-6">
+                    <div className="animate-pulse space-y-4">
+                        <div className="h-5 w-48 rounded bg-gray-200" />
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            {[...Array(4)].map((_, index) => (
+                                <div key={index} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-12 w-12 rounded-2xl bg-gray-200" />
+                                        <div className="flex-1 space-y-2">
+                                            <div className="h-3 w-20 rounded bg-gray-200" />
+                                            <div className="h-5 w-16 rounded bg-gray-200" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <div className="card p-6">
+                    <div className="animate-pulse space-y-6">
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                            <div className="h-6 w-40 rounded bg-gray-200" />
+                            <div className="h-9 w-56 rounded-full bg-gray-200" />
+                        </div>
+                        <div className="space-y-3">
+                            {[...Array(5)].map((_, index) => (
+                                <div key={index} className="h-12 rounded-lg bg-gray-100" />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8 animate-fade-in">

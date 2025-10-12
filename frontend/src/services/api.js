@@ -1,6 +1,28 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const resolveApiBaseUrl = () => {
+    if (process.env.REACT_APP_API_URL) {
+        return process.env.REACT_APP_API_URL;
+    }
+
+    if (typeof window !== 'undefined' && window.location) {
+        const { origin, hostname } = window.location;
+        const normalizedOrigin = origin.replace(/\/+$/, '');
+
+        // During local development keep talking to the API server on port 3001
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:3001/api';
+        }
+
+        // In production default to the same origin
+        return `${normalizedOrigin}/api`;
+    }
+
+    // Fallback for non-browser environments (tests, SSR)
+    return 'http://localhost:3001/api';
+};
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 let authToken = null;
 

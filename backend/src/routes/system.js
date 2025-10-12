@@ -126,17 +126,31 @@ router.get('/info', authenticateToken, async (req, res) => {
             ? path.join(process.cwd(), '..')
             : process.cwd();
 
+        logger.debug('Git detection:', {
+            cwd: process.cwd(),
+            gitRoot,
+            hasBackendInPath: process.cwd().includes('/backend')
+        });
+
         try {
             const { stdout: commit } = await exec('git rev-parse HEAD', { cwd: gitRoot });
             gitInfo.commit = commit.trim().substring(0, 8);
+            logger.debug('Git commit detected:', gitInfo.commit);
 
             const { stdout: branch } = await exec('git rev-parse --abbrev-ref HEAD', { cwd: gitRoot });
             gitInfo.branch = branch.trim();
+            logger.debug('Git branch detected:', gitInfo.branch);
 
             const { stdout: date } = await exec('git log -1 --format=%cd --date=iso', { cwd: gitRoot });
             gitInfo.date = date.trim();
+            logger.debug('Git date detected:', gitInfo.date);
         } catch (gitError) {
-            logger.warn('Git information not available:', gitError.message);
+            logger.warn('Git information not available:', {
+                error: gitError.message,
+                cwd: process.cwd(),
+                gitRoot,
+                stderr: gitError.stderr
+            });
         }
 
         const envCommit = process.env.GIT_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || process.env.COMMIT_SHA;

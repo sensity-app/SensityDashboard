@@ -264,53 +264,55 @@ function DeviceManagement() {
         );
     }
 
-    // Apply filters and search
-    const filteredDevices = allDevices.filter(device => {
-        // Status filter
-        if (filterStatus !== 'all' && (device.current_status || device.status) !== filterStatus) {
-            return false;
-        }
-
-        // Type filter
-        if (filterType !== 'all' && device.device_type !== filterType) {
-            return false;
-        }
-
-        // Location filter
-        if (filterLocation !== 'all' && device.location_id !== parseInt(filterLocation)) {
-            return false;
-        }
-
-        // Group filter
-        if (filterGroup !== 'all') {
-            const hasGroup = device.groups?.some(g => g.id === parseInt(filterGroup));
-            if (!hasGroup) return false;
-        }
-
-        // Tag filter
-        if (filterTag !== 'all') {
-            const hasTag = device.tags?.some(t => t.id === parseInt(filterTag));
-            if (!hasTag) return false;
-        }
-
-        // Search query
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            const matchesName = device.name?.toLowerCase().includes(query);
-            const matchesId = device.id?.toLowerCase().includes(query);
-            const matchesType = device.device_type?.toLowerCase().includes(query);
-            const matchesLocation = device.location_name?.toLowerCase().includes(query);
-            const matchesIp = device.ip_address?.toLowerCase().includes(query);
-            const matchesGroups = device.groups?.some(g => g.name.toLowerCase().includes(query));
-            const matchesTags = device.tags?.some(t => t.name.toLowerCase().includes(query));
-
-            if (!matchesName && !matchesId && !matchesType && !matchesLocation && !matchesIp && !matchesGroups && !matchesTags) {
+    // Apply filters and search - Memoized to prevent unnecessary re-renders
+    const filteredDevices = useMemo(() => {
+        return allDevices.filter(device => {
+            // Status filter
+            if (filterStatus !== 'all' && (device.current_status || device.status) !== filterStatus) {
                 return false;
             }
-        }
 
-        return true;
-    });
+            // Type filter
+            if (filterType !== 'all' && device.device_type !== filterType) {
+                return false;
+            }
+
+            // Location filter
+            if (filterLocation !== 'all' && device.location_id !== parseInt(filterLocation)) {
+                return false;
+            }
+
+            // Group filter
+            if (filterGroup !== 'all') {
+                const hasGroup = device.groups?.some(g => g.id === parseInt(filterGroup));
+                if (!hasGroup) return false;
+            }
+
+            // Tag filter
+            if (filterTag !== 'all') {
+                const hasTag = device.tags?.some(t => t.id === parseInt(filterTag));
+                if (!hasTag) return false;
+            }
+
+            // Search query
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                const matchesName = device.name?.toLowerCase().includes(query);
+                const matchesId = device.id?.toLowerCase().includes(query);
+                const matchesType = device.device_type?.toLowerCase().includes(query);
+                const matchesLocation = device.location_name?.toLowerCase().includes(query);
+                const matchesIp = device.ip_address?.toLowerCase().includes(query);
+                const matchesGroups = device.groups?.some(g => g.name.toLowerCase().includes(query));
+                const matchesTags = device.tags?.some(t => t.name.toLowerCase().includes(query));
+
+                if (!matchesName && !matchesId && !matchesType && !matchesLocation && !matchesIp && !matchesGroups && !matchesTags) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }, [allDevices, filterStatus, filterType, filterLocation, filterGroup, filterTag, searchQuery]);
 
     // Pagination
     const totalPages = Math.ceil(filteredDevices.length / itemsPerPage);

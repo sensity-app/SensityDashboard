@@ -77,6 +77,11 @@ export const apiService = {
     updateDevice: (deviceId, deviceData) => apiClient.put(`/devices/${deviceId}`, deviceData),
     deleteDevice: (deviceId) => apiClient.delete(`/devices/${deviceId}`),
     updateDeviceConfig: (deviceId, config) => apiClient.put(`/devices/${deviceId}/config`, config),
+    exportDevices: (filters = {}) =>
+        apiClient.get('/devices/export', {
+            params: filters,
+            responseType: 'blob'
+        }),
 
     // Device Sensors
     getDeviceSensors: (deviceId) => apiClient.get(`/devices/${deviceId}/sensors`),
@@ -240,6 +245,24 @@ export const apiService = {
 
     // OTA Updates
     triggerOTA: (deviceId) => apiClient.post(`/devices/${deviceId}/ota`),
+
+    // License Management
+    getLicenseStatus: () => apiClient.get('/license/status'),
+    getLicenseInfo: () => apiClient.get('/license/info'),
+    getLicenseFeatures: () => apiClient.get('/license/features'),
+    getLicenseLimits: () => apiClient.get('/license/limits'),
+    activateLicense: (licenseKey) => apiClient.post('/license/activate', { license_key: licenseKey }),
+    validateLicense: () => apiClient.post('/license/validate'),
+    removeLicense: () => apiClient.delete('/license'),
+
+    // Rate Limit Management
+    getRateLimitStats: () => apiClient.get('/rate-limits/stats'),
+    getRateLimitConfig: () => apiClient.get('/rate-limits/config'),
+    getBlockedUsers: () => apiClient.get('/rate-limits/blocked'),
+    getUserRateLimitStatus: (userId, role) => apiClient.get(`/rate-limits/status/${userId}`, { params: { role } }),
+    resetRateLimit: (userId, role, endpointType) => apiClient.post(`/rate-limits/reset/${userId}`, { role, endpointType }),
+    updateRoleLimitConfig: (role, config) => apiClient.put(`/rate-limits/config/${role}`, config),
+    updateEndpointLimitConfig: (endpointType, config) => apiClient.put(`/rate-limits/endpoint-config/${endpointType}`, config),
 };
 
 export default apiService;

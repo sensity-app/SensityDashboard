@@ -235,13 +235,13 @@ function Settings() {
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            toast.error('Please select a valid image file');
+            toast.error(t('settings.branding.toast.invalidImage', 'Please select a valid image file'));
             return;
         }
 
         // Validate file size (max 2MB)
         if (file.size > 2 * 1024 * 1024) {
-            toast.error('Image file size must be less than 2MB');
+            toast.error(t('settings.branding.toast.imageTooLarge', 'Image file size must be less than 2MB'));
             return;
         }
 
@@ -272,10 +272,10 @@ function Settings() {
 
             // Refresh settings to get the server logo URL
             queryClient.invalidateQueries('settings');
-            toast.success('Logo uploaded successfully');
+            toast.success(t('settings.branding.toast.logoUploaded', 'Logo uploaded successfully'));
         } catch (error) {
             console.error('Logo upload error:', error);
-            toast.error('Failed to upload logo');
+            toast.error(t('settings.branding.toast.logoUploadFailed', 'Failed to upload logo'));
             // Reset preview on error
             setBrandingSettings(prev => ({
                 ...prev,
@@ -295,10 +295,10 @@ function Settings() {
                 logoPreview: null
             }));
             queryClient.invalidateQueries('settings');
-            toast.success('Logo removed');
+            toast.success(t('settings.branding.toast.logoRemoved', 'Logo removed'));
         } catch (error) {
             console.error('Remove logo error:', error);
-            toast.error('Failed to remove logo');
+            toast.error(t('settings.branding.toast.logoRemoveFailed', 'Failed to remove logo'));
         }
     };
 
@@ -316,17 +316,26 @@ function Settings() {
     const handleSaveEnvVars = async () => {
         try {
             const response = await apiService.updateEnvironmentVariables(envVars);
-            toast.success(`Environment variables updated successfully. ${response.data.requiresRestart ? 'Server restart required.' : ''}`);
+            const restartRequired = response?.data?.requiresRestart ? 'true' : 'false';
+            toast.success(
+                t('settings.environment.saveSuccess', {
+                    restartRequired,
+                    defaultValue:
+                        restartRequired === 'true'
+                            ? 'Environment variables updated successfully. Server restart required.'
+                            : 'Environment variables updated successfully.'
+                })
+            );
             refetchEnv();
         } catch (error) {
             console.error('Save environment variables error:', error);
-            toast.error('Failed to save environment variables');
+            toast.error(t('settings.environment.saveError', 'Failed to save environment variables'));
         }
     };
 
     const tabs = [
         { id: 'system', label: t('settings.tabs.system', 'System'), icon: Server },
-        { id: 'platform', label: 'Platform Update', icon: RotateCcw },
+        { id: 'platform', label: t('settings.tabs.platform', 'Platform Update'), icon: RotateCcw },
         { id: 'branding', label: t('settings.tabs.branding', 'Branding'), icon: Image },
         { id: 'environment', label: t('settings.tabs.environment', 'Environment'), icon: Code },
         { id: 'database', label: t('settings.tabs.database', 'Database'), icon: Database },
@@ -662,7 +671,7 @@ function Settings() {
                                             {saveSettingsMutation.isLoading ? (
                                                 <>
                                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                    <span>Saving...</span>
+                                                    <span>{t('settings.saving', 'Saving...')}</span>
                                                 </>
                                             ) : (
                                                 <>
@@ -687,13 +696,23 @@ function Settings() {
                                         {envValidation.errors?.length > 0 && (
                                             <div className="flex items-center space-x-1 text-red-600">
                                                 <AlertTriangle className="h-4 w-4" />
-                                                <span className="text-sm">{envValidation.errors.length} error(s)</span>
+                                                <span className="text-sm">
+                                                    {t('settings.environment.errorCount', {
+                                                        count: envValidation.errors.length,
+                                                        defaultValue: `${envValidation.errors.length} error(s)`
+                                                    })}
+                                                </span>
                                             </div>
                                         )}
                                         {envValidation.warnings?.length > 0 && (
                                             <div className="flex items-center space-x-1 text-yellow-600">
                                                 <AlertTriangle className="h-4 w-4" />
-                                                <span className="text-sm">{envValidation.warnings.length} warning(s)</span>
+                                                <span className="text-sm">
+                                                    {t('settings.environment.warningCount', {
+                                                        count: envValidation.warnings.length,
+                                                        defaultValue: `${envValidation.warnings.length} warning(s)`
+                                                    })}
+                                                </span>
                                             </div>
                                         )}
                                     </div>
@@ -713,12 +732,20 @@ function Settings() {
                                                 <div className="flex">
                                                     <Info className="h-5 w-5 text-yellow-400" />
                                                     <div className="ml-3">
-                                                        <h3 className="text-sm font-medium text-yellow-800">No Environment Variables Found</h3>
+                                                        <h3 className="text-sm font-medium text-yellow-800">
+                                                            {t('settings.environment.emptyTitle', 'No Environment Variables Found')}
+                                                        </h3>
                                                         <p className="mt-2 text-sm text-yellow-700">
-                                                            The .env file doesn't exist or is empty. Environment variables are used to configure your application settings like database connections, API keys, and other sensitive configurations.
+                                                            {t(
+                                                                'settings.environment.emptyDescription1',
+                                                                "The .env file doesn't exist or is empty. Environment variables are used to configure your application settings like database connections, API keys, and other sensitive configurations."
+                                                            )}
                                                         </p>
                                                         <p className="mt-2 text-sm text-yellow-700">
-                                                            You can create environment variables below, and they will be saved to your .env file automatically.
+                                                            {t(
+                                                                'settings.environment.emptyDescription2',
+                                                                'You can create environment variables below, and they will be saved to your .env file automatically.'
+                                                            )}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -731,7 +758,9 @@ function Settings() {
                                                 <div className="flex">
                                                     <AlertTriangle className="h-5 w-5 text-red-400" />
                                                     <div className="ml-3">
-                                                        <h3 className="text-sm font-medium text-red-800">Errors</h3>
+                                                        <h3 className="text-sm font-medium text-red-800">
+                                                            {t('settings.environment.errorsTitle', 'Errors')}
+                                                        </h3>
                                                         <ul className="mt-2 text-sm text-red-700">
                                                             {envValidation.errors.map((error, idx) => (
                                                                 <li key={idx}>• {error}</li>
@@ -747,7 +776,9 @@ function Settings() {
                                                 <div className="flex">
                                                     <Info className="h-5 w-5 text-yellow-400" />
                                                     <div className="ml-3">
-                                                        <h3 className="text-sm font-medium text-yellow-800">Warnings</h3>
+                                                        <h3 className="text-sm font-medium text-yellow-800">
+                                                            {t('settings.environment.warningsTitle', 'Warnings')}
+                                                        </h3>
                                                         <ul className="mt-2 text-sm text-yellow-700">
                                                             {envValidation.warnings.map((warning, idx) => (
                                                                 <li key={idx}>• {warning}</li>
@@ -762,14 +793,18 @@ function Settings() {
                                         {(!envVars || Object.keys(envVars).length === 0) && (
                                             <div className="mb-8">
                                                 <h4 className="text-md font-semibold text-gray-800 mb-4 border-b pb-2">
-                                                    Add Environment Variables
+                                                    {t('settings.environment.addTitle', 'Add Environment Variables')}
                                                 </h4>
                                                 <div className="space-y-4">
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 bg-gray-50 rounded-lg">
+                                                    <div
+                                                        className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 bg-gray-50 rounded-lg"
+                                                        data-env-row="true"
+                                                    >
                                                         <div>
                                                             <input
                                                                 type="text"
-                                                                placeholder="Variable Name (e.g., DB_HOST)"
+                                                                placeholder={t('settings.environment.namePlaceholder', 'Variable Name (e.g., DB_HOST)')}
+                                                                data-env-key-input="true"
                                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                                                                 onKeyDown={(e) => {
                                                                     if (e.key === 'Tab' || e.key === 'Enter') {
@@ -777,7 +812,9 @@ function Settings() {
                                                                         const key = e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '');
                                                                         if (key) {
                                                                             e.target.value = key;
-                                                                            e.target.nextSibling.focus();
+                                                                            const row = e.target.closest('[data-env-row]');
+                                                                            const valueInput = row?.querySelector('[data-env-value-input]');
+                                                                            valueInput?.focus();
                                                                         }
                                                                     }
                                                                 }}
@@ -787,19 +824,21 @@ function Settings() {
                                                             <div className="flex items-center space-x-2">
                                                                 <input
                                                                     type="text"
-                                                                    placeholder="Value"
+                                                                    placeholder={t('settings.environment.valuePlaceholder', 'Value')}
+                                                                    data-env-value-input="true"
                                                                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                                                                     onKeyDown={(e) => {
                                                                         if (e.key === 'Enter') {
-                                                                            const keyInput = e.target.parentElement.parentElement.previousSibling.firstChild;
-                                                                            const key = keyInput.value.trim();
+                                                                            const row = e.target.closest('[data-env-row]');
+                                                                            const keyInput = row?.querySelector('[data-env-key-input]');
+                                                                            const key = keyInput?.value.trim();
                                                                             const value = e.target.value.trim();
 
                                                                             if (key && value) {
                                                                                 handleEnvVarChange(key, value);
-                                                                                keyInput.value = '';
+                                                                                if (keyInput) keyInput.value = '';
                                                                                 e.target.value = '';
-                                                                                keyInput.focus();
+                                                                                keyInput?.focus();
                                                                             }
                                                                         }
                                                                     }}
@@ -807,27 +846,31 @@ function Settings() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => {
-                                                                        const keyInput = e.target.closest('.grid').querySelector('input[placeholder*="Variable Name"]');
-                                                                        const valueInput = e.target.closest('.flex').querySelector('input[placeholder="Value"]');
-                                                                        const key = keyInput.value.trim();
-                                                                        const value = valueInput.value.trim();
+                                                                        const row = e.target.closest('[data-env-row]');
+                                                                        const keyInput = row?.querySelector('[data-env-key-input]');
+                                                                        const valueInput = row?.querySelector('[data-env-value-input]');
+                                                                        const key = keyInput?.value.trim();
+                                                                        const value = valueInput?.value.trim();
 
                                                                         if (key && value) {
                                                                             handleEnvVarChange(key, value);
-                                                                            keyInput.value = '';
-                                                                            valueInput.value = '';
-                                                                            keyInput.focus();
+                                                                            if (keyInput) keyInput.value = '';
+                                                                            if (valueInput) valueInput.value = '';
+                                                                            keyInput?.focus();
                                                                         }
                                                                     }}
                                                                     className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
                                                                 >
-                                                                    Add
+                                                                    {t('settings.environment.addButton', 'Add')}
                                                                 </button>
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <p className="text-xs text-gray-500">
-                                                        Press Tab to format variable names, or Enter to add the variable
+                                                        {t(
+                                                            'settings.environment.hint',
+                                                            'Press Tab to format variable names, or Enter to add the variable'
+                                                        )}
                                                     </p>
                                                 </div>
                                             </div>
@@ -855,7 +898,7 @@ function Settings() {
                                                                             {varName}
                                                                             {envData.sensitiveKeys?.includes(varName) && (
                                                                                 <span className="ml-2 px-2 py-1 text-xs bg-red-100 text-red-800 rounded">
-                                                                                    Sensitive
+                                                                                    {t('settings.environment.sensitive', 'Sensitive')}
                                                                                 </span>
                                                                             )}
                                                                         </label>
@@ -866,7 +909,14 @@ function Settings() {
                                                                                 type={isSensitive && !isVisible ? 'password' : 'text'}
                                                                                 value={envVars[varName] || ''}
                                                                                 onChange={(e) => handleEnvVarChange(varName, e.target.value)}
-                                                                                placeholder={isSensitive ? '***MASKED***' : `Enter ${varName}`}
+                                                                                placeholder={
+                                                                                    isSensitive
+                                                                                        ? t('settings.environment.maskPlaceholder', '***MASKED***')
+                                                                                        : t('settings.environment.enterValue', {
+                                                                                            name: varName,
+                                                                                            defaultValue: `Enter ${varName}`
+                                                                                        })
+                                                                                }
                                                                                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                                                                                 disabled={isSensitive && envVars[varName] === '***MASKED***'}
                                                                             />
@@ -894,7 +944,7 @@ function Settings() {
                                             !Object.values(envData.categories).flat().includes(key)).length > 0 && (
                                             <div className="mb-8">
                                                 <h4 className="text-md font-semibold text-gray-800 mb-4 border-b pb-2">
-                                                    Other Variables
+                                                    {t('settings.environment.otherVariables', 'Other Variables')}
                                                 </h4>
                                                 <div className="space-y-4">
                                                     {Object.keys(envVars)
@@ -911,7 +961,10 @@ function Settings() {
                                                                     type="text"
                                                                     value={envVars[varName] || ''}
                                                                     onChange={(e) => handleEnvVarChange(varName, e.target.value)}
-                                                                    placeholder={`Enter ${varName}`}
+                                                                    placeholder={t('settings.environment.enterValue', {
+                                                                        name: varName,
+                                                                        defaultValue: `Enter ${varName}`
+                                                                    })}
                                                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                                                                 />
                                                             </div>
@@ -925,7 +978,7 @@ function Settings() {
                                         <div className="flex justify-between items-center pt-6 border-t border-gray-200">
                                             <div className="text-sm text-gray-500">
                                                 <Info className="h-4 w-4 inline mr-1" />
-                                                Changes may require server restart to take effect
+                                                {t('settings.environment.restartNotice', 'Changes may require server restart to take effect')}
                                             </div>
                                             <button
                                                 onClick={handleSaveEnvVars}
@@ -933,7 +986,7 @@ function Settings() {
                                                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                             >
                                                 <Save className="h-4 w-4 mr-2" />
-                                                Save Environment Variables
+                                                {t('settings.environment.save', 'Save Environment Variables')}
                                             </button>
                                         </div>
                                     </>
@@ -1264,7 +1317,7 @@ function PlatformUpdateTab() {
         <div className="p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center">
                 <RotateCcw className="w-5 h-5 mr-2 text-blue-600" />
-                Platform Update
+                {t('settings.update.title', 'Platform Update')}
             </h3>
 
             <div className="space-y-6">
@@ -1272,7 +1325,7 @@ function PlatformUpdateTab() {
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
                     <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
                         <GitBranch className="w-4 h-4 mr-2" />
-                        Current Version
+                        {t('settings.update.currentVersion.title', 'Current Version')}
                     </h4>
 
                     {versionLoading ? (
@@ -1284,22 +1337,28 @@ function PlatformUpdateTab() {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                             <div className="flex justify-between">
-                                <span className="font-medium text-gray-700">Commit:</span>
-                                <span className="font-mono text-gray-900">{version.commit || 'unknown'}</span>
+                                <span className="font-medium text-gray-700">{t('settings.update.currentVersion.commit', 'Commit')}:</span>
+                                <span className="font-mono text-gray-900">
+                                    {version.commit || t('settings.update.currentVersion.unknown', 'unknown')}
+                                </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="font-medium text-gray-700">Branch:</span>
-                                <span className="text-gray-900">{version.branch || 'unknown'}</span>
+                                <span className="font-medium text-gray-700">{t('settings.update.currentVersion.branch', 'Branch')}:</span>
+                                <span className="text-gray-900">
+                                    {version.branch || t('settings.update.currentVersion.unknown', 'unknown')}
+                                </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="font-medium text-gray-700">Author:</span>
-                                <span className="text-gray-900">{version.author || 'unknown'}</span>
+                                <span className="font-medium text-gray-700">{t('settings.update.currentVersion.author', 'Author')}:</span>
+                                <span className="text-gray-900">
+                                    {version.author || t('settings.update.currentVersion.unknown', 'unknown')}
+                                </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="font-medium text-gray-700">Date:</span>
+                                <span className="font-medium text-gray-700">{t('settings.update.currentVersion.date', 'Date')}:</span>
                                 <span className="text-gray-900 flex items-center">
                                     <Clock className="w-3 h-3 mr-1" />
-                                    {version.date ? new Date(version.date).toLocaleDateString() : 'unknown'}
+                                    {version.date ? new Date(version.date).toLocaleDateString() : t('settings.update.currentVersion.unknown', 'unknown')}
                                 </span>
                             </div>
                         </div>
@@ -1312,7 +1371,7 @@ function PlatformUpdateTab() {
                             className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
                             <RefreshCw className={`w-4 h-4 mr-2 ${versionLoading ? 'animate-spin' : ''}`} />
-                            Refresh Version Info
+                            {t('settings.update.currentVersion.refresh', 'Refresh Version Info')}
                         </button>
                     </div>
                 </div>
@@ -1321,7 +1380,7 @@ function PlatformUpdateTab() {
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
                     <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
                         <RotateCcw className="w-4 h-4 mr-2" />
-                        Platform Update
+                        {t('settings.update.availability.title', 'Platform Update')}
                     </h4>
 
                     {updateLoading ? (
@@ -1334,31 +1393,44 @@ function PlatformUpdateTab() {
                             <div className="mb-4">
                                 <div className="flex items-center text-green-600 mb-2">
                                     <CheckCircle className="w-4 h-4 mr-2" />
-                                    <span className="text-sm font-medium">Update available</span>
+                                    <span className="text-sm font-medium">
+                                        {t('settings.update.availability.available', 'Update available')}
+                                    </span>
                                 </div>
                                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
                                     <p className="text-sm text-blue-900">
-                                        <strong>{updateStatus.behindBy}</strong> new commit{updateStatus.behindBy > 1 ? 's' : ''} available
+                                        {t('settings.update.availability.behindBy', {
+                                            count: updateStatus.behindBy,
+                                            defaultValue:
+                                                updateStatus.behindBy === 1
+                                                    ? '1 new commit available'
+                                                    : `${updateStatus.behindBy} new commits available`
+                                        })}
                                     </p>
                                     <p className="text-xs text-blue-700 mt-1">
-                                        Current: <code className="bg-blue-100 px-1 py-0.5 rounded">{updateStatus.currentCommit}</code>
+                                        {t('settings.update.availability.currentLabel', 'Current')}:{' '}
+                                        <code className="bg-blue-100 px-1 py-0.5 rounded">{updateStatus.currentCommit}</code>
                                         {' → '}
-                                        Remote: <code className="bg-blue-100 px-1 py-0.5 rounded">{updateStatus.remoteCommit}</code>
+                                        {t('settings.update.availability.remoteLabel', 'Remote')}:{' '}
+                                        <code className="bg-blue-100 px-1 py-0.5 rounded">{updateStatus.remoteCommit}</code>
                                     </p>
                                 </div>
                                 <p className="text-sm text-gray-600 mb-4">
-                                    Script: <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">{updateStatus.updateScript}</code>
+                                    {t('settings.update.availability.scriptLabel', 'Script')}:{' '}
+                                    <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">{updateStatus.updateScript}</code>
                                 </p>
                                 <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
                                     <div className="flex">
                                         <AlertTriangle className="w-5 h-5 text-yellow-400 mr-2" />
                                         <div className="text-sm">
-                                            <p className="text-yellow-800 font-medium">Important:</p>
+                                            <p className="text-yellow-800 font-medium">
+                                                {t('settings.update.availability.important', 'Important:')}
+                                            </p>
                                             <ul className="text-yellow-700 mt-2 list-disc list-inside space-y-1">
-                                                <li>The update process will restart the entire system</li>
-                                                <li>All users will be disconnected temporarily</li>
-                                                <li>The process may take several minutes to complete</li>
-                                                <li>Make sure no critical operations are running</li>
+                                                <li>{t('settings.update.availability.warning1', 'The update process will restart the entire system')}</li>
+                                                <li>{t('settings.update.availability.warning2', 'All users will be disconnected temporarily')}</li>
+                                                <li>{t('settings.update.availability.warning3', 'The process may take several minutes to complete')}</li>
+                                                <li>{t('settings.update.availability.warning4', 'Make sure no critical operations are running')}</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -1377,12 +1449,12 @@ function PlatformUpdateTab() {
                                 {updating ? (
                                     <>
                                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                                        Updating...
+                                        {t('settings.update.availability.updating', 'Updating...')}
                                     </>
                                 ) : (
                                     <>
                                         <RotateCcw className="w-4 h-4 mr-2" />
-                                        Update Platform
+                                        {t('settings.update.availability.updateButton', 'Update Platform')}
                                     </>
                                 )}
                             </button>
@@ -1391,28 +1463,41 @@ function PlatformUpdateTab() {
                         <div>
                             <div className="flex items-center text-green-600 mb-2">
                                 <CheckCircle className="w-4 h-4 mr-2" />
-                                <span className="text-sm font-medium">System is up to date</span>
+                                <span className="text-sm font-medium">
+                                    {t('settings.update.upToDate.title', 'System is up to date')}
+                                </span>
                             </div>
                             {updateStatus?.currentCommit && updateStatus?.remoteCommit && (
                                 <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
                                     <p className="text-sm text-green-900">
-                                        Running the latest version
+                                        {t('settings.update.upToDate.runningLatest', 'Running the latest version')}
                                     </p>
                                     <p className="text-xs text-green-700 mt-1">
-                                        Commit: <code className="bg-green-100 px-1 py-0.5 rounded">{updateStatus.currentCommit}</code>
+                                        {t('settings.update.upToDate.commitLabel', 'Commit')}:{' '}
+                                        <code className="bg-green-100 px-1 py-0.5 rounded">{updateStatus.currentCommit}</code>
                                     </p>
                                 </div>
                             )}
                             <p className="text-sm text-gray-600 mb-4">
-                                Your platform is synchronized with the remote repository.
+                                {t('settings.update.upToDate.synchronized', 'Your platform is synchronized with the remote repository.')}
                             </p>
                             <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                                 <div className="text-sm">
-                                    <p className="text-gray-800 font-medium">To enable platform updates:</p>
+                                    <p className="text-gray-800 font-medium">
+                                        {t('settings.update.upToDate.instructionsTitle', 'To enable platform updates:')}
+                                    </p>
                                     <ul className="text-gray-600 mt-2 list-disc list-inside space-y-1">
-                                        <li>Create an <code className="bg-white px-1 py-0.5 rounded text-xs">update-system</code> script</li>
-                                        <li>Make it executable and place it in your system PATH</li>
-                                        <li>Or create <code className="bg-white px-1 py-0.5 rounded text-xs">update-system.sh</code> in the project directory</li>
+                                        <li>
+                                            {t('settings.update.upToDate.instruction1', 'Create an')}{' '}
+                                            <code className="bg-white px-1 py-0.5 rounded text-xs">update-system</code>{' '}
+                                            {t('settings.update.upToDate.instruction1Suffix', 'script')}
+                                        </li>
+                                        <li>{t('settings.update.upToDate.instruction2', 'Make it executable and place it in your system PATH')}</li>
+                                        <li>
+                                            {t('settings.update.upToDate.instruction3Prefix', 'Or create')}{' '}
+                                            <code className="bg-white px-1 py-0.5 rounded text-xs">update-system.sh</code>{' '}
+                                            {t('settings.update.upToDate.instruction3Suffix', 'in the project directory')}
+                                        </li>
                                     </ul>
                                 </div>
                             </div>
@@ -1425,14 +1510,14 @@ function PlatformUpdateTab() {
                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                         <h4 className="text-md font-medium text-gray-900 mb-4 flex items-center">
                             <Clock className="w-4 h-4 mr-2" />
-                            Update Progress
+                            {t('settings.update.progress.title', 'Update Progress')}
                         </h4>
 
                         <div className="space-y-4">
                             {/* Progress Bar */}
                             <div>
                                 <div className="flex justify-between text-sm mb-2">
-                                    <span className="text-gray-600">Progress</span>
+                                    <span className="text-gray-600">{t('settings.update.progress.progressLabel', 'Progress')}</span>
                                     <span className="font-medium text-gray-900">
                                         {progressData.status.progress}%
                                     </span>
@@ -1447,19 +1532,21 @@ function PlatformUpdateTab() {
 
                             {/* Current Step */}
                             <div className="flex items-center text-sm">
-                                <span className="text-gray-600 mr-2">Current step:</span>
+                                <span className="text-gray-600 mr-2">
+                                    {t('settings.update.progress.currentStep', 'Current step:')}
+                                </span>
                                 <span className="font-medium text-gray-900 flex items-center">
                                     {progressData.status.isRunning && (
                                         <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2"></div>
                                     )}
-                                    {progressData.status.currentStep || 'Initializing...'}
+                                    {progressData.status.currentStep || t('settings.update.progress.initializing', 'Initializing...')}
                                 </span>
                             </div>
 
                             {/* Duration */}
                             {progressData.status.duration && (
                                 <div className="flex items-center text-sm text-gray-600">
-                                    <span className="mr-2">Duration:</span>
+                                    <span className="mr-2">{t('settings.update.progress.duration', 'Duration:')}</span>
                                     <span>{Math.floor(progressData.status.duration / 1000)}s</span>
                                 </div>
                             )}
@@ -1470,7 +1557,9 @@ function PlatformUpdateTab() {
                                     <div className="flex items-start">
                                         <X className="w-4 h-4 text-red-400 mt-0.5 mr-2 flex-shrink-0" />
                                         <div>
-                                            <h5 className="text-sm font-medium text-red-800">Update Failed</h5>
+                                            <h5 className="text-sm font-medium text-red-800">
+                                                {t('settings.update.progress.failed', 'Update Failed')}
+                                            </h5>
                                             <p className="mt-1 text-sm text-red-700">{progressData.status.error}</p>
                                         </div>
                                     </div>
@@ -1481,7 +1570,9 @@ function PlatformUpdateTab() {
                             {progressData.status.logs && progressData.status.logs.length > 0 && (
                                 <div className="mt-6">
                                     <div className="flex items-center justify-between mb-3">
-                                        <h5 className="text-sm font-medium text-gray-900">Update Logs</h5>
+                                        <h5 className="text-sm font-medium text-gray-900">
+                                            {t('settings.update.progress.logsTitle', 'Update Logs')}
+                                        </h5>
                                         <button
                                             onClick={() => setShowLogs(!showLogs)}
                                             className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
@@ -1489,12 +1580,14 @@ function PlatformUpdateTab() {
                                             {showLogs ? (
                                                 <>
                                                     <EyeOff className="w-3 h-3 mr-1" />
-                                                    Hide Logs
+                                                    {t('settings.update.progress.hideLogs', 'Hide Logs')}
                                                 </>
                                             ) : (
                                                 <>
                                                     <Eye className="w-3 h-3 mr-1" />
-                                                    Show Logs ({progressData.status.logs.length})
+                                                    {t('settings.update.progress.showLogs', 'Show Logs ({{count}})', {
+                                                        count: progressData.status.logs.length
+                                                    })}
                                                 </>
                                             )}
                                         </button>
@@ -1517,7 +1610,9 @@ function PlatformUpdateTab() {
                                             ))}
                                             {progressData.status.logs.length > 20 && (
                                                 <div className="text-gray-500 text-center mt-2">
-                                                    ... showing last 20 entries of {progressData.status.logs.length} total
+                                                    {t('settings.update.progress.logSummary', '... showing last 20 entries of {{total}} total', {
+                                                        total: progressData.status.logs.length
+                                                    })}
                                                 </div>
                                             )}
                                         </div>

@@ -32,9 +32,11 @@
     "type": "Type",
     "value": "Value",
     "timestamp": "Timestamp",
-    "actions": "Actions",
-    "enabled": "Enabled",
-    "disabled": "Disabled",
+  "actions": "Actions",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "yes": "Yes",
+  "no": "No",
     "online": "Online",
     "offline": "Offline",
     "unknown": "Unknown",
@@ -252,18 +254,24 @@
   "dashboard": {
     "title": "ESP8266 IoT Dashboard",
     "overview": "System Overview",
-    "deviceCount": "Total Devices",
+  "deviceCount": "Total Devices",
+  "deviceCountLabel": "devices",
     "totalDevices": "Total Devices",
     "activeDevices": "Active Devices",
     "onlineDevices": "Online Devices",
     "offlineDevices": "Offline Devices",
     "activeAlerts": "Active Alerts",
-    "recentActivity": "Recent Activity",
-    "systemHealth": "System Health",
-    "lastUpdate": "Last Update",
-    "welcomeMessage": "Welcome to your IoT platform",
-    "noData": "No data available"
-  },
+  "recentActivity": "Recent Activity",
+  "systemHealth": "System Health",
+  "lastUpdate": "Last Update",
+  "welcomeMessage": "Welcome to your IoT platform",
+  "noData": "No data available",
+  "viewAll": "View all",
+  "toast": {
+    "acknowledgeSuccess": "Alert acknowledged successfully",
+    "acknowledgeError": "Failed to acknowledge alert"
+  }
+},
   "deviceDetail": {
     "eyebrow": "Device detail",
     "unassigned": "Unassigned location",
@@ -298,9 +306,20 @@
     "wifiSignal": "Wi-Fi signal",
     "targetFirmware": "Target firmware",
     "targetFirmwareNone": "None",
-    "alertsHeading": "Recent alerts",
-    "alertsCount": "Last {{count}} events",
-    "alertsEmpty": "No alerts have been raised for this device in the last 24 hours.",
+  "alertsHeading": "Recent alerts",
+  "alertsCount": "Last {{count}} events",
+  "alertsEmpty": "No alerts have been raised for this device in the last 24 hours.",
+  "alerts": {
+    "defaultType": "Alert",
+    "noContext": "No additional context"
+  },
+  "alertSeverity": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical",
+    "info": "Info"
+  },
     "viewAllAlerts": "View all alerts →",
     "triggeredAgo": "Triggered {{when}}",
     "valueUnknown": "Unknown",
@@ -331,13 +350,13 @@
       "weak": "Weak",
       "poor": "Poor"
     },
-    "relative": {
-      "never": "Never",
-      "justNow": "Just now",
-      "minutes": "{{count}} min ago",
-      "hours": "{{hours}}h {{minutes}}m ago",
-      "days": "{{count}} day(s) ago"
-    },
+  "relative": {
+    "never": "Never",
+    "justNow": "Just now",
+    "minutes": "{{count}} min ago",
+    "hours": "{{hours}}h {{minutes}}m ago",
+    "days": "{{count}} day{{count, plural, one{} other{s}}} ago"
+  },
     "sensorBadge": {
       "live": "Live",
       "stale": "Stale",
@@ -429,13 +448,19 @@
       "refresh": "Refresh",
       "build": "Build & Add Device"
     },
-    "filters": {
-      "title": "Filter & Search",
-      "searchLabel": "Search",
-      "searchPlaceholder": "Name, ID, IP, groups, tags…",
-      "groupLabel": "Group",
-      "tagLabel": "Tag"
+  "filters": {
+    "title": "Filter & Search",
+    "searchLabel": "Search",
+    "searchPlaceholder": "Name, ID, IP, groups, tags…",
+    "typeOption": {
+      "esp8266": "ESP8266",
+      "esp32": "ESP32",
+      "arduino": "Arduino",
+      "raspberry_pi": "Raspberry Pi"
     },
+    "groupLabel": "Group",
+    "tagLabel": "Tag"
+  },
     "badge": {
       "deviceCount": "{{count}} of {{total}} devices",
       "filtered": "{{count}} devices"
@@ -548,6 +573,10 @@
     "alertAcknowledged": "Alert acknowledged",
     "alertResolved": "Alert resolved"
   },
+  "alerts": {
+    "unresolved": "Unresolved",
+    "unresolvedBadge": "unresolved"
+  },
   "telemetry": {
     "title": "Telemetry",
     "historicalData": "Historical Data",
@@ -659,6 +688,54 @@
     "invitedBy": "By",
     "sendInvitation": "Send Invitation",
     "role": "Role"
+  },
+  "otaManager": {
+    "title": "OTA Update Manager",
+    "status": {
+      "heading": "Current Status",
+      "currentFirmware": "Current Firmware",
+      "otaEnabled": "OTA Enabled",
+      "pending": "Pending",
+      "downloading": "Downloading",
+      "installing": "Installing",
+      "completed": "Completed",
+      "failed": "Failed",
+      "canceled": "Canceled",
+      "unknown": "Unknown"
+    },
+    "firmware": {
+      "availableHeading": "Available Firmware Versions",
+      "none": "No firmware versions available",
+      "sizeLabel": "Size"
+    },
+    "upload": {
+      "heading": "Upload New Firmware",
+      "cta": "Upload a firmware file",
+      "hint": "Only .bin files are supported"
+    },
+    "actions": {
+      "schedule": "Schedule Update",
+      "scheduling": "Scheduling...",
+      "cancelUpdate": "Cancel update"
+    },
+    "toast": {
+      "scheduleSuccess": "OTA update scheduled successfully",
+      "scheduleFailed": "Failed to schedule OTA update: {{message}}",
+      "cancelSuccess": "OTA update cancelled",
+      "cancelFailed": "Failed to cancel OTA update",
+      "uploadSuccess": "Firmware uploaded successfully",
+      "uploadFailed": "Failed to upload firmware: {{message}}",
+      "selectVersion": "Please select a firmware version",
+      "invalidFirmware": "Please select a valid firmware binary (.bin) file"
+    },
+    "prompt": {
+      "version": "Enter firmware version (e.g., 2.1.0):",
+      "releaseNotes": "Enter release notes (optional):"
+    },
+    "disabledWarning": {
+      "title": "OTA updates disabled",
+      "body": "This device has OTA updates disabled. The update will be forced and may take longer to complete."
+    }
   },
   "settings": {
     "title": "Settings",
@@ -881,19 +958,22 @@
   },
   "settings": {
     "title": "System Settings",
-    "subtitle": "Configure your IoT platform settings and system preferences",
-    "save": "Save Settings",
-    "saveSuccess": "Settings saved successfully",
-    "saveError": "Failed to save settings",
+  "subtitle": "Configure your IoT platform settings and system preferences",
+  "save": "Save Settings",
+  "saveSuccess": "Settings saved successfully",
+  "saveError": "Failed to save settings",
+  "saving": "Saving...",
     "backupSuccess": "Database backup downloaded successfully",
     "backupError": "Failed to create database backup",
-    "tabs": {
-      "system": "System",
-      "branding": "Branding",
-      "database": "Database",
-      "email": "Email",
-      "security": "Security"
-    },
+  "tabs": {
+    "system": "System",
+    "platform": "Platform Update",
+    "branding": "Branding",
+    "environment": "Environment",
+    "database": "Database",
+    "email": "Email",
+    "security": "Security"
+  },
     "system": {
       "title": "System Information",
       "status": "System Status",
@@ -906,18 +986,108 @@
       "adminEmail": "Admin Email",
       "maintenanceMode": "Maintenance Mode"
     },
-    "branding": {
-      "title": "Brand Customization",
-      "companyInfo": "Company Information",
-      "companyName": "Company Name",
-      "logoManagement": "Logo Management",
-      "companyLogo": "Company Logo",
-      "favicon": "Favicon",
-      "colorScheme": "Color Scheme",
-      "primaryColor": "Primary Color",
-      "accentColor": "Accent Color",
-      "preview": "Preview"
+  "branding": {
+    "title": "Brand Customization",
+    "companyInfo": "Company Information",
+    "companyName": "Company Name",
+    "logoManagement": "Logo Management",
+    "companyLogo": "Company Logo",
+    "favicon": "Favicon",
+    "colorScheme": "Color Scheme",
+    "primaryColor": "Primary Color",
+    "accentColor": "Accent Color",
+    "preview": "Preview",
+    "toast": {
+      "invalidImage": "Please select a valid image file",
+      "imageTooLarge": "Image file size must be less than 2MB",
+      "logoUploaded": "Logo uploaded successfully",
+      "logoUploadFailed": "Failed to upload logo",
+      "logoRemoved": "Logo removed",
+      "logoRemoveFailed": "Failed to remove logo"
+    }
+  },
+  "environment": {
+    "title": "Environment Variables",
+    "errorCount": "{{count}} error{{count, plural, one{} other{s}}}",
+    "warningCount": "{{count}} warning{{count, plural, one{} other{s}}}",
+    "emptyTitle": "No Environment Variables Found",
+    "emptyDescription1": "The .env file doesn't exist or is empty. Environment variables are used to configure your application settings like database connections, API keys, and other sensitive configurations.",
+    "emptyDescription2": "You can create environment variables below, and they will be saved to your .env file automatically.",
+    "errorsTitle": "Errors",
+    "warningsTitle": "Warnings",
+    "addTitle": "Add Environment Variables",
+    "namePlaceholder": "Variable Name (e.g., DB_HOST)",
+    "valuePlaceholder": "Value",
+    "addButton": "Add",
+    "hint": "Press Tab to format variable names, or Enter to add the variable",
+    "sensitive": "Sensitive",
+    "maskPlaceholder": "***MASKED***",
+    "enterValue": "Enter {{name}}",
+    "otherVariables": "Other Variables",
+    "restartNotice": "Changes may require server restart to take effect",
+    "save": "Save Environment Variables",
+    "saveSuccess": "{{restartRequired, select, true{Environment variables updated successfully. Server restart required.} false{Environment variables updated successfully.}}}",
+    "saveError": "Failed to save environment variables"
+  },
+  "update": {
+    "title": "Platform Update",
+    "currentVersion": {
+      "title": "Current Version",
+      "commit": "Commit",
+      "branch": "Branch",
+      "author": "Author",
+      "date": "Date",
+      "unknown": "unknown",
+      "refresh": "Refresh Version Info"
     },
+    "availability": {
+      "title": "Platform Update",
+      "available": "Update available",
+      "behindBy": "{{count}} new commit{{count, plural, one{} other{s}}} available",
+      "currentLabel": "Current",
+      "remoteLabel": "Remote",
+      "scriptLabel": "Script",
+      "important": "Important:",
+      "warning1": "The update process will restart the entire system",
+      "warning2": "All users will be disconnected temporarily",
+      "warning3": "The process may take several minutes to complete",
+      "warning4": "Make sure no critical operations are running",
+      "updating": "Updating...",
+      "updateButton": "Update Platform"
+    },
+    "upToDate": {
+      "title": "System is up to date",
+      "runningLatest": "Running the latest version",
+      "commitLabel": "Commit",
+      "synchronized": "Your platform is synchronized with the remote repository.",
+      "instructionsTitle": "To enable platform updates:",
+      "instruction1": "Create an",
+      "instruction1Suffix": "script",
+      "instruction2": "Make it executable and place it in your system PATH",
+      "instruction3Prefix": "Or create",
+      "instruction3Suffix": "in the project directory"
+    },
+    "progress": {
+      "title": "Update Progress",
+      "progressLabel": "Progress",
+      "currentStep": "Current step:",
+      "initializing": "Initializing...",
+      "duration": "Duration:",
+      "failed": "Update Failed",
+      "logsTitle": "Update Logs",
+      "hideLogs": "Hide Logs",
+      "showLogs": "Show Logs ({{count}})",
+      "logSummary": "... showing last 20 entries of {{total}} total"
+    },
+    "messages": {
+      "failed": "Update failed",
+      "complete": "Platform update completed successfully!",
+      "started": "Platform update started! Monitor progress below.",
+      "startError": "Failed to start platform update",
+      "scriptMissing": "Update script is not available on this system",
+      "confirm": "Are you sure you want to update the platform? This will restart the system and may take several minutes. Make sure no critical operations are running."
+    }
+  },
     "database": {
       "title": "Database Management",
       "info": "Database Information",

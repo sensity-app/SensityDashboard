@@ -31,13 +31,21 @@ const systemRoutes = require('./src/routes/system');
 const telegramRoutes = require('./src/routes/telegram');
 const thresholdCalibrationRoutes = require('./src/routes/thresholdCalibration');
 const securityRoutes = require('./src/routes/security');
+const webhookRoutes = require('./src/routes/webhooks');
+const licenseRoutes = require('./src/routes/license');
 
 const WebSocketService = require('./src/services/websocketService');
 const AlertEscalationService = require('./src/services/alertEscalationService');
 const TelemetryProcessor = require('./src/services/telemetryProcessor');
 const MQTTService = require('./src/services/mqttService');
+const licenseService = require('./src/services/licenseService');
+const UserRateLimiter = require('./src/middleware/userRateLimit');
 const logger = require('./src/utils/logger');
 const db = require('./src/models/database');
+const {
+    requireValidLicense,
+    addLicenseHeaders
+} = require('./src/middleware/licenseMiddleware');
 
 const app = express();
 const server = http.createServer(app);
@@ -62,6 +70,8 @@ const websocketService = new WebSocketService(io, redis);
 const alertEscalationService = new AlertEscalationService();
 const telemetryProcessor = new TelemetryProcessor(redis, websocketService);
 const mqttService = new MQTTService(telemetryProcessor);
+const userRateLimiter = new UserRateLimiter(redis);
+const rateLimitRoutes = require('./src/routes/rateLimit')(userRateLimiter);
 
 const PORT = process.env.PORT || 3000;
 
@@ -90,26 +100,45 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/devices', deviceRoutes);
-app.use('/api/alerts', alertRoutes);
-app.use('/api/locations', locationRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/firmware', firmwareRoutes);
-app.use('/api/telemetry', telemetryRoutes);
-app.use('/api/escalation', escalationRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/device-groups', deviceGroupRoutes);
-app.use('/api/device-tags', deviceTagRoutes);
-app.use('/api/alert-rules', alertRuleRoutes);
-app.use('/api/firmware-builder', firmwareBuilderRoutes);
-app.use('/api/firmware-templates', firmwareTemplateRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/silent-mode', silentModeRoutes);
-app.use('/api/protocol-settings', protocolSettingsRoutes);
-app.use('/api/system', systemRoutes);
-app.use('/api/telegram', telegramRoutes);
-app.use('/api/threshold-calibration', thresholdCalibrationRoutes);
-app.use('/api/security', securityRoutes);
+
+// Apply user-based rate limiting to all API routes
+app.use('/api/', userRateLimiter.middleware());
+
+// Attach license metadata to responses
+app.use(addLicenseHeaders);
+
+// License management routes (accessible without active license for activation/status)
+app.use('/api/license', licenseRoutes);
+
+// Routes that require a valid license
+const protectedRoutes = [
+    ['/api/devices', deviceRoutes],
+    ['/api/alerts', alertRoutes],
+    ['/api/locations', locationRoutes],
+    ['/api/users', userRoutes],
+    ['/api/firmware', firmwareRoutes],
+    ['/api/telemetry', telemetryRoutes],
+    ['/api/escalation', escalationRoutes],
+    ['/api/analytics', analyticsRoutes],
+    ['/api/device-groups', deviceGroupRoutes],
+    ['/api/device-tags', deviceTagRoutes],
+    ['/api/alert-rules', alertRuleRoutes],
+    ['/api/firmware-builder', firmwareBuilderRoutes],
+    ['/api/firmware-templates', firmwareTemplateRoutes],
+    ['/api/settings', settingsRoutes],
+    ['/api/silent-mode', silentModeRoutes],
+    ['/api/protocol-settings', protocolSettingsRoutes],
+    ['/api/system', systemRoutes],
+    ['/api/telegram', telegramRoutes],
+    ['/api/threshold-calibration', thresholdCalibrationRoutes],
+    ['/api/security', securityRoutes],
+    ['/api/webhooks', webhookRoutes],
+    ['/api/rate-limits', rateLimitRoutes]
+];
+
+for (const [path, router] of protectedRoutes) {
+    app.use(path, requireValidLicense, router);
+}
 
 // WebSocket authentication middleware
 io.use(websocketService.authenticateSocket);
@@ -185,6 +214,14 @@ server.listen(PORT, async () => {
         logger.info('Database initialization completed');
     } catch (error) {
         logger.error('Database initialization failed:', error);
+    }
+
+    // Initialize license service (validation, grace period timers)
+    try {
+        await licenseService.initialize();
+        logger.info('License service initialized');
+    } catch (error) {
+        logger.error('License service initialization failed:', error);
     }
 
     // Initialize MQTT service if enabled

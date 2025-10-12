@@ -1,0 +1,733 @@
+/* =====================================================
+   Sensity Dashboard - Mobile Responsiveness Improvements
+   Enhances mobile experience across the entire platform
+   ===================================================== */
+
+/* =====================================================
+   1. GLOBAL MOBILE OPTIMIZATIONS
+   ===================================================== */
+
+/* Base mobile layout */
+@media (max-width: 768px) {
+    /* Reduce padding on mobile */
+    .page-container {
+        padding: 1rem;
+    }
+
+    /* Stack cards vertically */
+    .card-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Smaller text on mobile */
+    h1 {
+        font-size: 1.75rem !important;
+    }
+
+    h2 {
+        font-size: 1.5rem !important;
+    }
+
+    h3 {
+        font-size: 1.25rem !important;
+    }
+
+    /* Better touch targets (minimum 44x44px) */
+    button,
+    a.button,
+    input[type="button"],
+    input[type="submit"] {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 20px;
+    }
+
+    /* Stack buttons vertically on mobile */
+    .button-group {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .button-group > button,
+    .button-group > a {
+        width: 100%;
+        margin: 0.5rem 0;
+    }
+}
+
+/* =====================================================
+   2. NAVIGATION IMPROVEMENTS
+   ===================================================== */
+
+/* Hamburger Menu */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    background: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Hide desktop sidebar on mobile */
+    .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        bottom: 0;
+        width: 280px;
+        z-index: 999;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar.mobile-open {
+        left: 0;
+    }
+
+    /* Mobile overlay */
+    .mobile-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 998;
+    }
+
+    .mobile-overlay.active {
+        display: block;
+    }
+
+    /* Adjust main content when sidebar is visible */
+    .main-content {
+        margin-left: 0 !important;
+        padding-top: 70px; /* Space for fixed header */
+    }
+}
+
+/* =====================================================
+   3. DASHBOARD CARDS & STATS
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Stack stat cards */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+
+    /* Compact stat cards */
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-card h3 {
+        font-size: 0.875rem;
+    }
+
+    .stat-card .stat-value {
+        font-size: 1.5rem;
+    }
+
+    /* Device cards */
+    .device-card {
+        padding: 1rem;
+    }
+
+    .device-card .device-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .device-card .device-actions button {
+        width: 100%;
+    }
+}
+
+/* =====================================================
+   4. TABLES & DATA GRIDS
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Responsive tables */
+    .responsive-table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .responsive-table table {
+        min-width: 600px;
+    }
+
+    /* Card-style table for mobile */
+    .mobile-card-table {
+        display: none;
+    }
+
+    @supports (display: grid) {
+        .mobile-card-table {
+            display: block;
+        }
+
+        .mobile-card-table .table-row {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .mobile-card-table .table-cell {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .mobile-card-table .table-cell:last-child {
+            border-bottom: none;
+        }
+
+        .mobile-card-table .cell-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .mobile-card-table .cell-value {
+            text-align: right;
+        }
+
+        /* Hide desktop table on mobile */
+        .desktop-table {
+            display: none;
+        }
+    }
+}
+
+/* Desktop: show table, hide cards */
+@media (min-width: 769px) {
+    .mobile-card-table {
+        display: none;
+    }
+
+    .desktop-table {
+        display: table;
+    }
+}
+
+/* =====================================================
+   5. FORMS & INPUTS
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Stack form fields */
+    .form-row {
+        flex-direction: column;
+    }
+
+    .form-group {
+        width: 100% !important;
+    }
+
+    /* Larger input fields on mobile */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    select,
+    textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 12px;
+    }
+
+    /* Stack form buttons */
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+    }
+
+    .form-actions button {
+        width: 100%;
+    }
+}
+
+/* =====================================================
+   6. MODALS & DIALOGS
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Full-screen modals on mobile */
+    .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100%;
+        max-height: 100%;
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .modal-header {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 10;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .modal-footer {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* =====================================================
+   7. CHARTS & GRAPHS
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Responsive chart containers */
+    .chart-container {
+        height: 300px !important;
+        width: 100% !important;
+    }
+
+    /* Stack legend below chart */
+    .chart-legend {
+        flex-direction: column;
+        margin-top: 1rem;
+    }
+}
+
+/* =====================================================
+   8. FILTERS & SEARCH
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Stack filters */
+    .filters-container {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    /* Collapsible filters on mobile */
+    .filters-collapsible {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+
+    .filters-collapsible.expanded {
+        max-height: 1000px;
+    }
+
+    .filters-toggle {
+        display: flex;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+
+    /* Hide filters toggle on desktop */
+    @media (min-width: 769px) {
+        .filters-toggle {
+            display: none;
+        }
+
+        .filters-collapsible {
+            max-height: none;
+        }
+    }
+}
+
+/* =====================================================
+   9. PAGINATION
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Compact pagination */
+    .pagination {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    .pagination-number {
+        min-width: 36px;
+        height: 36px;
+        font-size: 14px;
+        padding: 0;
+    }
+
+    /* Hide some page numbers on small screens */
+    .pagination-number:not(.active):not(:first-child):not(:last-child) {
+        display: none;
+    }
+
+    .pagination-ellipsis {
+        display: inline-block !important;
+    }
+}
+
+/* =====================================================
+   10. ALERTS & NOTIFICATIONS
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Full-width alerts */
+    .alert {
+        width: calc(100% - 2rem);
+        margin: 1rem;
+    }
+
+    /* Smaller alert text */
+    .alert {
+        font-size: 14px;
+        padding: 12px;
+    }
+
+    /* Stack alert actions */
+    .alert-actions {
+        flex-direction: column;
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+
+    .alert-actions button {
+        width: 100%;
+    }
+}
+
+/* =====================================================
+   11. DEVICE DETAIL VIEW
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Stack device info */
+    .device-detail-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Compact device status */
+    .device-status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    /* Stack sensor cards */
+    .sensors-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* =====================================================
+   12. SETTINGS & PREFERENCES
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Stack settings sections */
+    .settings-layout {
+        flex-direction: column;
+    }
+
+    .settings-sidebar {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+
+    .settings-content {
+        width: 100%;
+    }
+
+    /* Horizontal scroll for settings tabs */
+    .settings-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+    }
+
+    .settings-tab {
+        flex-shrink: 0;
+    }
+}
+
+/* =====================================================
+   13. FIRMWARE & OTA UPDATES
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Stack firmware info */
+    .firmware-card {
+        flex-direction: column;
+    }
+
+    /* Compact OTA progress */
+    .ota-progress {
+        width: 100%;
+    }
+
+    /* Stack device selection */
+    .device-selector {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* =====================================================
+   14. ANALYTICS DASHBOARD
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Stack analytics cards */
+    .analytics-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Smaller chart heights */
+    .analytics-chart {
+        height: 250px;
+    }
+
+    /* Date range picker */
+    .date-range-picker {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .date-input {
+        width: 100%;
+    }
+}
+
+/* =====================================================
+   15. USER MANAGEMENT
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Stack user cards */
+    .users-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Compact user actions */
+    .user-actions {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .user-actions button {
+        flex: 1 1 calc(50% - 0.25rem);
+        min-width: 100px;
+    }
+}
+
+/* =====================================================
+   16. TOUCH OPTIMIZATIONS
+   ===================================================== */
+
+/* Better touch targets */
+@media (hover: none) and (pointer: coarse) {
+    a, button, .clickable {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Remove hover effects on touch devices */
+    button:hover,
+    a:hover {
+        transform: none !important;
+    }
+
+    /* Add active states instead */
+    button:active,
+    a:active {
+        transform: scale(0.98);
+        opacity: 0.8;
+    }
+}
+
+/* =====================================================
+   17. LANDSCAPE MODE (MOBILE)
+   ===================================================== */
+
+@media (max-width: 768px) and (orientation: landscape) {
+    /* Reduce header height in landscape */
+    .header {
+        padding: 0.5rem 1rem;
+    }
+
+    /* Compact navigation */
+    .nav-items {
+        gap: 0.5rem;
+    }
+}
+
+/* =====================================================
+   18. ACCESSIBILITY IMPROVEMENTS
+   ===================================================== */
+
+/* Focus indicators for keyboard navigation */
+@media (max-width: 768px) {
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible {
+        outline: 3px solid #667eea;
+        outline-offset: 2px;
+    }
+
+    /* Skip to content link */
+    .skip-to-content {
+        position: fixed;
+        top: -100px;
+        left: 0;
+        z-index: 10000;
+        background: #667eea;
+        color: white;
+        padding: 12px 20px;
+        text-decoration: none;
+        transition: top 0.3s;
+    }
+
+    .skip-to-content:focus {
+        top: 0;
+    }
+}
+
+/* =====================================================
+   19. SAFE AREA INSETS (iOS NOTCH)
+   ===================================================== */
+
+@supports (padding: max(0px)) {
+    @media (max-width: 768px) {
+        .header {
+            padding-top: max(1rem, env(safe-area-inset-top));
+        }
+
+        .main-content {
+            padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        }
+
+        .sidebar {
+            padding-top: max(1rem, env(safe-area-inset-top));
+        }
+    }
+}
+
+/* =====================================================
+   20. PERFORMANCE OPTIMIZATIONS
+   ===================================================== */
+
+@media (max-width: 768px) {
+    /* Reduce animations on mobile for better performance */
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+
+    /* Optimize scrolling */
+    .scrollable {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+}
+
+/* =====================================================
+   21. PRINT STYLES
+   ===================================================== */
+
+@media print {
+    /* Hide navigation and interactive elements */
+    .sidebar,
+    .header,
+    .mobile-menu-toggle,
+    .filters,
+    button,
+    .pagination {
+        display: none !important;
+    }
+
+    /* Full width for printing */
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Remove shadows and backgrounds */
+    .card,
+    .device-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd;
+    }
+}
+
+/* =====================================================
+   22. UTILITY CLASSES FOR MOBILE
+   ===================================================== */
+
+/* Show/hide on mobile */
+.mobile-only {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-only {
+        display: block;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+
+    /* Mobile-specific spacing */
+    .mobile-mt-4 {
+        margin-top: 1rem;
+    }
+
+    .mobile-mb-4 {
+        margin-bottom: 1rem;
+    }
+
+    .mobile-px-2 {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    /* Mobile text sizes */
+    .mobile-text-sm {
+        font-size: 0.875rem;
+    }
+
+    .mobile-text-xs {
+        font-size: 0.75rem;
+    }
+}

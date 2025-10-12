@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { X, Upload, Download, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { X, Upload, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiService } from '../services/api';
 import { websocketService } from '../services/websocket';
 
 function OTAManager({ device, onClose }) {
+    const { t } = useTranslation();
     const [selectedFirmware, setSelectedFirmware] = useState('');
     const [uploadingFirmware, setUploadingFirmware] = useState(false);
     const queryClient = useQueryClient();
@@ -29,11 +31,11 @@ function OTAManager({ device, onClose }) {
             apiService.scheduleOTAUpdate(device.id, firmwareVersionId, forced),
         {
             onSuccess: () => {
-                toast.success('OTA update scheduled successfully');
+                toast.success(t('otaManager.toast.scheduleSuccess'));
                 refetchOTAStatus();
             },
             onError: (error) => {
-                toast.error(`Failed to schedule OTA update: ${error.message}`);
+                toast.error(t('otaManager.toast.scheduleFailed', { message: error.message || t('common.error') }));
             }
         }
     );
@@ -43,11 +45,11 @@ function OTAManager({ device, onClose }) {
         () => apiService.cancelOTAUpdate(device.id),
         {
             onSuccess: () => {
-                toast.success('OTA update cancelled');
+                toast.success(t('otaManager.toast.cancelSuccess'));
                 refetchOTAStatus();
             },
             onError: () => {
-                toast.error('Failed to cancel OTA update');
+                toast.error(t('otaManager.toast.cancelFailed'));
             }
         }
     );
@@ -57,12 +59,12 @@ function OTAManager({ device, onClose }) {
         (formData) => apiService.uploadFirmware(formData),
         {
             onSuccess: () => {
-                toast.success('Firmware uploaded successfully');
+                toast.success(t('otaManager.toast.uploadSuccess'));
                 queryClient.invalidateQueries(['firmware-versions']);
                 setUploadingFirmware(false);
             },
             onError: (error) => {
-                toast.error(`Failed to upload firmware: ${error.message}`);
+                toast.error(t('otaManager.toast.uploadFailed', { message: error.message || t('common.error') }));
                 setUploadingFirmware(false);
             }
         }
@@ -83,7 +85,7 @@ function OTAManager({ device, onClose }) {
 
     const handleScheduleUpdate = () => {
         if (!selectedFirmware) {
-            toast.error('Please select a firmware version');
+            toast.error(t('otaManager.toast.selectVersion'));
             return;
         }
 
@@ -103,14 +105,14 @@ function OTAManager({ device, onClose }) {
         if (!file) return;
 
         if (!file.name.endsWith('.bin')) {
-            toast.error('Please select a valid firmware binary (.bin) file');
+            toast.error(t('otaManager.toast.invalidFirmware'));
             return;
         }
 
-        const version = prompt('Enter firmware version (e.g., 2.1.0):');
+        const version = prompt(t('otaManager.prompt.version', 'Enter firmware version (e.g., 2.1.0):'));
         if (!version) return;
 
-        const releaseNotes = prompt('Enter release notes (optional):') || '';
+        const releaseNotes = prompt(t('otaManager.prompt.releaseNotes', 'Enter release notes (optional):')) || '';
 
         const formData = new FormData();
         formData.append('firmware', file);
@@ -152,13 +154,20 @@ function OTAManager({ device, onClose }) {
         }
     };
 
+    const formatOtaStatus = (status) => {
+        if (!status) {
+            return t('otaManager.status.unknown', 'Unknown');
+        }
+        return t(`otaManager.status.${status}`, status.toUpperCase());
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div>
-                        <h2 className="text-xl font-semibold text-gray-900">OTA Update Manager</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">{t('otaManager.title')}</h2>
                         <p className="text-sm text-gray-500">{device.name}</p>
                     </div>
                     <button
@@ -172,18 +181,18 @@ function OTAManager({ device, onClose }) {
                 <div className="p-6 space-y-6">
                     {/* Current Status */}
                     <div className="bg-gray-50 rounded-lg p-4">
-                        <h3 className="text-lg font-medium text-gray-900 mb-3">Current Status</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-3">{t('otaManager.status.heading')}</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Current Firmware</p>
-                                <p className="text-sm text-gray-900">{device.firmware_version || 'Unknown'}</p>
+                                <p className="text-sm font-medium text-gray-500">{t('otaManager.status.currentFirmware')}</p>
+                                <p className="text-sm text-gray-900">{device.firmware_version || t('common.unknown')}</p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">OTA Enabled</p>
+                                <p className="text-sm font-medium text-gray-500">{t('otaManager.status.otaEnabled')}</p>
                                 <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                                     device.ota_enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                 }`}>
-                                    {device.ota_enabled ? 'Yes' : 'No'}
+                                    {device.ota_enabled ? t('common.yes') : t('common.no')}
                                 </span>
                             </div>
                         </div>
@@ -194,7 +203,7 @@ function OTAManager({ device, onClose }) {
                                     <div className="flex items-center space-x-2">
                                         {getStatusIcon(otaStatus.status)}
                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(otaStatus.status)}`}>
-                                            {otaStatus.status.toUpperCase()}
+                                            {formatOtaStatus(otaStatus.status)}
                                         </span>
                                         <span className="text-sm text-gray-900">
                                             {otaStatus.status === 'downloading' && `${otaStatus.progress_percent}%`}
@@ -206,7 +215,7 @@ function OTAManager({ device, onClose }) {
                                             className="text-red-600 hover:text-red-800 text-sm font-medium"
                                             disabled={cancelUpdateMutation.isLoading}
                                         >
-                                            Cancel
+                                            {t('otaManager.actions.cancelUpdate')}
                                         </button>
                                     )}
                                 </div>
@@ -233,10 +242,10 @@ function OTAManager({ device, onClose }) {
 
                     {/* Available Firmware */}
                     <div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-3">Available Firmware Versions</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-3">{t('otaManager.firmware.availableHeading')}</h3>
 
                         {firmwareVersions.length === 0 ? (
-                            <p className="text-gray-500 text-sm">No firmware versions available</p>
+                            <p className="text-gray-500 text-sm">{t('otaManager.firmware.none')}</p>
                         ) : (
                             <div className="space-y-2 max-h-60 overflow-y-auto">
                                 {firmwareVersions.map((firmware) => (
@@ -261,7 +270,7 @@ function OTAManager({ device, onClose }) {
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-sm font-medium text-gray-900">{firmware.file_size}</p>
-                                                <p className="text-xs text-gray-500">Size</p>
+                                                <p className="text-xs text-gray-500">{t('otaManager.firmware.sizeLabel')}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -272,14 +281,14 @@ function OTAManager({ device, onClose }) {
 
                     {/* Upload New Firmware */}
                     <div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-3">Upload New Firmware</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-3">{t('otaManager.upload.heading')}</h3>
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                             <div className="text-center">
                                 <Upload className="mx-auto h-12 w-12 text-gray-400" />
                                 <div className="mt-2">
                                     <label htmlFor="firmware-upload" className="cursor-pointer">
                                         <span className="text-blue-600 hover:text-blue-500 font-medium">
-                                            Upload a firmware file
+                                            {t('otaManager.upload.cta')}
                                         </span>
                                         <input
                                             id="firmware-upload"
@@ -292,7 +301,7 @@ function OTAManager({ device, onClose }) {
                                     </label>
                                 </div>
                                 <p className="text-xs text-gray-500">
-                                    Only .bin files are supported
+                                    {t('otaManager.upload.hint')}
                                 </p>
                             </div>
                         </div>
@@ -304,7 +313,7 @@ function OTAManager({ device, onClose }) {
                             onClick={onClose}
                             className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </button>
                         <button
                             onClick={handleScheduleUpdate}
@@ -315,7 +324,9 @@ function OTAManager({ device, onClose }) {
                             }
                             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {scheduleUpdateMutation.isLoading ? 'Scheduling...' : 'Schedule Update'}
+                            {scheduleUpdateMutation.isLoading
+                                ? t('otaManager.actions.scheduling')
+                                : t('otaManager.actions.schedule')}
                         </button>
                     </div>
 
@@ -325,10 +336,10 @@ function OTAManager({ device, onClose }) {
                                 <AlertTriangle className="h-5 w-5 text-yellow-400" />
                                 <div className="ml-3">
                                     <h3 className="text-sm font-medium text-yellow-800">
-                                        OTA Updates Disabled
+                                        {t('otaManager.disabledWarning.title')}
                                     </h3>
                                     <p className="text-sm text-yellow-700 mt-2">
-                                        This device has OTA updates disabled. The update will be forced and may take longer to complete.
+                                        {t('otaManager.disabledWarning.body')}
                                     </p>
                                 </div>
                             </div>

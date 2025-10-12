@@ -112,17 +112,36 @@ function DeviceDetail() {
     }, [id, queryClient]);
 
     const formatRelativeTime = (date) => {
-        if (!date) return 'Never';
+        if (!date) return t('deviceDetail.relative.never', 'Never');
         const value = typeof date === 'string' ? new Date(date) : date;
         const diff = Date.now() - value.getTime();
-        if (diff < 0) return 'Just now';
+        if (diff < 0) return t('deviceDetail.relative.justNow', 'Just now');
         const minutes = Math.floor(diff / (1000 * 60));
-        if (minutes < 1) return 'Just now';
-        if (minutes < 60) return `${minutes} min ago`;
+        if (minutes < 1) {
+            return t('deviceDetail.relative.justNow', 'Just now');
+        }
+
+        if (minutes < 60) {
+            return t('deviceDetail.relative.minutes', '{{count}} min ago', {
+                count: minutes
+            });
+        }
+
         const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}h ${minutes % 60}m ago`;
+        if (hours < 24) {
+            return t('deviceDetail.relative.hours', '{{hours}}h {{minutes}}m ago', {
+                hours,
+                minutes: minutes % 60
+            });
+        }
+
         const days = Math.floor(hours / 24);
-        if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+        if (days < 7) {
+            return t('deviceDetail.relative.days', '{{count}} day(s) ago', {
+                count: days
+            });
+        }
+
         return value.toLocaleString();
     };
 
@@ -143,12 +162,14 @@ function DeviceDetail() {
     };
 
     const getSignalQualityLabel = (value) => {
-        if (value === null || value === undefined) return 'No data';
-        if (value >= -55) return 'Excellent';
-        if (value >= -65) return 'Very good';
-        if (value >= -75) return 'Fair';
-        if (value >= -90) return 'Weak';
-        return 'Poor';
+        if (value === null || value === undefined) {
+            return t('deviceDetail.signalQuality.none', 'No data');
+        }
+        if (value >= -55) return t('deviceDetail.signalQuality.excellent', 'Excellent');
+        if (value >= -65) return t('deviceDetail.signalQuality.veryGood', 'Very good');
+        if (value >= -75) return t('deviceDetail.signalQuality.fair', 'Fair');
+        if (value >= -90) return t('deviceDetail.signalQuality.weak', 'Weak');
+        return t('deviceDetail.signalQuality.poor', 'Poor');
     };
 
     const statsByPin = useMemo(() => {
@@ -191,14 +212,21 @@ function DeviceDetail() {
         }
     };
 
+    const formatStatusLabel = (status) => {
+        if (!status) {
+            return t('deviceDetail.status.unknown');
+        }
+        return t(`deviceDetail.status.${status}`, { defaultValue: status });
+    };
+
     const getSensorStateBadge = (state) => {
         switch (state) {
             case 'fresh':
-                return { label: 'Live', className: 'bg-emerald-100 text-emerald-700' };
+                return { label: t('deviceDetail.sensorBadge.live'), className: 'bg-emerald-100 text-emerald-700' };
             case 'stale':
-                return { label: 'Stale', className: 'bg-amber-100 text-amber-700' };
+                return { label: t('deviceDetail.sensorBadge.stale'), className: 'bg-amber-100 text-amber-700' };
             default:
-                return { label: 'Awaiting data', className: 'bg-gray-100 text-gray-600' };
+                return { label: t('deviceDetail.sensorBadge.awaiting'), className: 'bg-gray-100 text-gray-600' };
         }
     };
 
@@ -230,6 +258,7 @@ function DeviceDetail() {
     const lastHeartbeatLabel = formatRelativeTime(device?.last_heartbeat ? new Date(device.last_heartbeat) : null);
     const uptimeLabel = formatDuration(device?.uptime_seconds);
     const wifiStrengthLabel = formatSignalStrength(device?.wifi_signal_strength);
+    const statusLabel = formatStatusLabel(device?.status);
     const targetFirmware = device?.target_firmware_version && device?.target_firmware_version !== device?.firmware_version
         ? device.target_firmware_version
         : null;
@@ -270,6 +299,14 @@ function DeviceDetail() {
         medium: 'bg-amber-50 text-amber-700',
         high: 'bg-orange-50 text-orange-700',
         critical: 'bg-red-50 text-red-700'
+    };
+
+    const formatSeverityLabel = (severity) => {
+        if (!severity) {
+            return t('deviceDetail.alertSeverity.info', 'Info');
+        }
+        const key = `deviceDetail.alertSeverity.${severity.toLowerCase?.() || 'info'}`;
+        return t(key, severity.toUpperCase());
     };
 
     const handleSensorHistory = (sensor) => {
@@ -590,11 +627,15 @@ function DeviceDetail() {
                                         <div key={alert.id || `${alert.alert_type}-${alert.triggered_at || alert.created_at}`} className="rounded-lg border border-gray-200 p-4">
                                             <div className="flex items-start justify-between">
                                                 <div>
-                                                    <p className="text-sm font-semibold text-gray-900">{alert.alert_type || 'Alert'}</p>
-                                                    <p className="mt-1 text-xs text-gray-500">{alert.message || 'No additional context'}</p>
+                                                    <p className="text-sm font-semibold text-gray-900">
+                                                        {alert.alert_type || t('deviceDetail.alerts.defaultType', 'Alert')}
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-gray-500">
+                                                        {alert.message || t('deviceDetail.alerts.noContext', 'No additional context')}
+                                                    </p>
                                                 </div>
                                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${severityColors[alert.severity?.toLowerCase?.()] || 'bg-gray-100 text-gray-700'}`}>
-                                                    {alert.severity ? alert.severity.toUpperCase() : 'INFO'}
+                                                    {formatSeverityLabel(alert.severity)}
                                                 </span>
                                             </div>
                                             <p className="mt-3 text-xs text-gray-400">

@@ -29,7 +29,8 @@ import {
     CheckCircle,
     Info,
     Zap,
-    BarChart3
+    BarChart3,
+    Download
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
@@ -53,7 +54,6 @@ function DeviceManagement() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [viewMode, setViewMode] = useState('compact'); // 'compact' or 'detailed'
     const [otaDevice, setOtaDevice] = useState(null);
-    const [detailDevice, setDetailDevice] = useState(null);
 
     // Query devices
     const { data: devicesData, isLoading: devicesLoading } = useQuery(
@@ -122,6 +122,37 @@ function DeviceManagement() {
         setOtaDevice(device);
     };
 
+    const handleExportDevices = async () => {
+        try {
+            toast.loading(t('deviceManagement.export.exporting', 'Exporting devices...'));
+
+            // Build filters for export
+            const filters = {};
+            if (filterLocation !== 'all') filters.location_id = filterLocation;
+            if (filterStatus !== 'all') filters.status = filterStatus;
+            if (filterType !== 'all') filters.device_type = filterType;
+
+            const blob = await apiService.exportDevices(filters);
+
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `devices_export_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            toast.dismiss();
+            toast.success(t('deviceManagement.export.success', 'Devices exported successfully'));
+        } catch (error) {
+            toast.dismiss();
+            console.error('Export error:', error);
+            toast.error(t('deviceManagement.export.error', 'Failed to export devices'));
+        }
+    };
+
     const getStatusIcon = (status) => {
         switch (status) {
             case 'online':
@@ -144,6 +175,13 @@ function DeviceManagement() {
 
 
     const deviceTypes = ['esp8266', 'esp32', 'arduino', 'raspberry_pi'];
+
+    const formatDeviceType = (type) => {
+        if (!type) {
+            return t('deviceManagement.labels.unknownType');
+        }
+        return t(`deviceManagement.filters.typeOption.${type}`, type.toUpperCase());
+    };
     const statusOptions = ['all', 'online', 'offline', 'alarm'];
 
     if (devicesLoading) {
@@ -301,7 +339,20 @@ function DeviceManagement() {
                     </div>
                     <div className="flex items-center space-x-3">
                         <button
-                            onClick={() => window.location.reload()}
+                            onClick={handleExportDevices}
+                            className="btn-secondary flex items-center space-x-2"
+                            title={t('deviceManagement.actions.export', 'Export to CSV')}
+                        >
+                            <Download className="h-4 w-4" />
+                            <span>{t('deviceManagement.actions.export', 'Export')}</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                queryClient.invalidateQueries('devices');
+                                queryClient.invalidateQueries('locations');
+                                queryClient.invalidateQueries('device-groups');
+                                queryClient.invalidateQueries('device-tags');
+                            }}
                             className="btn-secondary flex items-center space-x-2"
                         >
                             <RefreshCw className="h-4 w-4" />
@@ -412,7 +463,7 @@ function DeviceManagement() {
                                 <option value="all">{t('common.all')}</option>
                                 {deviceTypes.map(type => (
                                     <option key={type} value={type}>
-                                        {type.toUpperCase()}
+                                        {formatDeviceType(type)}
                                     </option>
                                 ))}
                             </select>
@@ -502,7 +553,9 @@ function DeviceManagement() {
                             )}
                             {filterType !== 'all' && (
                                 <span className="badge badge-primary flex items-center space-x-1">
-                                    <span>{t('deviceManagement.activeFilters.type', { label: filterType.toUpperCase() })}</span>
+                                    <span>{t('deviceManagement.activeFilters.type', {
+                                        label: formatDeviceType(filterType)
+                                    })}</span>
                                     <button onClick={() => setFilterType('all')}>
                                         <X className="w-3 h-3" />
                                     </button>
@@ -689,14 +742,14 @@ function DeviceManagement() {
                                             (device.current_status || device.status) === 'online' ? 'badge-success' :
                                             (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
                                         }`}>
-                                            {(device.current_status || device.status || 'offline').toUpperCase()}
+                                            {formatStatusLabel(device.current_status || device.status || 'offline')}
                                         </span>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
                                         <div>
                                             <p className="text-gray-500 text-xs mb-1">{t('devices.deviceType')}</p>
-                                            <span className="badge badge-primary text-xs">{device.device_type || 'unknown'}</span>
+                                            <span className="badge badge-primary text-xs">{formatDeviceType(device.device_type)}</span>
                                         </div>
                                         <div>
                                             <p className="text-gray-500 text-xs mb-1">{t('devices.firmwareVersion')}</p>
@@ -850,13 +903,13 @@ function DeviceManagement() {
                                                         (device.current_status || device.status) === 'online' ? 'badge-success' :
                                                         (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
                                                     }`}>
-                                                        {(device.current_status || device.status || 'offline').toUpperCase()}
+                                                        {formatStatusLabel(device.current_status || device.status || 'offline')}
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <span className="badge badge-primary text-xs">
-                                                        {device.device_type || 'unknown'}
-                                                    </span>
+                                            <span className="badge badge-primary text-xs">
+                                                {formatDeviceType(device.device_type)}
+                                            </span>
                                                 </td>
                                                 <td>
                                                     <span className="font-mono text-xs text-gray-900">
@@ -890,13 +943,13 @@ function DeviceManagement() {
                                                             </button>
                                                         ))}
                                                         {((device.groups?.length || 0) + (device.tags?.length || 0)) > 4 && (
-                                                            <button
-                                                                onClick={() => setDetailDevice(device)}
+                                                            <Link
+                                                                to={`/devices/${device.id}`}
                                                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                                                title="View all groups and tags"
+                                                                title={t('devices.viewDetails')}
                                                             >
                                                                 +{((device.groups?.length || 0) + (device.tags?.length || 0)) - 4}
-                                                            </button>
+                                                            </Link>
                                                         )}
                                                         {!device.groups?.length && !device.tags?.length && (
                                                             <span className="text-xs text-gray-400">-</span>
@@ -988,12 +1041,12 @@ function DeviceManagement() {
                                                         (device.current_status || device.status) === 'online' ? 'badge-success' :
                                                         (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
                                                     }`}>
-                                                        {(device.current_status || device.status || 'offline').toUpperCase()}
+                                                        {formatStatusLabel(device.current_status || device.status || 'offline')}
                                                     </span>
                                                 </td>
                                                 <td className="whitespace-nowrap">
                                                     <span className="badge badge-primary text-xs">
-                                                        {device.device_type || 'unknown'}
+                                                        {formatDeviceType(device.device_type)}
                                                     </span>
                                                 </td>
                                                 <td>
@@ -2036,7 +2089,7 @@ function OTAUpdateModal({ device, onClose }) {
                         </div>
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Type:</span>
-                            <span className="badge badge-primary text-xs">{device.device_type}</span>
+                            <span className="badge badge-primary text-xs">{formatDeviceType(device.device_type)}</span>
                         </div>
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Current Firmware:</span>
@@ -2047,7 +2100,7 @@ function OTAUpdateModal({ device, onClose }) {
                             <span className={`badge text-xs ${
                                 device.current_status === 'online' ? 'badge-success' : 'badge-warning'
                             }`}>
-                                {device.current_status?.toUpperCase() || 'OFFLINE'}
+                                {formatStatusLabel(device.current_status || 'offline')}
                             </span>
                         </div>
                     </div>

@@ -32,9 +32,11 @@
     "type": "Typ",
     "value": "Hodnota",
     "timestamp": "Časové razítko",
-    "actions": "Akce",
-    "enabled": "Povoleno",
-    "disabled": "Zakázáno",
+  "actions": "Akce",
+  "enabled": "Povoleno",
+  "disabled": "Zakázáno",
+  "yes": "Ano",
+  "no": "Ne",
     "online": "Online",
     "offline": "Offline",
     "unknown": "Neznámý",
@@ -252,7 +254,8 @@
   "dashboard": {
     "title": "ESP8266 IoT Přehled",
     "overview": "Přehled systému",
-    "deviceCount": "Celkem zařízení",
+  "deviceCount": "Celkem zařízení",
+  "deviceCountLabel": "zařízení",
     "totalDevices": "Celkem zařízení",
     "activeDevices": "Aktivní zařízení",
     "onlineDevices": "Online zařízení",
@@ -262,7 +265,12 @@
     "systemHealth": "Stav systému",
     "lastUpdate": "Poslední aktualizace",
     "welcomeMessage": "Vítejte na vaší IoT platformě",
-    "noData": "Žádná data k dispozici"
+    "noData": "Žádná data k dispozici",
+    "viewAll": "Zobrazit vše",
+    "toast": {
+      "acknowledgeSuccess": "Upozornění bylo potvrzeno",
+      "acknowledgeError": "Upozornění se nepodařilo potvrdit"
+    }
   },
   "deviceDetail": {
     "eyebrow": "Detail zařízení",
@@ -301,6 +309,17 @@
     "alertsHeading": "Nedávná upozornění",
     "alertsCount": "Poslední {{count}} událostí",
     "alertsEmpty": "Za posledních 24 hodin nebyla u tohoto zařízení zaznamenána žádná upozornění.",
+    "alerts": {
+      "defaultType": "Upozornění",
+      "noContext": "Žádné doplňující informace"
+    },
+    "alertSeverity": {
+      "low": "Nízká",
+      "medium": "Střední",
+      "high": "Vysoká",
+      "critical": "Kritická",
+      "info": "Informace"
+    },
     "viewAllAlerts": "Zobrazit všechna upozornění →",
     "triggeredAgo": "Vyvoláno {{when}}",
     "valueUnknown": "Neznámá",
@@ -429,13 +448,19 @@
       "refresh": "Obnovit",
       "build": "Sestavit zařízení"
     },
-    "filters": {
-      "title": "Filtr a hledání",
-      "searchLabel": "Hledat",
-      "searchPlaceholder": "Název, ID, IP, skupiny, štítky…",
-      "groupLabel": "Skupina",
-      "tagLabel": "Štítek"
+  "filters": {
+    "title": "Filtr a hledání",
+    "searchLabel": "Hledat",
+    "searchPlaceholder": "Název, ID, IP, skupiny, štítky…",
+    "typeOption": {
+      "esp8266": "ESP8266",
+      "esp32": "ESP32",
+      "arduino": "Arduino",
+      "raspberry_pi": "Raspberry Pi"
     },
+    "groupLabel": "Skupina",
+    "tagLabel": "Štítek"
+  },
     "badge": {
       "deviceCount": "{{count}} z {{total}} zařízení",
       "filtered": "{{count}} zařízení"
@@ -547,6 +572,10 @@
     "alertDeleted": "Pravidlo upozornění bylo úspěšně smazáno",
     "alertAcknowledged": "Upozornění bylo potvrzeno",
     "alertResolved": "Upozornění bylo vyřešeno"
+  },
+  "alerts": {
+    "unresolved": "Nevyřešeno",
+    "unresolvedBadge": "nevyřízeno"
   },
   "telemetry": {
     "title": "Telemetrie",
@@ -660,17 +689,68 @@
     "sendInvitation": "Odeslat pozvánku",
     "role": "Role"
   },
+  "otaManager": {
+    "title": "Správce OTA aktualizací",
+    "status": {
+      "heading": "Aktuální stav",
+      "currentFirmware": "Aktuální firmware",
+      "otaEnabled": "OTA povoleno",
+      "pending": "Čekající",
+      "downloading": "Stahování",
+      "installing": "Instalace",
+      "completed": "Dokončeno",
+      "failed": "Selhalo",
+      "canceled": "Zrušeno",
+      "unknown": "Neznámé"
+    },
+    "firmware": {
+      "availableHeading": "Dostupné verze firmwaru",
+      "none": "Nejsou dostupné žádné verze firmwaru",
+      "sizeLabel": "Velikost"
+    },
+    "upload": {
+      "heading": "Nahrát nový firmware",
+      "cta": "Nahrát soubor s firmwarem",
+      "hint": "Podporovány jsou pouze soubory .bin"
+    },
+    "actions": {
+      "schedule": "Naplánovat aktualizaci",
+      "scheduling": "Plánuji...",
+      "cancelUpdate": "Zrušit aktualizaci"
+    },
+    "toast": {
+      "scheduleSuccess": "OTA aktualizace byla úspěšně naplánována",
+      "scheduleFailed": "Nepodařilo se naplánovat OTA aktualizaci: {{message}}",
+      "cancelSuccess": "OTA aktualizace byla zrušena",
+      "cancelFailed": "Nepodařilo se zrušit OTA aktualizaci",
+      "uploadSuccess": "Firmware byl úspěšně nahrán",
+      "uploadFailed": "Nepodařilo se nahrát firmware: {{message}}",
+      "selectVersion": "Vyberte prosím verzi firmwaru",
+      "invalidFirmware": "Vyberte platný soubor firmwaru (.bin)"
+    },
+    "prompt": {
+      "version": "Zadejte verzi firmwaru (např. 2.1.0):",
+      "releaseNotes": "Zadejte poznámky k vydání (nepovinné):"
+    },
+    "disabledWarning": {
+      "title": "OTA aktualizace jsou zakázány",
+      "body": "Toto zařízení má OTA aktualizace zakázané. Aktualizace bude vynucena a může trvat déle."
+    }
+  },
   "settings": {
     "title": "Systémová nastavení",
     "subtitle": "Nakonfigurujte nastavení vaší IoT platformy a systémové preference",
     "save": "Uložit nastavení",
     "saveSuccess": "Nastavení byla úspěšně uložena",
     "saveError": "Nepodařilo se uložit nastavení",
+    "saving": "Ukládám...",
     "backupSuccess": "Záloha databáze byla úspěšně stažena",
     "backupError": "Nepodařilo se vytvořit zálohu databáze",
     "tabs": {
       "system": "Systém",
+      "platform": "Aktualizace platformy",
       "branding": "Brandování",
+      "environment": "Prostředí",
       "database": "Databáze",
       "email": "E-mail",
       "security": "Bezpečnost"
@@ -687,18 +767,49 @@
       "adminEmail": "Administrátorský e-mail",
       "maintenanceMode": "Režim údržby"
     },
-    "branding": {
-      "title": "Přizpůsobení značky",
-      "companyInfo": "Informace o společnosti",
-      "companyName": "Název společnosti",
-      "logoManagement": "Správa loga",
-      "companyLogo": "Logo společnosti",
-      "favicon": "Favicon",
-      "colorScheme": "Barevné schéma",
-      "primaryColor": "Primární barva",
-      "accentColor": "Akcentová barva",
-      "preview": "Náhled"
-    },
+  "branding": {
+    "title": "Přizpůsobení značky",
+    "companyInfo": "Informace o společnosti",
+    "companyName": "Název společnosti",
+    "logoManagement": "Správa loga",
+    "companyLogo": "Logo společnosti",
+    "favicon": "Favicon",
+    "colorScheme": "Barevné schéma",
+    "primaryColor": "Primární barva",
+    "accentColor": "Akcentová barva",
+    "preview": "Náhled",
+    "toast": {
+      "invalidImage": "Vyberte prosím platný obrázek",
+      "imageTooLarge": "Soubor obrázku musí být menší než 2 MB",
+      "logoUploaded": "Logo bylo úspěšně nahráno",
+      "logoUploadFailed": "Logo se nepodařilo nahrát",
+      "logoRemoved": "Logo bylo odstraněno",
+      "logoRemoveFailed": "Logo se nepodařilo odstranit"
+    }
+  },
+  "environment": {
+    "title": "Proměnné prostředí",
+    "errorCount": "{{count}} {{count, plural, one{chyba} few{chyby} other{chyb}}}",
+    "warningCount": "{{count}} {{count, plural, one{varování} few{varování} other{varování}}}",
+    "emptyTitle": "Nebyly nalezeny žádné proměnné prostředí",
+    "emptyDescription1": ".env soubor neexistuje nebo je prázdný. Proměnné prostředí se používají pro konfiguraci aplikace, například připojení k databázi, API klíče a další citlivé údaje.",
+    "emptyDescription2": "Proměnné prostředí můžete vytvořit níže a automaticky se uloží do souboru .env.",
+    "errorsTitle": "Chyby",
+    "warningsTitle": "Varování",
+    "addTitle": "Přidat proměnné prostředí",
+    "namePlaceholder": "Název proměnné (např. DB_HOST)",
+    "valuePlaceholder": "Hodnota",
+    "addButton": "Přidat",
+    "hint": "Stiskněte Tab pro formátování názvu nebo Enter pro přidání proměnné",
+    "sensitive": "Citlivé",
+    "maskPlaceholder": "***MASKED***",
+    "enterValue": "Zadejte {{name}}",
+    "otherVariables": "Ostatní proměnné",
+    "restartNotice": "Změny mohou vyžadovat restart serveru",
+    "save": "Uložit proměnné prostředí",
+    "saveSuccess": "{{restartRequired, select, true{Proměnné prostředí byly uloženy. Je vyžadován restart serveru.} false{Proměnné prostředí byly uloženy.}}}",
+    "saveError": "Nepodařilo se uložit proměnné prostředí"
+  },
     "database": {
       "title": "Správa databáze",
       "info": "Informace o databázi",
@@ -726,6 +837,65 @@
       "strongPasswords": "Vyžadovat silná hesla",
       "sessions": "Správa relací",
       "sessionTimeout": "Časový limit relace (hodiny)"
+    },
+    "update": {
+      "title": "Aktualizace platformy",
+      "currentVersion": {
+        "title": "Aktuální verze",
+        "commit": "Commit",
+        "branch": "Větev",
+        "author": "Autor",
+        "date": "Datum",
+        "unknown": "neznámé",
+        "refresh": "Obnovit informace o verzi"
+      },
+      "availability": {
+        "title": "Aktualizace platformy",
+        "available": "Je dostupná aktualizace",
+        "behindBy": "K dispozici je {{count}} nov{{count, plural, one{ý commit} few{é commity} other{ých commitů}}}",
+        "currentLabel": "Aktuální",
+        "remoteLabel": "Vzdálený",
+        "scriptLabel": "Skript",
+        "important": "Důležité:",
+        "warning1": "Proces aktualizace restartuje celý systém",
+        "warning2": "Všichni uživatelé budou dočasně odpojeni",
+        "warning3": "Aktualizace může trvat několik minut",
+        "warning4": "Ujistěte se, že neprobíhají kritické operace",
+        "updating": "Aktualizuji...",
+        "updateButton": "Aktualizovat platformu"
+      },
+      "upToDate": {
+        "title": "Systém je aktuální",
+        "runningLatest": "Běží poslední verze",
+        "commitLabel": "Commit",
+        "synchronized": "Vaše platforma je synchronizována se vzdáleným repozitářem.",
+        "instructionsTitle": "Jak povolit aktualizace platformy:",
+        "instruction1": "Vytvořte",
+        "instruction1Suffix": "skript",
+        "instruction2": "Nastavte spustitelný příznak a umístěte jej do systémového PATH",
+        "instruction3Prefix": "Nebo vytvořte",
+        "instruction3Suffix": "v adresáři projektu"
+      },
+      "progress": {
+        "title": "Průběh aktualizace",
+        "progressLabel": "Průběh",
+        "currentStep": "Aktuální krok:",
+        "initializing": "Inicializace...",
+        "duration": "Doba:",
+        "failed": "Aktualizace selhala",
+        "logsTitle": "Log aktualizace",
+        "hideLogs": "Skrýt log",
+        "showLogs": "Zobrazit log ({{count}})",
+        "logSummary": "... zobrazeno posledních 20 záznamů z celkových {{total}}"
+      },
+      "messages": {
+        "failed": "Aktualizace selhala",
+        "complete": "Aktualizace platformy byla úspěšně dokončena!",
+        "started": "Aktualizace platformy byla spuštěna! Sledujte průběh níže.",
+        "startError": "Nepodařilo se spustit aktualizaci platformy",
+        "scriptMissing": "Aktualizační skript není v systému k dispozici",
+        "confirm": "Opravdu chcete aktualizovat platformu? Dojde k restartu systému a může to trvat několik minut. Ujistěte se, že neprobíhají kritické operace."
+      }
     }
   },
   "errors": {

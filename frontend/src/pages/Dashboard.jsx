@@ -60,10 +60,10 @@ function Dashboard() {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries('recent-alerts');
-                toast.success('Alert acknowledged successfully');
+                toast.success(t('dashboard.toast.acknowledgeSuccess'));
             },
             onError: (error) => {
-                toast.error('Failed to acknowledge alert');
+                toast.error(t('dashboard.toast.acknowledgeError'));
                 console.error('Failed to acknowledge alert:', error);
             }
         }
@@ -76,6 +76,15 @@ function Dashboard() {
     const handleAcknowledgeAlert = async (alertId, event) => {
         event.stopPropagation();
         await acknowledgeAlertMutation.mutateAsync(alertId);
+    };
+
+    const resolveDeviceStatus = (device) => device?.current_status || device?.status || 'offline';
+
+    const formatStatusLabel = (status) => {
+        if (!status) {
+            return t('deviceDetail.status.unknown', 'Unknown');
+        }
+        return t(`deviceDetail.status.${status}`, { defaultValue: status });
     };
 
     const getStatusIcon = (status) => {
@@ -160,7 +169,7 @@ function Dashboard() {
                                 {t('dashboard.onlineDevices', 'Online')}
                             </p>
                             <p className="text-3xl font-bold text-green-600">
-                                {devices.filter(d => d.status === 'online').length}
+                                {devices.filter(d => resolveDeviceStatus(d) === 'online').length}
                             </p>
                         </div>
                     </div>
@@ -176,7 +185,7 @@ function Dashboard() {
                                 {t('dashboard.offlineDevices', 'Offline')}
                             </p>
                             <p className="text-3xl font-bold text-gray-600">
-                                {devices.filter(d => d.status === 'offline').length}
+                                {devices.filter(d => resolveDeviceStatus(d) === 'offline').length}
                             </p>
                         </div>
                     </div>
@@ -252,10 +261,10 @@ function Dashboard() {
                                     </Link>
                                 ))}
                                 {devices.length > 5 && (
-                                    <Link to="/devices" className="block text-center py-2 text-sm text-primary hover:underline">
-                                        View all {devices.length} devices →
-                                    </Link>
-                                )}
+                                <Link to="/devices" className="block text-center py-2 text-sm text-primary hover:underline">
+                                    {t('dashboard.viewAll')} {devices.length} {t('devices.deviceCountLabel', 'devices')} →
+                                </Link>
+                            )}
                             </div>
                         )}
                     </div>
@@ -335,10 +344,10 @@ function Dashboard() {
                             <span>{t('dashboard.unresolvedAlerts', 'Unresolved Alerts')}</span>
                         </h2>
                         <div className="flex items-center space-x-2">
-                            <span className="badge badge-error">{alerts.filter(a => a.status === 'active').length} unresolved</span>
+                            <span className="badge badge-error">{alerts.filter(a => a.status === 'active').length} {t('alerts.unresolvedBadge', 'unresolved')}</span>
                             <Link to="/alerts" className="btn-secondary px-4 py-2 text-sm">
                                 <Eye className="w-4 h-4 mr-1" />
-                                View All
+                                {t('dashboard.viewAll')}
                             </Link>
                         </div>
                     </div>
@@ -370,15 +379,15 @@ function Dashboard() {
                                                             alert.severity === 'critical' ? 'badge-error' :
                                                             alert.severity === 'high' ? 'badge-warning' : 'badge-warning'
                                                         }`}>
-                                                            {alert.severity.toUpperCase()}
+                                                            {formatSeverityLabel(alert.severity)}
                                                         </span>
-                                                        <span className="badge badge-error">UNRESOLVED</span>
+                                                        <span className="badge badge-error">{t('alerts.unresolved', 'Unresolved')}</span>
                                                     </div>
                                                     <div className="mb-2">
                                                         <h3 className="text-base font-semibold text-gray-900 mb-1">
                                                             {alert.device_name} - {alert.alert_type}
                                                         </h3>
-                                                        <p className="text-sm text-gray-700 mb-2">{alert.message}</p>
+                                                        <p className="text-sm text-gray-700 mb-2">{alert.message || t('deviceDetail.alerts.noContext')}</p>
                                                     </div>
                                                     <div className="flex items-center space-x-4 text-xs text-gray-600">
                                                         {device?.location_name && (
@@ -390,7 +399,7 @@ function Dashboard() {
                                                         {device?.tags && device.tags.length > 0 && (
                                                             <div className="flex items-center space-x-1">
                                                                 <Tag className="w-3 h-3" />
-                                                                <span>{device.tags.join(', ')}</span>
+                                                                <span>{(device.tags || []).join(', ')}</span>
                                                             </div>
                                                         )}
                                                         <div className="flex items-center space-x-1">
@@ -423,7 +432,7 @@ function Dashboard() {
                         {alerts.filter(a => a.status === 'active').length > 5 && (
                             <div className="mt-4 text-center">
                                 <Link to="/alerts" className="btn-ghost">
-                                    View All {alerts.filter(a => a.status === 'active').length} Unresolved Alerts
+                                    {t('dashboard.viewAll')} {alerts.filter(a => a.status === 'active').length} {t('alerts.unresolved', 'Unresolved alerts')}
                                 </Link>
                             </div>
                         )}

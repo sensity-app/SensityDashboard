@@ -718,6 +718,34 @@ const runMigrations = async () => {
                 SELECT false
                 WHERE NOT EXISTS (SELECT 1 FROM telegram_config);
             `
+        },
+        {
+            name: '005_add_local_license_cache',
+            sql: `
+                CREATE TABLE IF NOT EXISTS local_license_info (
+                    id SERIAL PRIMARY KEY,
+                    license_key VARCHAR(255) NOT NULL,
+                    license_type VARCHAR(50) NOT NULL,
+                    max_devices INTEGER NOT NULL,
+                    max_users INTEGER NOT NULL,
+                    features JSONB DEFAULT '{}',
+                    expires_at TIMESTAMP,
+                    activated_at TIMESTAMP,
+                    last_validated_at TIMESTAMP,
+                    next_validation_due TIMESTAMP,
+                    status VARCHAR(50) NOT NULL DEFAULT 'active',
+                    is_offline_mode BOOLEAN DEFAULT false,
+                    validation_failures INTEGER DEFAULT 0,
+                    grace_period_started_at TIMESTAMP,
+                    grace_period_ends_at TIMESTAMP,
+                    instance_id VARCHAR(255),
+                    hardware_id VARCHAR(255),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_local_license_info_status ON local_license_info(status);
+            `
         }
     ];
 

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Menu, X } from 'lucide-react';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -195,6 +195,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
     });
     const [isHeaderMinimal, setIsHeaderMinimal] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const dropdownRefs = useRef({});
 
     const handleLanguageChange = async (languageCode) => {
@@ -399,18 +400,27 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                         </div>
                         <div className={`flex items-center flex-shrink-0 transition-all duration-300 ${isHeaderMinimal ? 'space-x-1 sm:space-x-2' : 'space-x-2 sm:space-x-4'
                             }`}>
-                            <div className={`transition-all duration-300 ${isHeaderMinimal ? 'scale-75 sm:scale-90' : 'scale-90 sm:scale-100'
+                            {/* Mobile Menu Toggle */}
+                            <button
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                className="lg:hidden btn-secondary p-2"
+                                aria-label="Toggle menu"
+                            >
+                                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                            </button>
+
+                            <div className={`transition-all duration-300 hidden sm:block ${isHeaderMinimal ? 'scale-75 sm:scale-90' : 'scale-90 sm:scale-100'
                                 }`}>
                                 <LanguageSelector compact={true} onLanguageChange={handleLanguageChange} />
                             </div>
                             {!isHeaderMinimal && (
-                                <span className="badge badge-primary text-xs hidden sm:inline-flex">
+                                <span className="badge badge-primary text-xs hidden md:inline-flex">
                                     {t(`roles.${user.role}`, user.role)}
                                 </span>
                             )}
                             <button
                                 onClick={onLogout}
-                                className={`btn-danger transition-all duration-300 whitespace-nowrap ${isHeaderMinimal ? 'px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm' : 'px-3 sm:px-4 py-2 text-sm'
+                                className={`btn-danger transition-all duration-300 whitespace-nowrap hidden sm:inline-flex ${isHeaderMinimal ? 'px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm' : 'px-3 sm:px-4 py-2 text-sm'
                                     }`}
                             >
                                 {t('auth.logout', 'Logout')}
@@ -420,8 +430,8 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                 </div>
             </header>
 
-            {/* Modern Navigation */}
-            <nav className="glass-dark relative border-t border-white/10 z-50" style={{ overflow: 'visible' }}>
+            {/* Desktop Navigation */}
+            <nav className="glass-dark relative border-t border-white/10 z-50 hidden lg:block" style={{ overflow: 'visible' }}>
                 <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
                     <div className="flex space-x-0.5 sm:space-x-1 scrollbar-hide" style={{ overflowX: 'auto', overflowY: 'visible' }}>
                         {navigationItems.map((item, index) => (
@@ -490,6 +500,99 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                     </div>
                 </div>
             </nav>
+
+            {/* Mobile Menu */}
+            {mobileMenuOpen && (
+                <div className="lg:hidden fixed inset-0 z-50 animate-fade-in">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={() => setMobileMenuOpen(false)}
+                    />
+                    {/* Menu Panel */}
+                    <div className="absolute top-0 right-0 bottom-0 w-64 bg-white shadow-2xl overflow-y-auto animate-slide-in-right">
+                        {/* Menu Header */}
+                        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
+                            <h2 className="font-semibold text-gray-900">{t('nav.menu', 'Menu')}</h2>
+                            <button
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="p-2 hover:bg-gray-100 rounded-lg"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        {/* User Info */}
+                        <div className="p-4 border-b border-gray-200 bg-gray-50">
+                            <p className="text-sm font-medium text-gray-900">{user.full_name || user.email}</p>
+                            <p className="text-xs text-gray-600 mt-1">{t(`roles.${user.role}`, user.role)}</p>
+                        </div>
+
+                        {/* Navigation Items */}
+                        <div className="p-2">
+                            {navigationItems.map((item, index) => (
+                                <div key={item.path || index} className="mb-1">
+                                    {item.dropdown ? (
+                                        <>
+                                            <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                {item.label}
+                                            </div>
+                                            {item.items.map((subItem) => (
+                                                <button
+                                                    key={subItem.path}
+                                                    onClick={() => {
+                                                        navigate(subItem.path);
+                                                        setMobileMenuOpen(false);
+                                                    }}
+                                                    className={`w-full flex items-center space-x-3 px-4 py-2.5 text-sm rounded-lg transition-colors ${
+                                                        currentPath === subItem.path
+                                                            ? 'bg-blue-50 text-blue-600 font-medium'
+                                                            : 'text-gray-700 hover:bg-gray-100'
+                                                    }`}
+                                                >
+                                                    <span>{subItem.icon}</span>
+                                                    <span>{subItem.label}</span>
+                                                </button>
+                                            ))}
+                                        </>
+                                    ) : (
+                                        <button
+                                            onClick={() => {
+                                                navigate(item.path);
+                                                setMobileMenuOpen(false);
+                                            }}
+                                            className={`w-full flex items-center space-x-3 px-4 py-2.5 text-sm rounded-lg transition-colors ${
+                                                currentPath === item.path
+                                                    ? 'bg-blue-50 text-blue-600 font-medium'
+                                                    : 'text-gray-700 hover:bg-gray-100'
+                                            }`}
+                                        >
+                                            <span>{item.icon}</span>
+                                            <span>{item.label}</span>
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Mobile Menu Footer */}
+                        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 space-y-2">
+                            <div className="mb-2">
+                                <LanguageSelector compact={false} onLanguageChange={handleLanguageChange} />
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setMobileMenuOpen(false);
+                                    onLogout();
+                                }}
+                                className="w-full btn-danger justify-center"
+                            >
+                                {t('auth.logout', 'Logout')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto py-4 px-4 sm:py-8 sm:px-6 lg:px-8" onClick={() => setDropdownOpen(null)}>

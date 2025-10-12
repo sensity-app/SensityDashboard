@@ -7,10 +7,16 @@ const otaService = require('../services/otaService');
 
 const router = express.Router();
 
-// GET /api/devices - Get all devices
+// GET /api/devices - Get all devices (with pagination)
 router.get('/', authenticateToken, async (req, res) => {
     try {
-        const { location_id, status, device_type } = req.query;
+        const { location_id, status, device_type, page, limit, search } = req.query;
+
+        // Pagination parameters
+        const pageNum = parseInt(page) || null; // null means no pagination
+        const limitNum = parseInt(limit) || 50;
+        const offset = pageNum ? (pageNum - 1) * limitNum : 0;
+
         let query = `
             SELECT d.*, l.name as location_name
             FROM devices d
@@ -34,11 +40,33 @@ router.get('/', authenticateToken, async (req, res) => {
             params.push(device_type);
         }
 
+        if (search) {
+            conditions.push(`(d.name ILIKE $${params.length + 1} OR d.id ILIKE $${params.length + 1})`);
+            params.push(`%${search}%`);
+        }
+
         if (conditions.length > 0) {
             query += ' WHERE ' + conditions.join(' AND ');
         }
 
+        // Get total count for pagination
+        let totalCount = 0;
+        if (pageNum) {
+            const countQuery = query.replace(
+                'SELECT d.*, l.name as location_name',
+                'SELECT COUNT(*) as total'
+            );
+            const countResult = await db.query(countQuery, params);
+            totalCount = parseInt(countResult.rows[0].total);
+        }
+
         query += ' ORDER BY d.name';
+
+        // Add pagination if requested
+        if (pageNum) {
+            query += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+            params.push(limitNum, offset);
+        }
 
         const result = await db.query(query, params);
 
@@ -70,7 +98,21 @@ router.get('/', authenticateToken, async (req, res) => {
             })
         );
 
-        res.json({ devices: devicesWithMetadata });
+        const response = {
+            devices: devicesWithMetadata
+        };
+
+        // Add pagination metadata if pagination was requested
+        if (pageNum) {
+            response.pagination = {
+                page: pageNum,
+                limit: limitNum,
+                total: totalCount,
+                totalPages: Math.ceil(totalCount / limitNum)
+            };
+        }
+
+        res.json(response);
     } catch (error) {
         logger.error('Get devices error:', error);
         res.status(500).json({ error: 'Failed to get devices' });
@@ -1334,5 +1376,143 @@ router.get('/:id/stats', authenticateToken, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch device statistics', details: error.message });
     }
 });
+
+// GET /api/devices/export - Export devices to CSV
+router.get('/export', authenticateToken, async (req, res) => {
+    try {
+        const { location_id, status, device_type } = req.query;
+
+        let query = `
+            SELECT
+                d.id,
+                d.name,
+                d.device_type,
+                d.status,
+                d.location_id,
+                l.name as location_name,
+                d.firmware_version,
+                d.hardware_version,
+                d.ip_address,
+                d.last_heartbeat,
+                d.uptime_seconds,
+                d.wifi_ssid,
+                d.memory_usage_percent,
+                d.wifi_signal_strength,
+                d.battery_level,
+                d.cpu_temperature,
+                d.created_at,
+                d.updated_at
+            FROM devices d
+            LEFT JOIN locations l ON d.location_id = l.id
+        `;
+
+        const params = [];
+        const conditions = [];
+
+        if (location_id) {
+            conditions.push(`d.location_id = $${params.length + 1}`);
+            params.push(location_id);
+        }
+
+        if (status) {
+            conditions.push(`d.status = $${params.length + 1}`);
+            params.push(status);
+        }
+
+        if (device_type) {
+            conditions.push(`d.device_type = $${params.length + 1}`);
+            params.push(device_type);
+        }
+
+        if (conditions.length > 0) {
+            query += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        query += ' ORDER BY d.name';
+
+        const result = await db.query(query, params);
+
+        // Convert to CSV
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'No devices found' });
+        }
+
+        // Build CSV header
+        const headers = [
+            'Device ID',
+            'Name',
+            'Type',
+            'Status',
+            'Location',
+            'Firmware Version',
+            'Hardware Version',
+            'IP Address',
+            'Last Heartbeat',
+            'Uptime (seconds)',
+            'WiFi SSID',
+            'Memory Usage (%)',
+            'WiFi Signal (dBm)',
+            'Battery Level (%)',
+            'CPU Temperature (°C)',
+            'Created At',
+            'Updated At'
+        ];
+
+        // Build CSV rows
+        const csvRows = [headers.join(',')];
+
+        result.rows.forEach(device => {
+            const row = [
+                escapeCsvValue(device.id),
+                escapeCsvValue(device.name),
+                escapeCsvValue(device.device_type),
+                escapeCsvValue(device.status),
+                escapeCsvValue(device.location_name || ''),
+                escapeCsvValue(device.firmware_version || ''),
+                escapeCsvValue(device.hardware_version || ''),
+                escapeCsvValue(device.ip_address || ''),
+                escapeCsvValue(device.last_heartbeat ? new Date(device.last_heartbeat).toISOString() : ''),
+                escapeCsvValue(device.uptime_seconds || ''),
+                escapeCsvValue(device.wifi_ssid || ''),
+                escapeCsvValue(device.memory_usage_percent || ''),
+                escapeCsvValue(device.wifi_signal_strength || ''),
+                escapeCsvValue(device.battery_level || ''),
+                escapeCsvValue(device.cpu_temperature || ''),
+                escapeCsvValue(device.created_at ? new Date(device.created_at).toISOString() : ''),
+                escapeCsvValue(device.updated_at ? new Date(device.updated_at).toISOString() : '')
+            ];
+            csvRows.push(row.join(','));
+        });
+
+        const csv = csvRows.join('\n');
+
+        // Set headers for file download
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="devices_export_${new Date().toISOString().split('T')[0]}.csv"`);
+
+        logger.info(`Devices exported to CSV by ${req.user.email}: ${result.rows.length} devices`);
+
+        res.send(csv);
+    } catch (error) {
+        logger.error('Export devices error:', error);
+        res.status(500).json({ error: 'Failed to export devices' });
+    }
+});
+
+// Helper function to escape CSV values
+function escapeCsvValue(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    const stringValue = String(value);
+
+    // If the value contains comma, quote, or newline, wrap it in quotes and escape quotes
+    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+
+    return stringValue;
+}
 
 module.exports = router;

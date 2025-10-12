@@ -222,7 +222,7 @@ function DeviceManagement() {
         );
     }
 
-    const allDevices = devicesData || [];
+    const allDevices = useMemo(() => devicesData || [], [devicesData]);
 
     const onlineCount = useMemo(
         () => allDevices.filter(d => (d.current_status || d.status) === 'online').length,

@@ -106,14 +106,19 @@ router.get('/info', authenticateToken, async (req, res) => {
             date: 'unknown'
         };
 
+        // Determine git root directory (go up one level from backend if needed)
+        const gitRoot = process.cwd().includes('/backend')
+            ? path.join(process.cwd(), '..')
+            : process.cwd();
+
         try {
-            const { stdout: commit } = await exec('git rev-parse HEAD', { cwd: process.cwd() });
+            const { stdout: commit } = await exec('git rev-parse HEAD', { cwd: gitRoot });
             gitInfo.commit = commit.trim().substring(0, 8);
 
-            const { stdout: branch } = await exec('git rev-parse --abbrev-ref HEAD', { cwd: process.cwd() });
+            const { stdout: branch } = await exec('git rev-parse --abbrev-ref HEAD', { cwd: gitRoot });
             gitInfo.branch = branch.trim();
 
-            const { stdout: date } = await exec('git log -1 --format=%cd --date=iso', { cwd: process.cwd() });
+            const { stdout: date } = await exec('git log -1 --format=%cd --date=iso', { cwd: gitRoot });
             gitInfo.date = date.trim();
         } catch (gitError) {
             logger.warn('Git information not available:', gitError.message);
@@ -276,21 +281,26 @@ router.get('/version', authenticateToken, async (req, res) => {
             author: 'unknown'
         };
 
+        // Determine git root directory (go up one level from backend if needed)
+        const gitRoot = process.cwd().includes('/backend')
+            ? path.join(process.cwd(), '..')
+            : process.cwd();
+
         try {
             // Get current commit hash
-            const { stdout: commit } = await exec('git rev-parse HEAD', { cwd: process.cwd() });
+            const { stdout: commit } = await exec('git rev-parse HEAD', { cwd: gitRoot });
             gitInfo.commit = commit.trim().substring(0, 8);
 
             // Get current branch
-            const { stdout: branch } = await exec('git rev-parse --abbrev-ref HEAD', { cwd: process.cwd() });
+            const { stdout: branch } = await exec('git rev-parse --abbrev-ref HEAD', { cwd: gitRoot });
             gitInfo.branch = branch.trim();
 
             // Get commit date
-            const { stdout: date } = await exec('git log -1 --format=%cd --date=iso', { cwd: process.cwd() });
+            const { stdout: date } = await exec('git log -1 --format=%cd --date=iso', { cwd: gitRoot });
             gitInfo.date = date.trim();
 
             // Get commit author
-            const { stdout: author } = await exec('git log -1 --format=%an', { cwd: process.cwd() });
+            const { stdout: author } = await exec('git log -1 --format=%an', { cwd: gitRoot });
             gitInfo.author = author.trim();
         } catch (gitError) {
             logger.warn('Git information not available:', gitError.message);

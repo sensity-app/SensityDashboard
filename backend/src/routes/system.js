@@ -12,6 +12,21 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
+function formatDuration(seconds) {
+    const totalSeconds = Math.floor(seconds);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+    return parts.join(' ');
+}
+
 // Global update status tracking
 let updateStatus = {
     isRunning: false,
@@ -124,11 +139,31 @@ router.get('/info', authenticateToken, async (req, res) => {
             logger.warn('Git information not available:', gitError.message);
         }
 
+        const envCommit = process.env.GIT_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || process.env.COMMIT_SHA;
+        if (gitInfo.commit === 'unknown' && envCommit) {
+            gitInfo.commit = envCommit.substring(0, 8);
+        }
+
+        const envBranch = process.env.GIT_BRANCH || process.env.VERCEL_GIT_COMMIT_REF || process.env.BRANCH_NAME;
+        if (gitInfo.branch === 'unknown' && envBranch) {
+            gitInfo.branch = envBranch;
+        }
+
+        const envDate = process.env.GIT_COMMIT_DATE || process.env.VERCEL_GIT_COMMIT_DATE;
+        if (gitInfo.date === 'unknown' && envDate) {
+            gitInfo.date = envDate;
+        }
+
+        const packageVersion = process.env.APP_VERSION || process.env.npm_package_version || gitInfo.commit;
+        const uptimeSeconds = process.uptime();
+        const uptimeHuman = formatDuration(uptimeSeconds);
+
         const systemInfo = {
             platform: os.platform(),
             arch: os.arch(),
             nodeVersion: process.version,
-            uptime: process.uptime(),
+            uptime: uptimeSeconds,
+            uptimeHuman,
             memory: {
                 used: process.memoryUsage(),
                 system: {
@@ -139,7 +174,10 @@ router.get('/info', authenticateToken, async (req, res) => {
             cpus: os.cpus().length,
             hostname: os.hostname(),
             loadavg: os.loadavg(),
-            version: gitInfo
+            version: {
+                ...gitInfo,
+                version: packageVersion
+            }
         };
 
         res.json(systemInfo);
@@ -152,10 +190,12 @@ router.get('/info', authenticateToken, async (req, res) => {
 // GET /api/system/health - Get system health status
 router.get('/health', authenticateToken, async (req, res) => {
     try {
+        const uptimeSeconds = process.uptime();
         const health = {
             status: 'healthy',
             timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
+            uptime: uptimeSeconds,
+            uptimeHuman: formatDuration(uptimeSeconds),
             checks: {}
         };
 

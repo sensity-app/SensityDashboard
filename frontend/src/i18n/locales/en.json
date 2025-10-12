@@ -571,9 +571,7 @@
     "alertUpdated": "Alert rule updated successfully",
     "alertDeleted": "Alert rule deleted successfully",
     "alertAcknowledged": "Alert acknowledged",
-    "alertResolved": "Alert resolved"
-  },
-  "alerts": {
+    "alertResolved": "Alert resolved",
     "unresolved": "Unresolved",
     "unresolvedBadge": "unresolved"
   },

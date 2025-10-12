@@ -571,9 +571,7 @@
     "alertUpdated": "Pravidlo upozornění bylo úspěšně aktualizováno",
     "alertDeleted": "Pravidlo upozornění bylo úspěšně smazáno",
     "alertAcknowledged": "Upozornění bylo potvrzeno",
-    "alertResolved": "Upozornění bylo vyřešeno"
-  },
-  "alerts": {
+    "alertResolved": "Upozornění bylo vyřešeno",
     "unresolved": "Nevyřešeno",
     "unresolvedBadge": "nevyřízeno"
   },

@@ -7,6 +7,7 @@ const WebFlasher = ({ config, onClose }) => {
     const [flashProgress, setFlashProgress] = useState(0);
     const [flashStatus, setFlashStatus] = useState('');
     const [isConnected, setIsConnected] = useState(false);
+    const [isConnecting, setIsConnecting] = useState(false);
     const [port, setPort] = useState(null);
     const [log, setLog] = useState([]);
     const [supportsWebSerial, setSupportsWebSerial] = useState(false);
@@ -77,7 +78,13 @@ const WebFlasher = ({ config, onClose }) => {
     };
 
     const connectToDevice = async () => {
+        if (isConnecting || isConnected) {
+            addLog('Already connected or connecting...', 'warning');
+            return;
+        }
+
         try {
+            setIsConnecting(true);
             addLog('Requesting device connection...', 'info');
 
             // Request serial port - don't open it yet, just get the permission
@@ -92,6 +99,8 @@ const WebFlasher = ({ config, onClose }) => {
         } catch (error) {
             console.error('Connection failed:', error);
             addLog(`Connection failed: ${error.message}`, 'error');
+        } finally {
+            setIsConnecting(false);
         }
     };
 
@@ -181,17 +190,55 @@ const WebFlasher = ({ config, onClose }) => {
         let transport;
 
         try {
+            // Forcefully ensure port is closed before flashing
+            try {
+                if (port.readable || port.writable) {
+                    addLog('Closing existing port connection...', 'info');
+                    await port.close();
+                    // Wait a bit to ensure port is fully released
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            } catch (closeErr) {
+                // Port might already be closed, that's fine
+                console.log('Port close attempt:', closeErr.message);
+            }
+
             setFlashStatus('Connecting to device...');
             addLog('Initializing ESPTool...', 'info');
             setFlashProgress(25);
 
             transport = new Transport(port);
-            await transport.connect(115200, {
-                dataBits: 8,
-                stopBits: 1,
-                parity: 'none',
-                flowControl: 'none'
-            });
+
+            // Use a try-catch specifically for the transport connection
+            try {
+                await transport.connect(115200, {
+                    dataBits: 8,
+                    stopBits: 1,
+                    parity: 'none',
+                    flowControl: 'none'
+                });
+            } catch (transportError) {
+                addLog(`Transport connection error: ${transportError.message}`, 'error');
+                // If it fails because port is open, try to close and retry once
+                if (transportError.message.includes('already open')) {
+                    addLog('Attempting to force close port and retry...', 'info');
+                    try {
+                        await port.close();
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        await transport.connect(115200, {
+                            dataBits: 8,
+                            stopBits: 1,
+                            parity: 'none',
+                            flowControl: 'none'
+                        });
+                        addLog('Retry successful', 'success');
+                    } catch (retryError) {
+                        throw new Error(`Failed to connect after retry: ${retryError.message}. Please refresh the page and try again.`);
+                    }
+                } else {
+                    throw transportError;
+                }
+            }
 
             const esploader = new ESPLoader({
                 transport,
@@ -524,11 +571,11 @@ const WebFlasher = ({ config, onClose }) => {
                         {!isConnected ? (
                             <button
                                 onClick={connectToDevice}
-                                disabled={isFlashing}
+                                disabled={isFlashing || isConnecting}
                                 className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
                             >
                                 <Usb className="w-4 h-4" />
-                                <span>Connect Device</span>
+                                <span>{isConnecting ? 'Connecting...' : 'Connect Device'}</span>
                             </button>
                         ) : (
                             <button

@@ -202,6 +202,19 @@ const WebFlasher = ({ config, onClose }) => {
         let transport;
 
         try {
+            // Ensure port is closed before attempting to flash
+            if (port.readable || port.writable) {
+                addLog('Closing port before flashing...', 'info');
+                try {
+                    await port.close();
+                } catch (closeError) {
+                    // Ignore if already closed
+                    if (closeError.name !== 'InvalidStateError') {
+                        console.warn('Error closing port before flash:', closeError);
+                    }
+                }
+            }
+
             setFlashStatus('Connecting to device...');
             addLog('Initializing ESPTool...', 'info');
             setFlashProgress(25);

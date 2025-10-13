@@ -80,32 +80,11 @@ const WebFlasher = ({ config, onClose }) => {
         try {
             addLog('Requesting device connection...', 'info');
 
-            // Request serial port
+            // Request serial port - don't open it yet, just get the permission
             const newPort = await navigator.serial.requestPort();
 
-            // Basic sanity check: open and immediately close to ensure the port is available
-            try {
-                await newPort.open({
-                    baudRate: 115200,
-                    dataBits: 8,
-                    parity: 'none',
-                    stopBits: 1,
-                    flowControl: 'none'
-                });
-                await newPort.close();
-            } catch (portError) {
-                console.error('Port initialization failed:', portError);
-                addLog(`Failed to initialize device: ${portError.message}`, 'error');
-                try {
-                    await newPort.close();
-                } catch (closeError) {
-                    if (closeError.name !== 'InvalidStateError') {
-                        console.error('Error closing port after initialization failure:', closeError);
-                    }
-                }
-                return;
-            }
-
+            // Store the port reference without opening it
+            // The port will be opened by the Transport layer during flashing
             setPort(newPort);
             setIsConnected(true);
             addLog('Serial device ready for flashing', 'success');
@@ -202,19 +181,6 @@ const WebFlasher = ({ config, onClose }) => {
         let transport;
 
         try {
-            // Ensure port is closed before attempting to flash
-            if (port.readable || port.writable) {
-                addLog('Closing port before flashing...', 'info');
-                try {
-                    await port.close();
-                } catch (closeError) {
-                    // Ignore if already closed
-                    if (closeError.name !== 'InvalidStateError') {
-                        console.warn('Error closing port before flash:', closeError);
-                    }
-                }
-            }
-
             setFlashStatus('Connecting to device...');
             addLog('Initializing ESPTool...', 'info');
             setFlashProgress(25);

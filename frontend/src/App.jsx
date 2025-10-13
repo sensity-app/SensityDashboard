@@ -210,7 +210,8 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
         () => apiService.getLicenseFeatures(),
         {
             refetchInterval: isOnDashboardOrDevices ? 60000 : false,
-            staleTime: 30000
+            staleTime: isOnDashboardOrDevices ? 30000 : Infinity, // Never mark as stale on other pages
+            cacheTime: Infinity // Keep in cache forever
         }
     );
 
@@ -381,7 +382,8 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
         () => apiService.getLicenseStatus(),
         {
             refetchInterval: isOnDashboardOrDevices ? 60000 : false,
-            staleTime: 30000
+            staleTime: isOnDashboardOrDevices ? 30000 : Infinity, // Never mark as stale on other pages
+            cacheTime: Infinity // Keep in cache forever
         }
     );
     const licenseStatus = licenseStatusData?.license;

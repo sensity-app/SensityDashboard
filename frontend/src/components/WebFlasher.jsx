@@ -16,6 +16,7 @@ const WebFlasher = ({ config, onClose }) => {
     const logRef = useRef(null);
     const monitorReaderRef = useRef(null);
     const monitorStreamClosedRef = useRef(null);
+    const transportRef = useRef(null);
 
     React.useEffect(() => {
         // Check if browser supports WebSerial API
@@ -62,18 +63,68 @@ const WebFlasher = ({ config, onClose }) => {
 
     const closePortIfOpen = async (serialPort) => {
         if (!serialPort) return;
-        const isClosed = !serialPort.readable && !serialPort.writable;
 
+        const isClosed = !serialPort.readable && !serialPort.writable;
         if (isClosed) {
             return;
         }
 
-        try {
-            await serialPort.close();
-        } catch (error) {
-            if (error.name !== 'InvalidStateError') {
-                throw error;
+        const waitForStreamRelease = async () => {
+            for (let attempt = 0; attempt < 5; attempt++) {
+                const lockedReadable = serialPort.readable?.locked;
+                const lockedWritable = serialPort.writable?.locked;
+
+                if (!lockedReadable && !lockedWritable) {
+                    return;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 150));
             }
+        };
+
+        try {
+            if (serialPort.readable?.locked || serialPort.writable?.locked) {
+                addLog('Serial port busy, attempting to release previous connection...', 'warning');
+
+                if (transportRef.current && typeof transportRef.current.disconnect === 'function') {
+                    try {
+                        await transportRef.current.disconnect();
+                    } catch (disconnectError) {
+                        console.warn('Transport disconnect during close failed:', disconnectError);
+                    } finally {
+                        transportRef.current = null;
+                    }
+                }
+
+                await waitForStreamRelease();
+            }
+
+            await serialPort.close();
+            transportRef.current = null;
+        } catch (error) {
+            const isLockedStream = error.name === 'InvalidStateError' || error.message?.includes('Cannot cancel a locked stream');
+
+            if (isLockedStream) {
+                await waitForStreamRelease();
+
+                try {
+                    await serialPort.close();
+                    transportRef.current = null;
+                    return;
+                } catch (retryError) {
+                    const stillLocked = retryError.name === 'InvalidStateError' || retryError.message?.includes('Cannot cancel a locked stream');
+
+                    if (stillLocked) {
+                        transportRef.current = null;
+                        addLog('Serial port is still closing; continuing with current operation.', 'warning');
+                        return;
+                    }
+
+                    throw retryError;
+                }
+            }
+
+            throw error;
         }
     };
 
@@ -208,6 +259,7 @@ const WebFlasher = ({ config, onClose }) => {
             setFlashProgress(25);
 
             transport = new Transport(port);
+            transportRef.current = transport;
 
             // Use a try-catch specifically for the transport connection
             try {
@@ -326,6 +378,7 @@ const WebFlasher = ({ config, onClose }) => {
                     console.warn('Transport disconnect failed:', disconnectError);
                     addLog(`Warning: failed to release serial port cleanly (${disconnectError.message})`, 'error');
                 } finally {
+                    transportRef.current = null;
                     try {
                         await closePortIfOpen(port);
                     } catch (closeError) {

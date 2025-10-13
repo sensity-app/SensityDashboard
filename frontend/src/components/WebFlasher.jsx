@@ -86,6 +86,31 @@ const WebFlasher = ({ config, onClose }) => {
             if (serialPort.readable?.locked || serialPort.writable?.locked) {
                 addLog('Serial port busy, attempting to release previous connection...', 'warning');
 
+                if (monitorReaderRef.current) {
+                    try {
+                        await monitorReaderRef.current.cancel();
+                    } catch (monitorErr) {
+                        if (monitorErr.name !== 'AbortError') {
+                            console.warn('Monitor cancel failed:', monitorErr);
+                        }
+                    } finally {
+                        try {
+                            monitorReaderRef.current.releaseLock?.();
+                        } catch (_) {
+                            // ignore release errors
+                        }
+                        monitorReaderRef.current = null;
+                    }
+                }
+                if (monitorStreamClosedRef.current) {
+                    try {
+                        await monitorStreamClosedRef.current.catch(() => {});
+                    } catch (_) {
+                        // ignore errors from monitor stream closure
+                    }
+                    monitorStreamClosedRef.current = null;
+                }
+
                 if (transportRef.current && typeof transportRef.current.disconnect === 'function') {
                     try {
                         await transportRef.current.disconnect();
@@ -116,8 +141,7 @@ const WebFlasher = ({ config, onClose }) => {
 
                     if (stillLocked) {
                         transportRef.current = null;
-                        addLog('Serial port is still closing; continuing with current operation.', 'warning');
-                        return;
+                        throw new Error('Serial port is still in use. Please disconnect other applications or unplug and reconnect the device.');
                     }
 
                     throw retryError;
@@ -241,18 +265,7 @@ const WebFlasher = ({ config, onClose }) => {
         let transport;
 
         try {
-            // Forcefully ensure port is closed before flashing
-            try {
-                if (port.readable || port.writable) {
-                    addLog('Closing existing port connection...', 'info');
-                    await port.close();
-                    // Wait a bit to ensure port is fully released
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-            } catch (closeErr) {
-                // Port might already be closed, that's fine
-                console.log('Port close attempt:', closeErr.message);
-            }
+            await closePortIfOpen(port);
 
             setFlashStatus('Connecting to device...');
             addLog('Initializing ESPTool...', 'info');
@@ -275,8 +288,9 @@ const WebFlasher = ({ config, onClose }) => {
                 if (transportError.message.includes('already open')) {
                     addLog('Attempting to force close port and retry...', 'info');
                     try {
-                        await port.close();
+                        await closePortIfOpen(port);
                         await new Promise(resolve => setTimeout(resolve, 1000));
+                        transportRef.current = transport;
                         await transport.connect(115200, {
                             dataBits: 8,
                             stopBits: 1,
@@ -382,9 +396,8 @@ const WebFlasher = ({ config, onClose }) => {
                     try {
                         await closePortIfOpen(port);
                     } catch (closeError) {
-                        if (closeError.name !== 'InvalidStateError') {
-                            console.error('Port close after flash failed:', closeError);
-                        }
+                        console.error('Port close after flash failed:', closeError);
+                        addLog(`Warning: ${closeError.message}`, 'warning');
                     }
                 }
             }

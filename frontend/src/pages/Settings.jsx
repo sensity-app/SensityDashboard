@@ -159,7 +159,7 @@ function Settings() {
         'system-info',
         () => apiService.getSystemInfo ? apiService.getSystemInfo() : Promise.resolve({}),
         {
-            refetchInterval: 30000,
+            refetchInterval: 300000, // Reduced from 30s to 5 minutes to avoid rate limiting
             onError: () => {
                 // System info endpoint might not exist yet
             }
@@ -171,7 +171,7 @@ function Settings() {
         'system-health',
         () => apiService.getSystemHealth ? apiService.getSystemHealth() : Promise.resolve({}),
         {
-            refetchInterval: 10000,
+            refetchInterval: 60000, // Reduced from 10s to 1 minute to avoid rate limiting
             onError: () => {
                 // System health endpoint might not exist yet
             }

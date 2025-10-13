@@ -12,12 +12,15 @@ const redis = new Redis({
     port: process.env.REDIS_PORT || 6379,
     password: process.env.REDIS_PASSWORD,
     retryDelayOnFailover: 100,
-    enableOfflineQueue: false,
+    enableOfflineQueue: true,
+    lazyConnect: true
 });
 
 async function clearRateLimits() {
     try {
         console.log('Connecting to Redis...');
+        await redis.connect();
+        console.log('Connected to Redis successfully');
 
         // Find all rate limit keys
         const rateLimitKeys = await redis.keys('ratelimit:*');

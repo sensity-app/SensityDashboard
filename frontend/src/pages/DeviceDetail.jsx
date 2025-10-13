@@ -25,7 +25,7 @@ function DeviceDetail() {
         ['device', id],
         () => apiService.getDevice(id),
         {
-            refetchInterval: 30000,
+            refetchOnWindowFocus: false, // Disable auto-refresh
             enabled: !!id,
             select: (data) => data.device
         }
@@ -36,6 +36,7 @@ function DeviceDetail() {
         () => apiService.getDeviceSensors(id),
         {
             enabled: !!id,
+            refetchOnWindowFocus: false, // Disable auto-refresh
             select: (data) => data.sensors || data || []
         }
     );
@@ -51,7 +52,7 @@ function DeviceDetail() {
         () => apiService.getDeviceStats(id, '24h'),
         {
             enabled: !!id,
-            refetchInterval: 60000,
+            refetchOnWindowFocus: false, // Disable auto-refresh
             select: (data) => data.stats || []
         }
     );
@@ -61,7 +62,7 @@ function DeviceDetail() {
         () => apiService.getDeviceAlerts(id),
         {
             enabled: !!id,
-            refetchInterval: 10000,
+            refetchOnWindowFocus: false, // Disable auto-refresh
             select: (data) => data.alerts || data || []
         }
     );

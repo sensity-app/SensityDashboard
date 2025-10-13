@@ -55,8 +55,8 @@ const queryClient = new QueryClient({
         queries: {
             retry: 1,
             refetchOnWindowFocus: false,
-            refetchOnMount: true,
-            refetchOnReconnect: true,
+            refetchOnMount: false, // Changed to false to prevent refetch on component mount
+            refetchOnReconnect: false, // Changed to false to prevent refetch on network reconnect
         },
     },
 });
@@ -201,14 +201,15 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const dropdownRefs = useRef({});
 
-    // Disable auto-refetch on firmware-builder and serial-monitor pages to prevent interruptions during operations
-    const isOnFirmwareBuilder = currentPath === '/firmware-builder' || currentPath === '/serial-monitor';
+    // Only enable auto-refetch on Dashboard and Devices pages
+    // All other pages should not have polling to avoid interruptions
+    const isOnDashboardOrDevices = currentPath === '/' || currentPath === '/devices';
 
     const { data: licenseFeaturesData, isLoading: licenseFeaturesLoading } = useQuery(
         'license-features',
         () => apiService.getLicenseFeatures(),
         {
-            refetchInterval: isOnFirmwareBuilder ? false : 60000,
+            refetchInterval: isOnDashboardOrDevices ? 60000 : false,
             staleTime: 30000
         }
     );
@@ -379,7 +380,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
         'license-status',
         () => apiService.getLicenseStatus(),
         {
-            refetchInterval: isOnFirmwareBuilder ? false : 60000,
+            refetchInterval: isOnDashboardOrDevices ? 60000 : false,
             staleTime: 30000
         }
     );

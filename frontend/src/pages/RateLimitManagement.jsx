@@ -19,27 +19,30 @@ function RateLimitManagement() {
     const [selectedRole, setSelectedRole] = useState(null);
     const [selectedEndpoint, setSelectedEndpoint] = useState(null);
 
-    // Get rate limit statistics
+    // Get rate limit statistics - NO auto-refresh
     const { data: stats, refetch: refetchStats } = useQuery(
         'rate-limit-stats',
         () => apiService.getRateLimitStats(),
         {
-            refetchInterval: 30000 // Refresh every 30 seconds
+            refetchOnWindowFocus: false // Disable auto-refresh
         }
     );
 
-    // Get rate limit configuration
+    // Get rate limit configuration - NO auto-refresh
     const { data: config, refetch: refetchConfig } = useQuery(
         'rate-limit-config',
-        () => apiService.getRateLimitConfig()
+        () => apiService.getRateLimitConfig(),
+        {
+            refetchOnWindowFocus: false // Disable auto-refresh
+        }
     );
 
-    // Get blocked users
+    // Get blocked users - NO auto-refresh
     const { data: blockedUsers, refetch: refetchBlocked } = useQuery(
         'blocked-users',
         () => apiService.getBlockedUsers(),
         {
-            refetchInterval: 10000 // Refresh every 10 seconds
+            refetchOnWindowFocus: false // Disable auto-refresh
         }
     );
 

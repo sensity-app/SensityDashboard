@@ -154,24 +154,24 @@ function Settings() {
         }
     );
 
-    // Query system info
+    // Query system info - NO auto-refresh
     const { data: systemInfo, isLoading: systemLoading } = useQuery(
         'system-info',
         () => apiService.getSystemInfo ? apiService.getSystemInfo() : Promise.resolve({}),
         {
-            refetchInterval: 300000, // Reduced from 30s to 5 minutes to avoid rate limiting
+            refetchOnWindowFocus: false, // Disable auto-refresh
             onError: () => {
                 // System info endpoint might not exist yet
             }
         }
     );
 
-    // Query system health
+    // Query system health - NO auto-refresh
     const { data: systemHealth, isLoading: healthLoading } = useQuery(
         'system-health',
         () => apiService.getSystemHealth ? apiService.getSystemHealth() : Promise.resolve({}),
         {
-            refetchInterval: 60000, // Reduced from 10s to 1 minute to avoid rate limiting
+            refetchOnWindowFocus: false, // Disable auto-refresh
             onError: () => {
                 // System health endpoint might not exist yet
             }
@@ -1287,12 +1287,12 @@ function PlatformUpdateTab() {
     const [updating, setUpdating] = useState(false);
     const [showLogs, setShowLogs] = useState(false);
 
-    // Query system version
+    // Query system version - NO auto-refresh
     const { data: versionData, isLoading: versionLoading, refetch: refetchVersion } = useQuery(
         'system-version',
         apiService.getSystemVersion,
         {
-            refetchInterval: 30000,
+            refetchOnWindowFocus: false, // Disable auto-refresh
             onError: (error) => {
                 console.error('Failed to load version info:', error);
             }

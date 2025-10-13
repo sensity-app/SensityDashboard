@@ -12,12 +12,12 @@ const DeviceTagsManager = () => {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [selectedTag, setSelectedTag] = useState(null);
 
-    // Fetch device tags
+    // Fetch device tags - NO auto-refresh
     const { data: tagsData, isLoading: tagsLoading, error: tagsError } = useQuery(
         'device-tags',
         apiService.getDeviceTags,
         {
-            refetchInterval: 30000,
+            refetchOnWindowFocus: false, // Disable auto-refresh
             onError: (error) => {
                 console.error('Error loading device tags:', error);
             }

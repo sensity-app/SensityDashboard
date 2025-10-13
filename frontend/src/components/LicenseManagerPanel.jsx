@@ -33,12 +33,12 @@ function LicenseManagerPanel() {
         [t]
     );
 
-    // Query license status
+    // Query license status - NO auto-refresh
     const { data: licenseStatus, isLoading } = useQuery(
         'license-status',
         () => apiService.getLicenseStatus(),
         {
-            refetchInterval: 60000, // Refresh every minute
+            refetchOnWindowFocus: false, // Disable auto-refresh
             select: (data) => data.license
         }
     );

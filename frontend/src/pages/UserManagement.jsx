@@ -24,11 +24,11 @@ function UserManagement() {
     const [showInviteForm, setShowInviteForm] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
 
-    // Query users
+    // Query users - NO auto-refresh
     const { data: usersData, isLoading: usersLoading } = useQuery(
         'users',
         () => apiService.getUsers(),
-        { refetchInterval: 30000 }
+        { refetchOnWindowFocus: false } // Disable auto-refresh
     );
 
     // Safely handle API response
@@ -61,11 +61,11 @@ function UserManagement() {
         setShowInviteForm(true);
     };
 
-    // Query invitations
+    // Query invitations - NO auto-refresh
     const { data: invitationsData, isLoading: invitationsLoading } = useQuery(
         'invitations',
         () => apiService.getInvitations(),
-        { refetchInterval: 10000 }
+        { refetchOnWindowFocus: false } // Disable auto-refresh
     );
 
     // Safely handle invitations API response

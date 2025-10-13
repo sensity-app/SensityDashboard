@@ -14,12 +14,12 @@ const AlertRulesManager = () => {
     const [testValue, setTestValue] = useState('');
     const [testResult, setTestResult] = useState(null);
 
-    // Fetch alert rule templates
+    // Fetch alert rule templates - NO auto-refresh
     const { data: templatesData, isLoading: templatesLoading, error: templatesError } = useQuery(
         ['alert-rule-templates', selectedSensorType],
         () => apiService.getAlertRuleTemplates(selectedSensorType === 'all' ? undefined : selectedSensorType, true),
         {
-            refetchInterval: 30000
+            refetchOnWindowFocus: false // Disable auto-refresh
         }
     );
 

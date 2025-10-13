@@ -83,11 +83,13 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Rate limiting
+// IP-based rate limiting - generous limits for development
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 1000,
-    message: 'Too many requests from this IP'
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5000, // Increased from 1000 to 5000 requests per window
+    message: 'Too many requests from this IP',
+    standardHeaders: true,
+    legacyHeaders: false,
 });
 app.use('/api/', limiter);
 

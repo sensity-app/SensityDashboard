@@ -99,17 +99,19 @@ app.use((req, res, next) => {
     next();
 });
 
-// Routes
+// Routes - Authentication (no user rate limiting on login to avoid blocking legitimate users)
 app.use('/api/auth', authRoutes);
 
-// Apply user-based rate limiting to all API routes
-app.use('/api/', userRateLimiter.middleware());
+// License management routes (accessible without active license for activation/status)
+// No user rate limiting here to allow license activation without being blocked
+app.use('/api/license', licenseRoutes);
 
 // Attach license metadata to responses
 app.use(addLicenseHeaders);
 
-// License management routes (accessible without active license for activation/status)
-app.use('/api/license', licenseRoutes);
+// Apply user-based rate limiting to all other API routes
+// This comes after auth and license routes to avoid blocking license activation
+app.use('/api/', userRateLimiter.middleware());
 
 // Routes that require a valid license
 const protectedRoutes = [

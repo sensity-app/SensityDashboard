@@ -55,6 +55,8 @@ const queryClient = new QueryClient({
         queries: {
             retry: 1,
             refetchOnWindowFocus: false,
+            refetchOnMount: true,
+            refetchOnReconnect: true,
         },
     },
 });
@@ -199,11 +201,14 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const dropdownRefs = useRef({});
 
+    // Disable auto-refetch on firmware-builder and serial-monitor pages to prevent interruptions during operations
+    const isOnFirmwareBuilder = currentPath === '/firmware-builder' || currentPath === '/serial-monitor';
+
     const { data: licenseFeaturesData, isLoading: licenseFeaturesLoading } = useQuery(
         'license-features',
         () => apiService.getLicenseFeatures(),
         {
-            refetchInterval: 60000,
+            refetchInterval: isOnFirmwareBuilder ? false : 60000,
             staleTime: 30000
         }
     );
@@ -374,7 +379,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
         'license-status',
         () => apiService.getLicenseStatus(),
         {
-            refetchInterval: 60000,
+            refetchInterval: isOnFirmwareBuilder ? false : 60000,
             staleTime: 30000
         }
     );

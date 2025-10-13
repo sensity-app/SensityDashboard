@@ -43,9 +43,13 @@
     "create": "Create",
     "update": "Update",
     "sending": "Sending...",
+    "processing": "Processing...",
     "welcome": "Welcome",
     "all": "All",
     "noData": "No data",
+    "notAvailable": "N/A",
+    "never": "Never",
+    "daysLabel": "days",
     "days": {
       "short": {
         "sun": "Sun",
@@ -169,7 +173,7 @@
   "firmwareBuilder": {
     "header": {
       "title": "Custom Firmware Builder",
-      "subtitle": "Configure your ESP8266 device step by step and generate custom firmware"
+      "subtitle": "Configure your device step by step and generate custom firmware"
     },
     "steps": {
       "device": {
@@ -252,7 +256,7 @@
     "undefined": "Unknown Role"
   },
   "dashboard": {
-    "title": "ESP8266 IoT Dashboard",
+    "title": "Sensity IoT Dashboard",
     "overview": "System Overview",
   "deviceCount": "Total Devices",
   "deviceCountLabel": "devices",
@@ -267,11 +271,105 @@
   "welcomeMessage": "Welcome to your IoT platform",
   "noData": "No data available",
   "viewAll": "View all",
+  "quickActions": "Quick Actions",
+  "buildFirmware": "Build New Firmware",
+  "buildFirmwareDesc": "Create and deploy firmware for new devices",
+  "manageDevices": "Manage Devices",
+  "manageDevicesDesc": "View and configure all your IoT devices",
+  "systemSettings": "System Settings",
+  "systemSettingsDesc": "Configure platform and notifications",
   "toast": {
     "acknowledgeSuccess": "Alert acknowledged successfully",
     "acknowledgeError": "Failed to acknowledge alert"
   }
 },
+  "license": {
+    "managementTitle": "License Management",
+    "activateSuccess": "License activated successfully!",
+    "activateFailed": "Failed to activate license",
+    "validateSuccess": "License validated successfully",
+    "validateFailed": "Failed to validate license",
+    "removeSuccess": "License removed",
+    "removeFailed": "Failed to remove license",
+    "enterKeyPrompt": "Please enter a license key",
+    "types": {
+      "trial": "Trial",
+      "starter": "Starter",
+      "professional": "Professional",
+      "enterprise": "Enterprise",
+      "lifetime": "Lifetime"
+    },
+    "actions": {
+      "validate": "Validate",
+      "change": "Change License",
+      "activate": "Activate License",
+      "remove": "Remove License",
+      "update": "Update License"
+    },
+    "noActiveTitle": "No Active License",
+    "noActiveDescription": "Please activate a license to unlock all features",
+    "typeLabel": "License Type",
+    "validStatus": "Status",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "offlineMode": "Operating in offline validation mode",
+    "expiration": "Expiration",
+    "noExpiry": "No expiry date",
+    "expiresAt": "Expires at",
+    "lastValidated": "Last validated",
+    "expiringSoon": "License expiring soon, please renew",
+    "usageTitle": "Usage Overview",
+    "devices": "Devices",
+    "devicesAvailable": "{{count}} device slots available",
+    "users": "Users",
+    "usersAvailable": "{{count}} user slots available",
+    "featuresTitle": "Included Features",
+    "featureEnabled": "Enabled in current license",
+    "featureNotEnabled": "Upgrade to unlock",
+    "featureLabels": {
+      "basic_monitoring": "Basic Monitoring",
+      "device_management": "Device Management",
+      "analytics_basic": "Analytics (Basic)",
+      "analytics_advanced": "Analytics (Advanced)",
+      "audit_logging": "Audit Logging",
+      "white_label": "White Label Branding",
+      "api_access": "API Access",
+      "custom_integrations": "Custom Integrations",
+      "priority_support": "Priority Support",
+      "dedicated_support": "Dedicated Support",
+      "lifetime_updates": "Lifetime Updates"
+    },
+    "featureGate": {
+      "title": "Feature unavailable",
+      "adminCta": "This feature requires the {{feature}} add-on. Adjust your license in Settings to enable it.",
+      "userCta": "This feature isn't enabled on your organization's license. Contact your administrator if you need access."
+    },
+    "detailsTitle": "License Details",
+    "maskedKey": "License Key",
+    "notAvailable": "Not available",
+    "instanceId": "Instance ID",
+    "hardwareId": "Hardware ID",
+    "validationHistory": "Validation History",
+    "activatedAt": "Activated at",
+    "nextValidation": "Next validation due",
+    "offlineWarningTitle": "Offline Validation Mode",
+    "offlineWarningDescription": "License validation failed {{count}} times.",
+    "gracePeriodEnds": "Grace period ends: {{date}}",
+    "changeTitle": "Change License",
+    "activateTitle": "Activate License",
+    "enterKeyLabel": "Enter your license key",
+    "keyHint": "Paste the license key you received after purchase.",
+    "blocker": {
+      "title": "License Required",
+      "requiresActivation": "Activate your license to continue using the platform.",
+      "expired": "Your license has expired. Please renew to regain access.",
+      "adminMessage": "Enter a valid license key below to restore access for all users.",
+      "userMessage": "Access is temporarily limited until an administrator renews the license.",
+      "expiredAt": "Previous license expired on {{date}}.",
+      "noLicense": "No active license is currently configured.",
+      "contactAdmin": "Please contact your administrator to reactivate the platform."
+    }
+  },
   "deviceDetail": {
     "eyebrow": "Device detail",
     "unassigned": "Unassigned location",

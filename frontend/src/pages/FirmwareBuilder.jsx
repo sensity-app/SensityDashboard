@@ -54,10 +54,14 @@ const FirmwareBuilder = () => {
     const [showWebFlasher, setShowWebFlasher] = useState(false);
 
     // Generate unique device ID
-    const generateDeviceId = () => {
+    const generateDeviceId = (platform = 'device') => {
         const timestamp = Date.now().toString(36);
         const random = Math.random().toString(36).substr(2, 5);
-        return `ESP8266_${timestamp}_${random}`;
+        const normalizedPrefix = (platform || 'device')
+            .toString()
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .toUpperCase() || 'DEVICE';
+        return `${normalizedPrefix}_${timestamp}_${random}`;
     };
 
     // Generate API key
@@ -73,7 +77,7 @@ const FirmwareBuilder = () => {
     // Form state
     const [config, setConfig] = useState({
         platform: 'esp8266', // esp8266, esp32, arduino, raspberry_pi
-        device_id: generateDeviceId(),
+        device_id: generateDeviceId('esp8266'),
         device_name: '',
         device_location: '',
         wifi_ssid: '',
@@ -122,7 +126,7 @@ const FirmwareBuilder = () => {
     const regenerateDeviceId = () => {
         setConfig(prev => ({
             ...prev,
-            device_id: generateDeviceId()
+            device_id: generateDeviceId(prev.platform)
         }));
     };
 
@@ -428,7 +432,7 @@ const FirmwareBuilder = () => {
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-900">{getCopy('header.title', 'Custom Firmware Builder')}</h1>
                                 <p className="text-gray-600 mt-1">
-                                    {getCopy('header.subtitle', 'Configure your ESP8266 device step by step and generate custom firmware')}
+                                    {getCopy('header.subtitle', 'Configure your device step by step and generate custom firmware')}
                                 </p>
                             </div>
                         </div>
@@ -1215,7 +1219,7 @@ const FirmwareBuilder = () => {
                                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                             : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
                                     }`}
-                                    title="Flash firmware directly to ESP8266 via Web Serial API"
+                                    title="Flash firmware directly via Web Serial API"
                                 >
                                     <Zap className="w-5 h-5" />
                                     <span>Flash to Device</span>

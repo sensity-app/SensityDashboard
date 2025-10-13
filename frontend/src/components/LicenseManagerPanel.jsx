@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -28,6 +28,10 @@ function LicenseManagerPanel() {
     const queryClient = useQueryClient();
     const [showActivateModal, setShowActivateModal] = useState(false);
     const [licenseKey, setLicenseKey] = useState('');
+    const formatFeatureLabel = useCallback(
+        (featureKey) => t(`license.featureLabels.${featureKey}`, featureKey.replace(/_/g, ' ')),
+        [t]
+    );
 
     // Query license status
     const { data: licenseStatus, isLoading } = useQuery(
@@ -247,7 +251,7 @@ function LicenseManagerPanel() {
                                         <p className="text-sm font-medium text-gray-500">{t('license.expiration', 'Expiration')}</p>
                                         <h3 className="text-2xl font-semibold text-gray-900">
                                             {licenseStatus.days_until_expiry !== null
-                                                ? `${licenseStatus.days_until_expiry} ${t('common.days', 'days')}`
+                                                ? `${licenseStatus.days_until_expiry} ${t('common.daysLabel', 'days')}`
                                                 : t('license.noExpiry', 'No expiry date')}
                                         </h3>
                                     </div>
@@ -367,8 +371,8 @@ function LicenseManagerPanel() {
                                     <XCircle className="w-5 h-5 text-gray-400 mt-1" />
                                 )}
                                 <div>
-                                    <h4 className="font-medium text-gray-900 capitalize">
-                                        {key.replace(/_/g, ' ')}
+                                    <h4 className="font-medium text-gray-900">
+                                        {formatFeatureLabel(key)}
                                     </h4>
                                     <p className="text-sm text-gray-500">
                                         {enabled

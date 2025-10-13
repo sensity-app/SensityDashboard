@@ -141,7 +141,7 @@ const WebFlasher = ({ config, onClose }) => {
 
         const requestedPlatform = config?.platform || config?.device_type;
         if (requestedPlatform && requestedPlatform !== 'esp8266') {
-            addLog(`Web flashing currently supports ESP8266 only (selected platform: ${requestedPlatform}).`, 'error');
+            addLog(`Web flashing is not yet available for ${requestedPlatform}.`, 'error');
             addLog('Use the download option and flash the binary with a platform-appropriate tool.', 'info');
             return;
         }
@@ -202,7 +202,7 @@ const WebFlasher = ({ config, onClose }) => {
         let transport;
 
         try {
-            setFlashStatus('Connecting to ESP8266...');
+            setFlashStatus('Connecting to device...');
             addLog('Initializing ESPTool...', 'info');
             setFlashProgress(25);
 
@@ -222,7 +222,7 @@ const WebFlasher = ({ config, onClose }) => {
             });
 
             setFlashStatus('Connecting to chip...');
-            addLog('Connecting to ESP8266...', 'info');
+            addLog('Connecting to device...', 'info');
 
             const chip = await esploader.main();
 
@@ -280,7 +280,7 @@ const WebFlasher = ({ config, onClose }) => {
             setFlashProgress(90);
 
             setFlashStatus('Restarting device...');
-            addLog('Resetting ESP8266...', 'info');
+            addLog('Resetting device...', 'info');
 
             await esploader.hardReset();
 
@@ -539,7 +539,7 @@ const WebFlasher = ({ config, onClose }) => {
                         <div className="flex items-center space-x-3">
                             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
                             <span className="text-sm font-medium">
-                                {isConnected ? 'Connected to ESP8266' : 'Not connected'}
+                                {isConnected ? 'Connected to device' : 'Not connected'}
                             </span>
                         </div>
                         {!isConnected ? (
@@ -619,7 +619,7 @@ const WebFlasher = ({ config, onClose }) => {
                             <div className="text-sm">
                                 <h4 className="font-medium text-blue-800 mb-1">Before Flashing:</h4>
                                 <ol className="text-blue-700 space-y-1 list-decimal list-inside">
-                                    <li>Connect your ESP8266 to your computer via USB</li>
+                                    <li>Connect your device to your computer via USB</li>
                                     <li>Install the CP210x or CH340 USB driver if needed</li>
                                     <li>Hold the FLASH button while clicking "Connect Device"</li>
                                     <li>Release the FLASH button after connection is established</li>

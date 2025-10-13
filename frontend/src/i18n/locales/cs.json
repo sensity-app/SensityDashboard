@@ -43,9 +43,13 @@
     "create": "Vytvořit",
     "update": "Aktualizovat",
     "sending": "Odesílání...",
+    "processing": "Zpracovává se...",
     "welcome": "Vítejte",
     "all": "Vše",
     "noData": "Žádná data",
+    "notAvailable": "Nedostupné",
+    "never": "Nikdy",
+    "daysLabel": "dní",
     "days": {
       "short": {
         "sun": "Ne",
@@ -169,7 +173,7 @@
   "firmwareBuilder": {
     "header": {
       "title": "Stavitel vlastního firmwaru",
-      "subtitle": "Nakonfigurujte zařízení ESP8266 krok za krokem a vytvořte vlastní firmware"
+      "subtitle": "Nakonfigurujte své zařízení krok za krokem a vytvořte vlastní firmware"
     },
     "steps": {
       "device": {
@@ -252,7 +256,7 @@
     "undefined": "Neznámá role"
   },
   "dashboard": {
-    "title": "ESP8266 IoT Přehled",
+    "title": "Sensity IoT Přehled",
     "overview": "Přehled systému",
   "deviceCount": "Celkem zařízení",
   "deviceCountLabel": "zařízení",
@@ -267,9 +271,103 @@
     "welcomeMessage": "Vítejte na vaší IoT platformě",
     "noData": "Žádná data k dispozici",
     "viewAll": "Zobrazit vše",
+    "quickActions": "Rychlé akce",
+    "buildFirmware": "Vytvořit nový firmware",
+    "buildFirmwareDesc": "Vytvořte a nasazujte firmware pro nová zařízení",
+    "manageDevices": "Spravovat zařízení",
+    "manageDevicesDesc": "Zobrazte a konfigurujte všechna IoT zařízení",
+    "systemSettings": "Systémová nastavení",
+    "systemSettingsDesc": "Nastavení platformy a upozornění",
     "toast": {
       "acknowledgeSuccess": "Upozornění bylo potvrzeno",
       "acknowledgeError": "Upozornění se nepodařilo potvrdit"
+    }
+  },
+  "license": {
+    "managementTitle": "Správa licence",
+    "activateSuccess": "Licence byla úspěšně aktivována!",
+    "activateFailed": "Aktivace licence se nezdařila",
+    "validateSuccess": "Licence byla úspěšně ověřena",
+    "validateFailed": "Licence se nepodařilo ověřit",
+    "removeSuccess": "Licence byla odstraněna",
+    "removeFailed": "Licence se nepodařilo odstranit",
+    "enterKeyPrompt": "Zadejte licenční klíč",
+    "types": {
+      "trial": "Zkušební",
+      "starter": "Starter",
+      "professional": "Professional",
+      "enterprise": "Enterprise",
+      "lifetime": "Doživotní"
+    },
+    "actions": {
+      "validate": "Ověřit",
+      "change": "Změnit licenci",
+      "activate": "Aktivovat licenci",
+      "remove": "Odebrat licenci",
+      "update": "Aktualizovat licenci"
+    },
+    "noActiveTitle": "Žádná aktivní licence",
+    "noActiveDescription": "Aktivujte licenci pro odemčení všech funkcí",
+    "typeLabel": "Typ licence",
+    "validStatus": "Stav",
+    "statusActive": "Aktivní",
+    "statusInactive": "Neaktivní",
+    "offlineMode": "Provoz v režimu offline ověřování",
+    "expiration": "Platnost",
+    "noExpiry": "Bez data vypršení",
+    "expiresAt": "Platnost do",
+    "lastValidated": "Naposledy ověřeno",
+    "expiringSoon": "Licence brzy vyprší, prosím obnovte ji",
+    "usageTitle": "Přehled využití",
+    "devices": "Zařízení",
+    "devicesAvailable": "{{count}} volných pozic pro zařízení",
+    "users": "Uživatelé",
+    "usersAvailable": "{{count}} volných pozic pro uživatele",
+    "featuresTitle": "Zahrnuté funkce",
+    "featureEnabled": "Součást aktuální licence",
+    "featureNotEnabled": "Pro odemčení přejděte na vyšší tarif",
+    "featureLabels": {
+      "basic_monitoring": "Základní monitoring",
+      "device_management": "Správa zařízení",
+      "analytics_basic": "Analytika (základní)",
+      "analytics_advanced": "Analytika (pokročilá)",
+      "audit_logging": "Auditní logování",
+      "white_label": "White-label branding",
+      "api_access": "Přístup k API",
+      "custom_integrations": "Vlastní integrace",
+      "priority_support": "Prioritní podpora",
+      "dedicated_support": "Dedikovaná podpora",
+      "lifetime_updates": "Doživotní aktualizace"
+    },
+    "featureGate": {
+      "title": "Funkce není dostupná",
+      "adminCta": "Tato funkce vyžaduje doplněk {{feature}}. Aktivujte jej v nastavení licence.",
+      "userCta": "Tato funkce není na vaší licenci povolena. Kontaktujte administrátora, pokud ji potřebujete."
+    },
+    "detailsTitle": "Podrobnosti licence",
+    "maskedKey": "Licenční klíč",
+    "notAvailable": "Není k dispozici",
+    "instanceId": "ID instance",
+    "hardwareId": "Hardwarové ID",
+    "validationHistory": "Historie ověřování",
+    "activatedAt": "Aktivováno",
+    "nextValidation": "Další ověření",
+    "offlineWarningTitle": "Režim offline ověřování",
+    "offlineWarningDescription": "Licence se nepodařilo ověřit {{count}}-krát.",
+    "gracePeriodEnds": "Konec odkladného období: {{date}}",
+    "changeTitle": "Změnit licenci",
+    "activateTitle": "Aktivovat licenci",
+    "enterKeyLabel": "Zadejte licenční klíč",
+    "keyHint": "Vložte licenční klíč, který jste obdrželi po nákupu.",
+    "blocker": {
+      "title": "Licence je vyžadována",
+      "requiresActivation": "Aktivujte licenci pro pokračování v používání platformy.",
+      "expired": "Vaší licenci vypršela platnost. Obnovte ji pro obnovení přístupu.",
+      "adminMessage": "Zadejte níže platný licenční klíč a obnovte přístup pro všechny uživatele.",
+      "userMessage": "Přístup je dočasně omezen, dokud administrátor licenci neobnoví.",
+      "expiredAt": "Předchozí licence vypršela {{date}}.",
+      "noLicense": "Aktivní licence není aktuálně nastavena.",
+      "contactAdmin": "Kontaktujte prosím svého administrátora a nechte platformu znovu aktivovat."
     }
   },
   "deviceDetail": {

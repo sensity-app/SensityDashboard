@@ -44,7 +44,8 @@ const logger = require('./src/utils/logger');
 const db = require('./src/models/database');
 const {
     requireValidLicense,
-    addLicenseHeaders
+    addLicenseHeaders,
+    requireFeature
 } = require('./src/middleware/licenseMiddleware');
 
 const app = express();
@@ -112,32 +113,36 @@ app.use('/api/license', licenseRoutes);
 
 // Routes that require a valid license
 const protectedRoutes = [
-    ['/api/devices', deviceRoutes],
-    ['/api/alerts', alertRoutes],
-    ['/api/locations', locationRoutes],
+    ['/api/devices', deviceRoutes, 'device_management'],
+    ['/api/alerts', alertRoutes, 'basic_monitoring'],
+    ['/api/locations', locationRoutes, 'device_management'],
     ['/api/users', userRoutes],
-    ['/api/firmware', firmwareRoutes],
-    ['/api/telemetry', telemetryRoutes],
-    ['/api/escalation', escalationRoutes],
-    ['/api/analytics', analyticsRoutes],
-    ['/api/device-groups', deviceGroupRoutes],
-    ['/api/device-tags', deviceTagRoutes],
-    ['/api/alert-rules', alertRuleRoutes],
-    ['/api/firmware-builder', firmwareBuilderRoutes],
-    ['/api/firmware-templates', firmwareTemplateRoutes],
+    ['/api/firmware', firmwareRoutes, 'device_management'],
+    ['/api/telemetry', telemetryRoutes, 'basic_monitoring'],
+    ['/api/escalation', escalationRoutes, 'basic_monitoring'],
+    ['/api/analytics', analyticsRoutes, 'analytics_advanced'],
+    ['/api/device-groups', deviceGroupRoutes, 'device_management'],
+    ['/api/device-tags', deviceTagRoutes, 'device_management'],
+    ['/api/alert-rules', alertRuleRoutes, 'analytics_basic'],
+    ['/api/firmware-builder', firmwareBuilderRoutes, 'device_management'],
+    ['/api/firmware-templates', firmwareTemplateRoutes, 'device_management'],
     ['/api/settings', settingsRoutes],
-    ['/api/silent-mode', silentModeRoutes],
-    ['/api/protocol-settings', protocolSettingsRoutes],
+    ['/api/silent-mode', silentModeRoutes, 'analytics_basic'],
+    ['/api/protocol-settings', protocolSettingsRoutes, 'custom_integrations'],
     ['/api/system', systemRoutes],
-    ['/api/telegram', telegramRoutes],
-    ['/api/threshold-calibration', thresholdCalibrationRoutes],
-    ['/api/security', securityRoutes],
-    ['/api/webhooks', webhookRoutes],
+    ['/api/telegram', telegramRoutes, 'custom_integrations'],
+    ['/api/threshold-calibration', thresholdCalibrationRoutes, 'analytics_advanced'],
+    ['/api/security', securityRoutes, 'audit_logging'],
+    ['/api/webhooks', webhookRoutes, 'custom_integrations'],
     ['/api/rate-limits', rateLimitRoutes]
 ];
 
-for (const [path, router] of protectedRoutes) {
-    app.use(path, requireValidLicense, router);
+for (const [path, router, feature] of protectedRoutes) {
+    if (feature) {
+        app.use(path, requireValidLicense, requireFeature(feature), router);
+    } else {
+        app.use(path, requireValidLicense, router);
+    }
 }
 
 // WebSocket authentication middleware

@@ -3,6 +3,7 @@ const { body, param, query, validationResult } = require('express-validator');
 const db = require('../models/database');
 const logger = require('../utils/logger');
 const { authenticateToken, authenticateDevice, requireAdmin } = require('../middleware/auth');
+const { requireFeature } = require('../middleware/licenseMiddleware');
 const otaService = require('../services/otaService');
 
 const router = express.Router();
@@ -824,6 +825,7 @@ router.post('/:id/health',
 // GET /api/devices/:id/health - Get device health status
 router.get('/:id/health',
     authenticateToken,
+    requireFeature('analytics_advanced'),
     async (req, res) => {
         try {
             const deviceId = req.params.id;
@@ -890,6 +892,7 @@ router.get('/:id/health',
 // GET /api/devices/:id/health/history - Get device health history
 router.get('/:id/health/history',
     authenticateToken,
+    requireFeature('analytics_advanced'),
     [
         query('timeRange').optional().isIn(['1h', '6h', '24h', '7d', '30d']),
         query('metrics').optional().isString()

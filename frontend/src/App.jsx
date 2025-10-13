@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
@@ -199,6 +199,79 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const dropdownRefs = useRef({});
 
+    const { data: licenseFeaturesData, isLoading: licenseFeaturesLoading } = useQuery(
+        'license-features',
+        () => apiService.getLicenseFeatures(),
+        {
+            refetchInterval: 60000,
+            staleTime: 30000
+        }
+    );
+
+    const licenseFeatures = useMemo(
+        () => licenseFeaturesData?.features || {},
+        [licenseFeaturesData]
+    );
+
+    const hasFeature = useCallback((featureKey) => {
+        if (!featureKey) return true;
+        if (licenseFeaturesLoading) return true;
+        return licenseFeatures[featureKey] === true;
+    }, [licenseFeatures, licenseFeaturesLoading]);
+
+    const getFeatureLabel = useCallback(
+        (featureKey) => t(`license.featureLabels.${featureKey}`, featureKey.replace(/_/g, ' ')),
+        [t]
+    );
+
+    const FeatureGate = ({ feature, children }) => {
+        if (!feature) {
+            return children;
+        }
+
+        if (licenseFeaturesLoading) {
+            return (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-600">
+                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-b-0 border-primary mb-4"></div>
+                    <span>{t('common.loading', 'Loading...')}</span>
+                </div>
+            );
+        }
+
+        if (hasFeature(feature)) {
+            return children;
+        }
+
+        return (
+            <div className="max-w-3xl mx-auto bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-center space-y-4">
+                <div className="mx-auto w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-red-500" />
+                </div>
+                <h2 className="text-2xl font-semibold text-gray-900">
+                    {t('license.featureGate.title', 'Feature unavailable')}
+                </h2>
+                <p className="text-gray-600">
+                    {isAdminUser
+                        ? t('license.featureGate.adminCta', {
+                            feature: getFeatureLabel(feature)
+                        })
+                        : t('license.featureGate.userCta', {
+                            feature: getFeatureLabel(feature)
+                        })}
+                </p>
+                {isAdminUser && (
+                    <button
+                        type="button"
+                        onClick={() => navigate('/settings?tab=license')}
+                        className="btn-primary"
+                    >
+                        {t('settings.tabs.license', 'License')}
+                    </button>
+                )}
+            </div>
+        );
+    };
+
     const handleLanguageChange = async (languageCode) => {
         if (languageCode === (user?.preferred_language || i18n.language)) {
             return;
@@ -309,44 +382,74 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
     const shouldBlockForLicense = !licenseStatusLoading && licenseStatus && licenseStatus.valid === false;
     const isAdminUser = user.role === 'admin';
 
-    const navigationItems = [
-        { path: '/', label: t('nav.dashboard', 'Dashboard'), icon: '📊' },
-        { path: '/devices', label: t('nav.devices', 'Devices'), icon: '🔧' },
-        {
-            label: t('nav.monitoring', 'Monitoring'), icon: '📈', dropdown: true,
-            items: [
-                { path: '/analytics', label: t('nav.analytics', 'Analytics'), icon: '🧠' },
-                { path: '/device-health', label: t('nav.deviceHealth', 'Device Health'), icon: '🏥' },
-                { path: '/alert-rules', label: t('nav.alertRules', 'Alert Rules'), icon: '⚙️' },
-                { path: '/silent-mode', label: t('nav.silentMode', 'Silent Mode'), icon: '🔕' },
-            ]
-        },
-        {
-            label: t('nav.organization', 'Organization'), icon: '🏷️', dropdown: true,
-            items: [
-                { path: '/device-groups', label: t('nav.deviceGroups', 'Device Groups'), icon: '🏷️' },
-                { path: '/device-tags', label: t('nav.deviceTags', 'Device Tags'), icon: '🏷️' },
-                { path: '/device-locations', label: t('nav.deviceLocations', 'Device Locations'), icon: '📍' }
-            ]
-        },
-        {
-            label: t('nav.tools', 'Tools'), icon: '🔧', dropdown: true,
-            items: [
-                { path: '/firmware-builder', label: t('nav.firmwareBuilder', 'Firmware Builder'), icon: '⚙️' },
-                { path: '/serial-monitor', label: t('nav.serialMonitor', 'Serial Monitor'), icon: '📺' }
-            ]
-        },
-        ...(user.role === 'admin' ? [
+    const navigationItems = useMemo(() => {
+        const items = [
+            { path: '/', label: t('nav.dashboard', 'Dashboard'), icon: '📊', feature: 'basic_monitoring' },
+            { path: '/devices', label: t('nav.devices', 'Devices'), icon: '🔧', feature: 'device_management' },
             {
+                label: t('nav.monitoring', 'Monitoring'), icon: '📈', dropdown: true,
+                items: [
+                    { path: '/analytics', label: t('nav.analytics', 'Analytics'), icon: '🧠', feature: 'analytics_advanced' },
+                    { path: '/device-health', label: t('nav.deviceHealth', 'Device Health'), icon: '🏥', feature: 'analytics_advanced' },
+                    { path: '/alert-rules', label: t('nav.alertRules', 'Alert Rules'), icon: '⚙️', feature: 'analytics_basic' },
+                    { path: '/silent-mode', label: t('nav.silentMode', 'Silent Mode'), icon: '🔕', feature: 'analytics_basic' },
+                ]
+            },
+            {
+                label: t('nav.organization', 'Organization'), icon: '🏷️', dropdown: true,
+                items: [
+                    { path: '/device-groups', label: t('nav.deviceGroups', 'Device Groups'), icon: '🏷️', feature: 'device_management' },
+                    { path: '/device-tags', label: t('nav.deviceTags', 'Device Tags'), icon: '🏷️', feature: 'device_management' },
+                    { path: '/device-locations', label: t('nav.deviceLocations', 'Device Locations'), icon: '📍', feature: 'device_management' }
+                ]
+            },
+            {
+                label: t('nav.tools', 'Tools'), icon: '🔧', dropdown: true,
+                items: [
+                    { path: '/firmware-builder', label: t('nav.firmwareBuilder', 'Firmware Builder'), icon: '⚙️', feature: 'device_management' },
+                    { path: '/serial-monitor', label: t('nav.serialMonitor', 'Serial Monitor'), icon: '📺', feature: 'device_management' }
+                ]
+            }
+        ];
+
+        if (user.role === 'admin') {
+            items.push({
                 label: t('nav.administration', 'Administration'), icon: '⚙️', dropdown: true,
                 items: [
                     { path: '/users', label: t('nav.userManagement', 'Users'), icon: '👥' },
                     { path: '/settings', label: t('nav.settings', 'Settings'), icon: '⚙️' },
-                    { path: '/protocol-settings', label: t('nav.protocolSettings', 'Protocol Settings'), icon: '🔌' }
+                    { path: '/protocol-settings', label: t('nav.protocolSettings', 'Protocol Settings'), icon: '🔌', feature: 'custom_integrations' }
                 ]
+            });
+        }
+
+        return items;
+    }, [t, user.role]);
+
+    const visibleNavigationItems = useMemo(() => {
+        const filterItems = (items) => items.reduce((acc, item) => {
+            if (item.dropdown && Array.isArray(item.items)) {
+                if (item.feature && !hasFeature(item.feature)) {
+                    return acc;
+                }
+                const filteredSubItems = filterItems(item.items);
+                if (filteredSubItems.length === 0) {
+                    return acc;
+                }
+                acc.push({ ...item, items: filteredSubItems });
+                return acc;
             }
-        ] : [])
-    ];
+
+            if (item.feature && !hasFeature(item.feature)) {
+                return acc;
+            }
+
+            acc.push(item);
+            return acc;
+        }, []);
+
+        return filterItems(navigationItems);
+    }, [navigationItems, hasFeature]);
 
     const handleDropdownToggle = (index) => {
         if (dropdownOpen === index) {
@@ -497,7 +600,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
             <nav className="glass-dark relative border-t border-white/10 z-50 hidden lg:block" style={{ overflow: 'visible' }}>
                 <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
                     <div className="flex space-x-0.5 sm:space-x-1 scrollbar-hide" style={{ overflowX: 'auto', overflowY: 'visible' }}>
-                        {navigationItems.map((item, index) => (
+                        {visibleNavigationItems.map((item, index) => (
                             <div key={item.path || index} className="flex-shrink-0">
                                 {item.dropdown ? (
                                     <>
@@ -593,7 +696,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
 
                         {/* Navigation Items */}
                         <div className="p-2">
-                            {navigationItems.map((item, index) => (
+                            {visibleNavigationItems.map((item, index) => (
                                 <div key={item.path || index} className="mb-1">
                                     {item.dropdown ? (
                                         <>
@@ -660,23 +763,114 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
             {/* Main Content */}
             <main className="max-w-7xl mx-auto py-4 px-4 sm:py-8 sm:px-6 lg:px-8" onClick={() => setDropdownOpen(null)}>
                 <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/devices" element={<DeviceManagement />} />
-                    <Route path="/devices/:id" element={<DeviceDetail />} />
-                    <Route path="/analytics" element={<AnalyticsDashboard />} />
-                    <Route path="/device-groups" element={<DeviceGroupsManager />} />
-                    <Route path="/device-tags" element={<DeviceTagsManager />} />
-                    <Route path="/device-locations" element={<DeviceLocationsManager />} />
-                    <Route path="/device-health" element={<DeviceHealthDashboard />} />
-                    <Route path="/alert-rules" element={<AlertRulesManager />} />
-                    <Route path="/silent-mode" element={<SilentModeManager />} />
-                    <Route path="/firmware-builder" element={<FirmwareBuilder />} />
-                    <Route path="/serial-monitor" element={<SerialMonitor />} />
+                    <Route
+                        path="/"
+                        element={
+                            <FeatureGate feature="basic_monitoring">
+                                <Dashboard />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/devices"
+                        element={
+                            <FeatureGate feature="device_management">
+                                <DeviceManagement />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/devices/:id"
+                        element={
+                            <FeatureGate feature="device_management">
+                                <DeviceDetail />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/analytics"
+                        element={
+                            <FeatureGate feature="analytics_advanced">
+                                <AnalyticsDashboard />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/device-groups"
+                        element={
+                            <FeatureGate feature="device_management">
+                                <DeviceGroupsManager />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/device-tags"
+                        element={
+                            <FeatureGate feature="device_management">
+                                <DeviceTagsManager />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/device-locations"
+                        element={
+                            <FeatureGate feature="device_management">
+                                <DeviceLocationsManager />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/device-health"
+                        element={
+                            <FeatureGate feature="analytics_advanced">
+                                <DeviceHealthDashboard />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/alert-rules"
+                        element={
+                            <FeatureGate feature="analytics_basic">
+                                <AlertRulesManager />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/silent-mode"
+                        element={
+                            <FeatureGate feature="analytics_basic">
+                                <SilentModeManager />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/firmware-builder"
+                        element={
+                            <FeatureGate feature="device_management">
+                                <FirmwareBuilder />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/serial-monitor"
+                        element={
+                            <FeatureGate feature="device_management">
+                                <SerialMonitor />
+                            </FeatureGate>
+                        }
+                    />
                     {user.role === 'admin' && (
                         <>
                             <Route path="/users" element={<UserManagement />} />
                             <Route path="/settings" element={<Settings />} />
-                            <Route path="/protocol-settings" element={<ProtocolSettingsManager />} />
+                            <Route
+                                path="/protocol-settings"
+                                element={
+                                    <FeatureGate feature="custom_integrations">
+                                        <ProtocolSettingsManager />
+                                    </FeatureGate>
+                                }
+                            />
                         </>
                     )}
                     <Route path="*" element={<Navigate to="/" />} />

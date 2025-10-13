@@ -128,7 +128,7 @@ function Login({ onLogin }) {
                             {t('auth.signInTitle', 'Welcome back')}
                         </h2>
                         <p className="text-gray-600 text-sm">
-                            {systemSettings.siteName || 'ESP8266 IoT Platform'}, {branding.companyName || t('auth.iotPlatform', 'IoT Monitoring Platform')}
+                            {systemSettings.siteName || 'Sensity IoT Platform'}, {branding.companyName || t('auth.iotPlatform', 'IoT Monitoring Platform')}
                         </p>
                     </div>
 

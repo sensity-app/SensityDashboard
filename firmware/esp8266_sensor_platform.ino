@@ -763,8 +763,11 @@ void updateSensorConfiguration(JsonArray sensorConfigs) {
                     }
 
                     if (sensorConfig.containsKey("name")) {
-                        strncpy(sensors[j].name, sensorConfig["name"].as<const char*>(), sizeof(sensors[j].name) - 1);
-                        sensors[j].name[sizeof(sensors[j].name) - 1] = '\0';
+                        const char* nameStr = sensorConfig["name"];
+                        if (nameStr != nullptr) {
+                            strncpy(sensors[j].name, nameStr, sizeof(sensors[j].name) - 1);
+                            sensors[j].name[sizeof(sensors[j].name) - 1] = '\0';
+                        }
                     }
 
                     if (sensorConfig.containsKey("threshold_min")) {

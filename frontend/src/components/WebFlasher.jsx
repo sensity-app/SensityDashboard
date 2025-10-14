@@ -372,6 +372,46 @@ const WebFlasher = ({ config, onClose }) => {
         }
     };
 
+    const prepareBootloaderEntry = async (serialPort) => {
+        if (!serialPort || typeof serialPort.setSignals !== 'function') {
+            return;
+        }
+
+        let openedForPrep = false;
+        try {
+            if (!serialPort.readable && !serialPort.writable) {
+                await serialPort.open({
+                    baudRate: DEFAULT_BAUD_RATE,
+                    dataBits: 8,
+                    stopBits: 1,
+                    parity: 'none',
+                    flowControl: 'none'
+                });
+                openedForPrep = true;
+            }
+
+            // Mimic esptool ClassicReset sequence: D0|R1|W100|D1|R0|W120|D0
+            await serialPort.setSignals({ dataTerminalReady: false, requestToSend: true });
+            await wait(120);
+            await serialPort.setSignals({ dataTerminalReady: true, requestToSend: false });
+            await wait(120);
+            await serialPort.setSignals({ dataTerminalReady: false, requestToSend: false });
+            await wait(80);
+        } catch (error) {
+            console.warn('Bootloader preparation failed:', error);
+        } finally {
+            if (openedForPrep) {
+                try {
+                    await serialPort.close();
+                } catch (closeError) {
+                    if (closeError.name !== 'InvalidStateError') {
+                        console.warn('Bootloader prep close failed:', closeError);
+                    }
+                }
+            }
+        }
+    };
+
     React.useEffect(() => {
         if (!supportsWebSerial) {
             return;
@@ -533,6 +573,10 @@ const WebFlasher = ({ config, onClose }) => {
                         addLog(`Connection taking longer than expected. Switching to fallback baud rate ${FALLBACK_BAUD_RATE}.`, 'warning');
                     }
 
+                    if (attempt === 1) {
+                        addLog('Preparing device for bootloader...', 'info');
+                    }
+                    await prepareBootloaderEntry(activePort);
                     transportRef.current = transport;
                     const esploaderInstance = new ESPLoader({
                         transport,
@@ -557,13 +601,15 @@ const WebFlasher = ({ config, onClose }) => {
                         lastError = error;
                         const alreadyOpen = error.name === 'InvalidStateError' ||
                             error.message?.includes('already open');
+                        const connectFailed = typeof error.message === 'string' && error.message.includes('Failed to connect');
+                        const recoverable = alreadyOpen || connectFailed;
 
-                        if (!alreadyOpen) {
+                        if (!recoverable) {
                             throw error;
                         }
 
                         if (attempt === maxAttempts) {
-                            throw new Error('Unable to gain access to the serial port. Please unplug and reconnect the device, then try again.');
+                            throw new Error(`Unable to gain access to the serial port after multiple retries. Last error: ${error.message}`);
                         }
 
                         const nextAttempt = attempt + 1;
@@ -581,11 +627,11 @@ const WebFlasher = ({ config, onClose }) => {
                         }
 
                         await closePortIfOpen(activePort);
-                        await wait(400 * attempt);
+                        await wait(Math.min(400 * attempt, 2000));
                     }
                 }
 
-                const finalMessage = lastError?.message || 'Failed to establish serial connection.';
+                const finalMessage = lastError?.message || lastError || 'Failed to establish serial connection.';
                 if (lastError?.stack) {
                     console.warn('Final connection error stack:', lastError);
                 }

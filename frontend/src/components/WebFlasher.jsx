@@ -272,24 +272,11 @@ const WebFlasher = ({ config, onClose }) => {
             setFlashProgress(25);
 
             transport = new Transport(port);
-            transportRef.current = transport;
 
-            // Use a try-catch specifically for the transport connection
-            try {
-                await transport.connect(115200, {
-                    dataBits: 8,
-                    stopBits: 1,
-                    parity: 'none',
-                    flowControl: 'none'
-                });
-            } catch (transportError) {
-                addLog(`Transport connection error: ${transportError.message}`, 'error');
-                // If it fails because port is open, try to close and retry once
-                if (transportError.message.includes('already open')) {
-                    addLog('Attempting to force close port and retry...', 'info');
+            const connectWithRetry = async () => {
+                const maxAttempts = 3;
+                for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                     try {
-                        await closePortIfOpen(port);
-                        await new Promise(resolve => setTimeout(resolve, 1000));
                         transportRef.current = transport;
                         await transport.connect(115200, {
                             dataBits: 8,
@@ -297,14 +284,30 @@ const WebFlasher = ({ config, onClose }) => {
                             parity: 'none',
                             flowControl: 'none'
                         });
-                        addLog('Retry successful', 'success');
-                    } catch (retryError) {
-                        throw new Error(`Failed to connect after retry: ${retryError.message}. Please refresh the page and try again.`);
+                        return;
+                    } catch (transportError) {
+                        const alreadyOpen = transportError.name === 'InvalidStateError' ||
+                            transportError.message?.includes('already open');
+
+                        if (!alreadyOpen) {
+                            throw transportError;
+                        }
+
+                        transportRef.current = null;
+
+                        if (attempt === maxAttempts) {
+                            throw new Error('Unable to gain access to the serial port. Please unplug and reconnect the device, then try again.');
+                        }
+
+                        addLog(`Serial port still busy (retry ${attempt} of ${maxAttempts - 1})...`, 'warning');
+                        await closePortIfOpen(port);
+                        await new Promise(resolve => setTimeout(resolve, 400 * attempt));
                     }
-                } else {
-                    throw transportError;
                 }
-            }
+            };
+
+            await connectWithRetry();
+            addLog('Serial connection established', 'success');
 
             const esploader = new ESPLoader({
                 transport,

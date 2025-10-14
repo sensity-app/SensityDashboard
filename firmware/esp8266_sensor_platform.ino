@@ -79,6 +79,8 @@ SensorConfig sensors[MAX_SENSORS];
 int sensorCount = 0;
 unsigned long lastHeartbeat = 0;
 unsigned long lastSensorRead = 0;
+unsigned long lastWiFiCheck = 0;
+const unsigned long WIFI_RECONNECT_INTERVAL = 15000; // 15 seconds
 WiFiClient wifiClient;
 #if USE_HTTPS
 WiFiClientSecure secureClient;
@@ -124,25 +126,45 @@ void setup() {
 }
 
 void loop() {
-    // Check WiFi connection
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("WiFi disconnected, reconnecting...");
-        connectToWiFi();
+    // Check WiFi connection every 15 seconds
+    if (millis() - lastWiFiCheck >= WIFI_RECONNECT_INTERVAL) {
+        if (WiFi.status() != WL_CONNECTED) {
+            Serial.println("========================================");
+            Serial.println("WiFi disconnected! Attempting reconnection...");
+            Serial.println("========================================");
+            connectToWiFi();
+        } else {
+            if (config.debug_mode) {
+                Serial.println("WiFi status check: Connected");
+                Serial.print("Signal strength: ");
+                Serial.print(WiFi.RSSI());
+                Serial.println(" dBm");
+            }
+        }
+        lastWiFiCheck = millis();
     }
 
-    // Read sensors at regular intervals (every 5 seconds)
-    if (millis() - lastSensorRead >= 5000) {
-        readAndProcessSensors();
-        lastSensorRead = millis();
-    }
+    // Only perform network operations if WiFi is connected
+    if (WiFi.status() == WL_CONNECTED) {
+        // Read sensors at regular intervals (every 5 seconds)
+        if (millis() - lastSensorRead >= 5000) {
+            readAndProcessSensors();
+            lastSensorRead = millis();
+        }
 
-    // Send heartbeat at configured interval
-    if (millis() - lastHeartbeat >= (config.heartbeat_interval * 1000)) {
-        sendHeartbeat();
-    }
+        // Send heartbeat at configured interval
+        if (millis() - lastHeartbeat >= (config.heartbeat_interval * 1000)) {
+            sendHeartbeat();
+        }
 
-    // Handle any pending OTA updates
-    handleOTAUpdates();
+        // Handle any pending OTA updates
+        handleOTAUpdates();
+    } else {
+        // Log warning if disconnected for too long
+        if (config.debug_mode && (millis() - lastWiFiCheck) % 30000 < 1000) {
+            Serial.println("WARNING: WiFi still disconnected, waiting for reconnection...");
+        }
+    }
 
     delay(1000);
 }
@@ -184,9 +206,9 @@ void saveConfiguration() {
 void initializeSensors() {
     sensorCount = 0;
 
-    if (config.debug_mode) {
-        Serial.println("=== INITIALIZING SENSORS ===");
-    }
+    Serial.println("========================================");
+    Serial.println("INITIALIZING SENSORS");
+    Serial.println("========================================");
 
     // Temperature & Humidity Sensor (DHT)
     #if SENSOR_DHT_ENABLED
@@ -279,10 +301,9 @@ void initializeSensors() {
     }
     #endif
 
-    if (config.debug_mode) {
-        Serial.println("Total sensors initialized: " + String(sensorCount));
-        Serial.println("============================");
-    }
+    Serial.print("✅ Total sensors initialized: ");
+    Serial.println(sensorCount);
+    Serial.println("========================================");
 }
 
 /**
@@ -364,11 +385,22 @@ float applyMedianFilter(int pin, bool isAnalog) {
 }
 
 void readAndProcessSensors() {
+    if (config.debug_mode) {
+        Serial.println("========================================");
+        Serial.println("Reading sensors...");
+    }
+
     StaticJsonDocument<1024> telemetryDoc;
     JsonArray sensorData = telemetryDoc.createNestedArray("sensors");
 
     for (int i = 0; i < sensorCount; i++) {
-        if (!sensors[i].enabled) continue;
+        if (!sensors[i].enabled) {
+            if (config.debug_mode) {
+                Serial.print("Skipping disabled sensor on pin ");
+                Serial.println(sensors[i].pin);
+            }
+            continue;
+        }
 
         float rawValue = 0;
         float filteredValue = 0;
@@ -479,13 +511,32 @@ void readAndProcessSensors() {
 
     // Send telemetry data
     if (sensorData.size() > 0) {
+        if (config.debug_mode) {
+            Serial.print("Sending telemetry for ");
+            Serial.print(sensorData.size());
+            Serial.println(" sensors");
+        }
         sendTelemetryData(telemetryDoc);
+    } else {
+        if (config.debug_mode) {
+            Serial.println("No sensor data to send");
+        }
+    }
+
+    if (config.debug_mode) {
+        Serial.println("========================================");
     }
 }
 
 void sendTelemetryData(const JsonDocument& telemetryDoc) {
     HTTPClient http;
     String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/telemetry";
+
+    if (config.debug_mode) {
+        Serial.print("Sending telemetry to: ");
+        Serial.println(endpoint);
+    }
+
 #if USE_HTTPS
     if (strlen(SERVER_FINGERPRINT) > 0) {
         secureClient.setFingerprint(SERVER_FINGERPRINT);
@@ -501,15 +552,39 @@ void sendTelemetryData(const JsonDocument& telemetryDoc) {
     String payload;
     serializeJson(telemetryDoc, payload);
 
+    if (config.debug_mode) {
+        Serial.print("Payload size: ");
+        Serial.print(payload.length());
+        Serial.println(" bytes");
+    }
+
     int httpCode = http.POST(payload);
-    if (httpCode != 200 && config.debug_mode) {
-        Serial.println("Telemetry send failed: " + String(httpCode));
+
+    if (config.debug_mode) {
+        Serial.print("HTTP Response Code: ");
+        Serial.println(httpCode);
+    }
+
+    if (httpCode != 200) {
+        Serial.print("⚠️  Telemetry send failed with code: ");
+        Serial.println(httpCode);
+        if (config.debug_mode && http.getString().length() > 0) {
+            Serial.print("Response: ");
+            Serial.println(http.getString());
+        }
+    } else if (config.debug_mode) {
+        Serial.println("✅ Telemetry sent successfully");
     }
 
     http.end();
 }
 
 void sendHeartbeat() {
+    if (config.debug_mode) {
+        Serial.println("========================================");
+        Serial.println("Sending heartbeat...");
+    }
+
     HTTPClient http;
     String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/heartbeat";
 #if USE_HTTPS
@@ -549,19 +624,29 @@ void sendHeartbeat() {
     if (httpCode > 0) {
         String response = http.getString();
         if (config.debug_mode) {
-            Serial.println("Heartbeat response: " + response);
+            Serial.print("HTTP Response Code: ");
+            Serial.println(httpCode);
+            Serial.print("Heartbeat response: ");
+            Serial.println(response);
         }
 
         // Parse response for configuration updates
         parseServerResponse(response);
+    } else {
+        Serial.print("⚠️  Heartbeat failed with code: ");
+        Serial.println(httpCode);
     }
 
     http.end();
     lastHeartbeat = millis();
+
+    if (config.debug_mode) {
+        Serial.println("========================================");
+    }
 }
 
 void parseServerResponse(const String& response) {
-    StaticJsonDocument<1024> doc;
+    StaticJsonDocument<2048> doc;  // Increased size for sensor config
     DeserializationError error = deserializeJson(doc, response);
 
     if (error) {
@@ -569,7 +654,38 @@ void parseServerResponse(const String& response) {
         return;
     }
 
-    // Check for configuration updates
+    // Check for configuration updates in "config" object (new format)
+    if (doc.containsKey("config")) {
+        JsonObject configObj = doc["config"];
+
+        // Update sensor configuration from heartbeat response
+        if (configObj.containsKey("sensors")) {
+            JsonArray sensorConfigs = configObj["sensors"];
+            if (sensorConfigs.size() > 0) {
+                Serial.println("========================================");
+                Serial.print("Received sensor configuration update with ");
+                Serial.print(sensorConfigs.size());
+                Serial.println(" sensors");
+                updateSensorConfiguration(sensorConfigs);
+                Serial.println("========================================");
+            }
+        }
+
+        // Update other device configs if present
+        if (configObj.containsKey("heartbeat_interval")) {
+            config.heartbeat_interval = configObj["heartbeat_interval"];
+            Serial.print("Updated heartbeat interval: ");
+            Serial.println(config.heartbeat_interval);
+        }
+
+        if (configObj.containsKey("armed")) {
+            config.armed = configObj["armed"];
+            Serial.print("Armed status: ");
+            Serial.println(config.armed ? "true" : "false");
+        }
+    }
+
+    // Legacy format support
     if (doc.containsKey("config_update")) {
         JsonObject configUpdate = doc["config_update"];
 
@@ -593,11 +709,11 @@ void parseServerResponse(const String& response) {
         if (configChanged) {
             config.config_version++;
             saveConfiguration();
-            Serial.println("Configuration updated from server");
+            Serial.println("Configuration updated from server (legacy format)");
         }
     }
 
-    // Check for sensor configuration updates
+    // Legacy sensor config format
     if (doc.containsKey("sensor_config")) {
         JsonArray sensorConfigs = doc["sensor_config"];
         updateSensorConfiguration(sensorConfigs);
@@ -613,15 +729,44 @@ void parseServerResponse(const String& response) {
 }
 
 void updateSensorConfiguration(JsonArray sensorConfigs) {
+    int updatedCount = 0;
+
     for (int i = 0; i < sensorConfigs.size() && i < MAX_SENSORS; i++) {
         JsonObject sensorConfig = sensorConfigs[i];
 
         if (sensorConfig.containsKey("pin")) {
-            int pin = sensorConfig["pin"];
+            // Handle both string pins (like "D1") and numeric pins
+            String pinStr = sensorConfig["pin"].as<String>();
+            int pinNum = -1;
+
+            // Convert pin string to number if needed
+            if (pinStr.startsWith("D")) {
+                pinNum = pinStr.substring(1).toInt();
+            } else if (pinStr.startsWith("A")) {
+                pinNum = A0; // Analog pin
+            } else {
+                pinNum = pinStr.toInt();
+            }
 
             // Find matching sensor by pin
+            bool found = false;
             for (int j = 0; j < sensorCount; j++) {
-                if (sensors[j].pin == pin) {
+                if (sensors[j].pin == pinNum) {
+                    found = true;
+
+                    if (config.debug_mode) {
+                        Serial.print("Updating sensor on pin ");
+                        Serial.print(pinStr);
+                        Serial.print(" (");
+                        Serial.print(sensors[j].name);
+                        Serial.println(")");
+                    }
+
+                    if (sensorConfig.containsKey("name")) {
+                        strncpy(sensors[j].name, sensorConfig["name"].as<const char*>(), sizeof(sensors[j].name) - 1);
+                        sensors[j].name[sizeof(sensors[j].name) - 1] = '\0';
+                    }
+
                     if (sensorConfig.containsKey("threshold_min")) {
                         sensors[j].threshold_min = sensorConfig["threshold_min"];
                     }
@@ -629,7 +774,13 @@ void updateSensorConfiguration(JsonArray sensorConfigs) {
                         sensors[j].threshold_max = sensorConfig["threshold_max"];
                     }
                     if (sensorConfig.containsKey("enabled")) {
+                        bool wasEnabled = sensors[j].enabled;
                         sensors[j].enabled = sensorConfig["enabled"];
+                        if (wasEnabled != sensors[j].enabled) {
+                            Serial.print("  Sensor ");
+                            Serial.print(sensors[j].enabled ? "ENABLED" : "DISABLED");
+                            Serial.println();
+                        }
                     }
                     if (sensorConfig.containsKey("calibration_offset")) {
                         sensors[j].calibration_offset = sensorConfig["calibration_offset"];
@@ -637,13 +788,23 @@ void updateSensorConfiguration(JsonArray sensorConfigs) {
                     if (sensorConfig.containsKey("calibration_multiplier")) {
                         sensors[j].calibration_multiplier = sensorConfig["calibration_multiplier"];
                     }
+
+                    updatedCount++;
                     break;
                 }
+            }
+
+            if (!found && config.debug_mode) {
+                Serial.print("Warning: Sensor config received for pin ");
+                Serial.print(pinStr);
+                Serial.println(" but no matching sensor found in firmware");
             }
         }
     }
 
-    Serial.println("Sensor configuration updated");
+    Serial.print("✅ Updated ");
+    Serial.print(updatedCount);
+    Serial.println(" sensor(s) from server configuration");
 }
 
 void performOTAUpdate(const String& firmwareUrl, const String& expectedChecksum) {

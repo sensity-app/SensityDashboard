@@ -69,6 +69,8 @@ SensorConfig sensors[MAX_SENSORS];
 int sensorCount = 0;
 unsigned long lastHeartbeat = 0;
 unsigned long lastSensorRead = 0;
+unsigned long lastWiFiCheck = 0;
+const unsigned long WIFI_RECONNECT_INTERVAL = 15000; // 15 seconds
 WiFiClient wifiClient;
 #if USE_HTTPS
 WiFiClientSecure secureClient;
@@ -159,22 +161,40 @@ void sensorTask(void *parameter) {
 // Network task running on Core 1
 void networkTask(void *parameter) {
     while (true) {
-        // Check WiFi connection
-        if (WiFi.status() != WL_CONNECTED) {
-            Serial.println("WiFi disconnected, reconnecting...");
-            connectToWiFi();
+        // Check WiFi connection every 15 seconds
+        if (millis() - lastWiFiCheck >= WIFI_RECONNECT_INTERVAL) {
+            if (WiFi.status() != WL_CONNECTED) {
+                Serial.println("========================================");
+                Serial.println("WiFi disconnected! Attempting reconnection...");
+                Serial.println("========================================");
+                connectToWiFi();
+            } else {
+                if (config.debug_mode) {
+                    Serial.println("WiFi status check: Connected");
+                    Serial.printf("Signal strength: %d dBm\n", WiFi.RSSI());
+                }
+            }
+            lastWiFiCheck = millis();
         }
 
-        // Process sensor data from queue
-        String sensorData;
-        if (xQueueReceive(sensorDataQueue, &sensorData, 0) == pdTRUE) {
-            sendSensorData(sensorData);
-        }
+        // Only perform network operations if WiFi is connected
+        if (WiFi.status() == WL_CONNECTED) {
+            // Process sensor data from queue
+            String sensorData;
+            if (xQueueReceive(sensorDataQueue, &sensorData, 0) == pdTRUE) {
+                sendSensorData(sensorData);
+            }
 
-        // Send heartbeat
-        if (millis() - lastHeartbeat >= HEARTBEAT_INTERVAL_SEC * 1000) {
-            sendHeartbeat();
-            lastHeartbeat = millis();
+            // Send heartbeat
+            if (millis() - lastHeartbeat >= HEARTBEAT_INTERVAL_SEC * 1000) {
+                sendHeartbeat();
+                lastHeartbeat = millis();
+            }
+        } else {
+            // Log warning if disconnected for too long
+            if (config.debug_mode && (millis() - lastWiFiCheck) % 30000 < 1000) {
+                Serial.println("WARNING: WiFi still disconnected, waiting for reconnection...");
+            }
         }
 
         vTaskDelay(100 / portTICK_PERIOD_MS);

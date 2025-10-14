@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
-import { Wifi, WifiOff, AlertTriangle, Settings, Zap, Clock, Activity, Signal, TrendingUp } from 'lucide-react';
+import { Wifi, WifiOff, AlertTriangle, Settings, Zap, Clock, Activity, Signal, TrendingUp, Plus, Trash2, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiService } from '../services/api';
 import { websocketService } from '../services/websocket';
@@ -19,6 +19,7 @@ function DeviceDetail() {
     const [showRuleEditor, setShowRuleEditor] = useState(false);
     const [showOTAManager, setShowOTAManager] = useState(false);
     const [showSensorEditor, setShowSensorEditor] = useState(false);
+    const [showSensorManager, setShowSensorManager] = useState(false);
     const [editingSensor, setEditingSensor] = useState(null);
 
     const { data: device, isLoading } = useQuery(
@@ -232,7 +233,10 @@ function DeviceDetail() {
         return t(`deviceDetail.status.${status}`, { defaultValue: status });
     };
 
-    const getSensorStateBadge = (state) => {
+    const getSensorStateBadge = (state, enabled) => {
+        if (!enabled) {
+            return { label: t('deviceDetail.sensorBadge.disabled', 'Disabled'), className: 'bg-red-100 text-red-700' };
+        }
         switch (state) {
             case 'fresh':
                 return { label: t('deviceDetail.sensorBadge.live'), className: 'bg-emerald-100 text-emerald-700' };
@@ -359,6 +363,13 @@ function DeviceDetail() {
                             </div>
                             <div className="flex flex-wrap gap-3">
                                 <button
+                                    onClick={() => setShowSensorManager(true)}
+                                    className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+                                >
+                                    <Settings className="h-4 w-4" />
+                                    {t('deviceDetail.manageSensors', 'Manage Sensors')}
+                                </button>
+                                <button
                                     onClick={() => {
                                         if (sortedSensors.length === 0) {
                                             toast.error(t('deviceDetail.manageRulesEmpty'));
@@ -369,7 +380,7 @@ function DeviceDetail() {
                                     }}
                                     className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
                                 >
-                                    <Settings className="h-4 w-4" />
+                                    <AlertTriangle className="h-4 w-4" />
                                     {t('deviceDetail.manageRules')}
                                 </button>
                                 <button
@@ -464,20 +475,30 @@ function DeviceDetail() {
                                 ) : (
                                     sortedSensors.map((sensor) => {
                                         const display = getSensorDisplayData(sensor);
-                                        const badge = getSensorStateBadge(display.state);
+                                        const badge = getSensorStateBadge(display.state, sensor.enabled);
                                         const isActive = selectedSensor?.id === sensor.id;
+                                        const isDisabled = sensor.enabled === false;
 
                                         return (
                                             <div
                                                 key={sensor.id}
                                                 className={`relative flex h-full flex-col gap-4 rounded-xl border bg-white p-5 transition-all ${
+                                                    isDisabled ? 'opacity-60 border-gray-200' :
                                                     isActive ? 'border-indigo-400 shadow-lg ring-2 ring-indigo-100' : 'border-gray-100 shadow-sm hover:shadow-md'
                                                 }`}
                                             >
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div>
-                                                        <h3 className="text-lg font-semibold text-gray-900">{sensor.name || t('deviceDetail.defaultSensorName', { pin: sensor.pin })}</h3>
+                                                        <h3 className="text-lg font-semibold text-gray-900">
+                                                            {sensor.name || t('deviceDetail.defaultSensorName', { pin: sensor.pin })}
+                                                            {isDisabled && <span className="ml-2 text-sm font-normal text-red-600">({t('deviceDetail.notConfigured', 'Not Configured')})</span>}
+                                                        </h3>
                                                         <p className="text-xs text-gray-500">{t('deviceDetail.sensorPinType', { pin: sensor.pin, type: sensor.sensor_type || sensor.type })}</p>
+                                                        {isDisabled && (
+                                                            <p className="mt-1 text-xs text-amber-600">
+                                                                {t('deviceDetail.sensorDisabledHint', 'Click settings to configure and enable this sensor')}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge.className}`}>
@@ -488,8 +509,8 @@ function DeviceDetail() {
                                                                 setEditingSensor(sensor);
                                                                 setShowSensorEditor(true);
                                                             }}
-                                                            className="rounded-full border border-gray-200 p-2 text-gray-500 hover:text-gray-700"
-                                                            title={t('deviceDetail.calibrateSensor')}
+                                                            className={`rounded-full border p-2 ${isDisabled ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-gray-200 text-gray-500 hover:text-gray-700'}`}
+                                                            title={isDisabled ? t('deviceDetail.configureSensor', 'Configure Sensor') : t('deviceDetail.calibrateSensor')}
                                                         >
                                                             <Settings className="h-4 w-4" />
                                                         </button>
@@ -707,6 +728,253 @@ function DeviceDetail() {
                     mutation={updateSensorMutation}
                 />
             )}
+
+            {showSensorManager && (
+                <SensorManagerModal
+                    device={device}
+                    sensors={sortedSensors}
+                    onClose={() => setShowSensorManager(false)}
+                    onSave={() => {
+                        queryClient.invalidateQueries(['device-sensors', id]);
+                        setShowSensorManager(false);
+                    }}
+                />
+            )}
+        </div>
+    );
+}
+
+function SensorManagerModal({ device, sensors, onClose, onSave }) {
+    const { t } = useTranslation();
+    const queryClient = useQueryClient();
+    const [localSensors, setLocalSensors] = useState([...sensors]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [sensorTypes, setSensorTypes] = useState([]);
+
+    // Available pins based on device type
+    const availablePins = device?.device_type === 'esp32'
+        ? ['D0', 'D1', 'D2', 'D4', 'D5', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17', 'D18', 'D19', 'D21', 'D22', 'D23', 'D25', 'D26', 'D27', 'D32', 'D33', 'A0']
+        : ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'A0'];
+
+    // Fetch available sensor types
+    useEffect(() => {
+        const fetchSensorTypes = async () => {
+            try {
+                const response = await apiService.getSensorTypes();
+                setSensorTypes(response.sensor_types || response || []);
+            } catch (error) {
+                console.error('Failed to fetch sensor types:', error);
+                toast.error(t('deviceDetail.sensorManager.fetchTypesError', 'Failed to load sensor types'));
+            }
+        };
+        fetchSensorTypes();
+    }, [t]);
+
+    const handleAddSensor = () => {
+        const usedPins = localSensors.map(s => s.pin);
+        const nextAvailablePin = availablePins.find(pin => !usedPins.includes(pin));
+
+        if (!nextAvailablePin) {
+            toast.error(t('deviceDetail.sensorManager.noPinsAvailable', 'No available pins'));
+            return;
+        }
+
+        const newSensor = {
+            id: `new_${Date.now()}`,
+            pin: nextAvailablePin,
+            sensor_type_id: sensorTypes[0]?.id,
+            sensor_type: sensorTypes[0]?.name,
+            name: `${sensorTypes[0]?.name || 'Sensor'} on ${nextAvailablePin}`,
+            enabled: true,
+            calibration_offset: 0,
+            calibration_multiplier: 1,
+            isNew: true
+        };
+
+        setLocalSensors([...localSensors, newSensor]);
+    };
+
+    const handleRemoveSensor = (sensorId) => {
+        setLocalSensors(localSensors.filter(s => s.id !== sensorId));
+    };
+
+    const handleSensorChange = (sensorId, field, value) => {
+        setLocalSensors(localSensors.map(s =>
+            s.id === sensorId ? { ...s, [field]: value } : s
+        ));
+    };
+
+    const handleSave = async () => {
+        setIsLoading(true);
+        try {
+            // Delete removed sensors
+            const removedSensors = sensors.filter(s => !localSensors.find(ls => ls.id === s.id));
+            for (const sensor of removedSensors) {
+                if (!sensor.id.toString().startsWith('new_')) {
+                    await apiService.deleteSensor(device.id, sensor.id);
+                }
+            }
+
+            // Create or update sensors
+            for (const sensor of localSensors) {
+                if (sensor.isNew) {
+                    // Create new sensor
+                    await apiService.createSensor(device.id, {
+                        pin: sensor.pin,
+                        sensor_type_id: sensor.sensor_type_id,
+                        name: sensor.name,
+                        enabled: sensor.enabled,
+                        calibration_offset: sensor.calibration_offset || 0,
+                        calibration_multiplier: sensor.calibration_multiplier || 1
+                    });
+                } else {
+                    // Update existing sensor
+                    await apiService.updateSensor(device.id, sensor.id, {
+                        name: sensor.name,
+                        enabled: sensor.enabled,
+                        calibration_offset: sensor.calibration_offset,
+                        calibration_multiplier: sensor.calibration_multiplier,
+                        trigger_ota: false // We'll push config via heartbeat
+                    });
+                }
+            }
+
+            // Trigger config sync notification
+            toast.success(t('deviceDetail.sensorManager.saveSuccess', 'Sensor configuration saved! Device will update on next heartbeat.'));
+
+            onSave();
+        } catch (error) {
+            console.error('Failed to save sensors:', error);
+            toast.error(t('deviceDetail.sensorManager.saveError', 'Failed to save sensor configuration'));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-lg bg-white shadow-xl flex flex-col">
+                <div className="border-b border-gray-200 p-6">
+                    <h3 className="text-xl font-semibold text-gray-900">
+                        {t('deviceDetail.sensorManager.title', 'Manage Sensors')}
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                        {t('deviceDetail.sensorManager.subtitle', 'Add, remove, or configure sensors. Changes will be pushed to the device via OTA.')}
+                    </p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6">
+                    <div className="space-y-4">
+                        {localSensors.map((sensor) => (
+                            <div key={sensor.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-5 md:items-center">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                            {t('deviceDetail.sensorManager.pin', 'Pin')}
+                                        </label>
+                                        <select
+                                            value={sensor.pin}
+                                            onChange={(e) => handleSensorChange(sensor.id, 'pin', e.target.value)}
+                                            className="w-full rounded-md border-gray-300 text-sm"
+                                            disabled={!sensor.isNew}
+                                        >
+                                            {availablePins.map(pin => (
+                                                <option key={pin} value={pin}>{pin}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                            {t('deviceDetail.sensorManager.type', 'Type')}
+                                        </label>
+                                        <select
+                                            value={sensor.sensor_type_id}
+                                            onChange={(e) => {
+                                                const typeId = parseInt(e.target.value);
+                                                const typeName = sensorTypes.find(t => t.id === typeId)?.name;
+                                                handleSensorChange(sensor.id, 'sensor_type_id', typeId);
+                                                handleSensorChange(sensor.id, 'sensor_type', typeName);
+                                            }}
+                                            className="w-full rounded-md border-gray-300 text-sm"
+                                            disabled={!sensor.isNew}
+                                        >
+                                            {sensorTypes.map(type => (
+                                                <option key={type.id} value={type.id}>{type.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                                            {t('deviceDetail.sensorManager.name', 'Name')}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={sensor.name}
+                                            onChange={(e) => handleSensorChange(sensor.id, 'name', e.target.value)}
+                                            className="w-full rounded-md border-gray-300 text-sm"
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center justify-between">
+                                        <label className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={sensor.enabled}
+                                                onChange={(e) => handleSensorChange(sensor.id, 'enabled', e.target.checked)}
+                                                className="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                                            />
+                                            <span className="text-xs text-gray-700">
+                                                {t('deviceDetail.sensorManager.enabled', 'Enabled')}
+                                            </span>
+                                        </label>
+                                        <button
+                                            onClick={() => handleRemoveSensor(sensor.id)}
+                                            className="rounded-full p-2 text-red-600 hover:bg-red-50"
+                                            title={t('deviceDetail.sensorManager.remove', 'Remove')}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={handleAddSensor}
+                        className="mt-4 inline-flex items-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 w-full justify-center"
+                    >
+                        <Plus className="h-5 w-5" />
+                        {t('deviceDetail.sensorManager.addSensor', 'Add Sensor')}
+                    </button>
+                </div>
+
+                <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-between items-center">
+                    <p className="text-sm text-gray-600">
+                        {t('deviceDetail.sensorManager.configNote', 'Configuration will be pushed to device on next heartbeat (~5 min)')}
+                    </p>
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            disabled={isLoading}
+                        >
+                            {t('deviceDetail.sensorManager.cancel', 'Cancel')}
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={isLoading}
+                        >
+                            <Save className="h-4 w-4" />
+                            {isLoading ? t('deviceDetail.sensorManager.saving', 'Saving...') : t('deviceDetail.sensorManager.save', 'Save & Push Config')}
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
@@ -727,13 +995,13 @@ function SensorEditorModal({ sensor, deviceId, onClose, onSave, mutation }) {
             {
                 deviceId,
                 sensorId: sensor.id,
-                payload: formData
+                payload: { ...formData, trigger_ota: triggerOTA }
             },
             {
-                onSuccess: () => {
+                onSuccess: (response) => {
                     toast.success(t('deviceDetail.toast.sensorUpdated'));
                     if (triggerOTA) {
-                        toast.info(t('deviceDetail.toast.otaQueued'));
+                        toast.info(response?.data?.message || t('deviceDetail.toast.otaQueued'));
                     }
                     onSave();
                 },

@@ -117,6 +117,7 @@ app.use('/api/', userRateLimiter.middleware());
 
 // Routes that require a valid license
 const protectedRoutes = [
+    ['/api/sensor-types', deviceRoutes, 'device_management'], // Sensor types endpoint (in devices router)
     ['/api/devices', deviceRoutes, 'device_management'],
     ['/api/alerts', alertRoutes, 'basic_monitoring'],
     ['/api/locations', locationRoutes, 'device_management'],

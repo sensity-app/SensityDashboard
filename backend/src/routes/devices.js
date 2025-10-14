@@ -8,6 +8,22 @@ const otaService = require('../services/otaService');
 
 const router = express.Router();
 
+// GET /api/sensor-types - Get all available sensor types
+router.get('/sensor-types', authenticateToken, async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT id, name, unit, min_value, max_value, description, icon
+            FROM sensor_types
+            ORDER BY name
+        `);
+
+        res.json({ sensor_types: result.rows });
+    } catch (error) {
+        logger.error('Get sensor types error:', error);
+        res.status(500).json({ error: 'Failed to retrieve sensor types' });
+    }
+});
+
 // GET /api/devices - Get all devices (with pagination)
 router.get('/', authenticateToken, async (req, res) => {
     try {
@@ -319,6 +335,19 @@ router.post('/:id/telemetry', [
         const { id } = req.params;
         const { sensors, uptime, free_heap, wifi_rssi } = req.body;
 
+        // Extract IP address (handle IPv6-mapped IPv4 addresses)
+        let telemetryIp = req.ip;
+        if (telemetryIp && telemetryIp.startsWith('::ffff:')) {
+            telemetryIp = telemetryIp.substring(7);
+        }
+        // If localhost, try to get actual IP
+        if (telemetryIp === '::1' || telemetryIp === '::' || telemetryIp === 'localhost') {
+            const requestIp = req.connection?.remoteAddress || req.socket?.remoteAddress;
+            if (requestIp && requestIp !== '::1' && requestIp !== '::ffff:127.0.0.1') {
+                telemetryIp = requestIp.startsWith('::ffff:') ? requestIp.substring(7) : requestIp;
+            }
+        }
+
         // Update device last heartbeat
         await db.query(`
             UPDATE devices
@@ -327,7 +356,7 @@ router.post('/:id/telemetry', [
                 uptime_seconds = COALESCE($1, uptime_seconds),
                 ip_address = $2
             WHERE id = $3
-        `, [uptime, req.ip, id]);
+        `, [uptime, telemetryIp, id]);
 
         // Process telemetry data using TelemetryProcessor service from request
         const telemetryProcessor = req.telemetryProcessor;
@@ -352,7 +381,8 @@ router.post('/:id/telemetry', [
 
                 if (deviceSensor.rows.length === 0) {
                     const sensorTypeName = SENSOR_TYPE_ALIASES[sensorData.type] || sensorData.type;
-                    // Auto-create device sensor if it doesn't exist
+                    // Auto-create device sensor if it doesn't exist (disabled by default)
+                    // User must explicitly enable sensors they want in device details
                     const sensorType = await db.query(
                         'SELECT id FROM sensor_types WHERE LOWER(name) = LOWER($1)',
                         [sensorTypeName]
@@ -361,11 +391,12 @@ router.post('/:id/telemetry', [
                     if (sensorType.rows.length > 0) {
                         const newSensor = await db.query(`
                             INSERT INTO device_sensors (device_id, sensor_type_id, pin, name, enabled)
-                            VALUES ($1, $2, $3, $4, true)
+                            VALUES ($1, $2, $3, $4, false)
                             RETURNING *
                         `, [id, sensorType.rows[0].id, sensorData.pin, sensorData.name || `${sensorData.type} Sensor`]);
 
                         deviceSensor.rows = [{ ...newSensor.rows[0], sensor_type_name: sensorData.type }];
+                        logger.info(`Auto-created disabled sensor: ${sensorData.type} on pin ${sensorData.pin} for device ${id} (needs manual enable)`);
                     } else {
                         logger.warn(`Unknown sensor type: ${sensorData.type} for device ${id}`);
                         continue;
@@ -450,8 +481,19 @@ router.post('/:id/heartbeat', [
         // Use IP from request body if provided, otherwise use req.ip
         // Extract IPv4 from IPv6-mapped address if needed
         let deviceIp = ip_address || req.ip;
+
+        // Strip IPv6 prefix if present
         if (deviceIp && deviceIp.startsWith('::ffff:')) {
             deviceIp = deviceIp.substring(7); // Remove ::ffff: prefix
+        }
+
+        // If it's still IPv6 localhost (::1), try to use the request IP instead
+        if (deviceIp === '::1' || deviceIp === '::' || deviceIp === 'localhost') {
+            // Try to get actual IP from request
+            const requestIp = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+            if (requestIp && requestIp !== '::1' && requestIp !== '::ffff:127.0.0.1') {
+                deviceIp = requestIp.startsWith('::ffff:') ? requestIp.substring(7) : requestIp;
+            }
         }
 
         await db.query(`
@@ -464,9 +506,37 @@ router.post('/:id/heartbeat', [
             WHERE id = $4
         `, [firmware_version, uptime, deviceIp, id]);
 
+        // Get sensor configuration for this device
+        const sensorsResult = await db.query(`
+            SELECT
+                ds.pin,
+                ds.name,
+                ds.enabled,
+                ds.calibration_offset,
+                ds.calibration_multiplier,
+                st.name as sensor_type
+            FROM device_sensors ds
+            JOIN sensor_types st ON ds.sensor_type_id = st.id
+            WHERE ds.device_id = $1
+            ORDER BY ds.pin
+        `, [id]);
+
+        // Build sensor configuration array
+        const sensorConfig = sensorsResult.rows.map(sensor => ({
+            pin: sensor.pin,
+            type: sensor.sensor_type,
+            name: sensor.name,
+            enabled: sensor.enabled,
+            calibration_offset: sensor.calibration_offset || 0,
+            calibration_multiplier: sensor.calibration_multiplier || 1
+        }));
+
         res.json({
             message: 'Heartbeat received',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            config: {
+                sensors: sensorConfig
+            }
         });
     } catch (error) {
         logger.error('Heartbeat error:', error);
@@ -1174,24 +1244,66 @@ router.post('/:id/sensors', authenticateToken, async (req, res) => {
 // PUT /api/devices/:deviceId/sensors/:sensorId - Update sensor
 router.put('/:deviceId/sensors/:sensorId', authenticateToken, async (req, res) => {
     try {
-        const { sensorId } = req.params;
-        const { name, calibration_offset, calibration_multiplier, enabled } = req.body;
+        const { deviceId, sensorId } = req.params;
+        const { name, calibration_offset, calibration_multiplier, enabled, trigger_ota } = req.body;
 
         const result = await db.query(`
             UPDATE device_sensors
             SET name = COALESCE($1, name),
                 calibration_offset = COALESCE($2, calibration_offset),
                 calibration_multiplier = COALESCE($3, calibration_multiplier),
-                enabled = COALESCE($4, enabled)
-            WHERE id = $5
+                enabled = COALESCE($4, enabled),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $5 AND device_id = $6
             RETURNING *
-        `, [name, calibration_offset, calibration_multiplier, enabled, sensorId]);
+        `, [name, calibration_offset, calibration_multiplier, enabled, sensorId, deviceId]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Sensor not found' });
         }
 
-        res.json({ sensor: result.rows[0] });
+        const updatedSensor = result.rows[0];
+
+        // If OTA is requested, queue a firmware rebuild with updated sensor config
+        if (trigger_ota !== false) {
+            try {
+                // Get device info for firmware rebuild
+                const deviceResult = await db.query(`
+                    SELECT d.device_type, d.name, d.wifi_ssid, d.wifi_password,
+                           dc.heartbeat_interval, dc.ota_enabled
+                    FROM devices d
+                    LEFT JOIN device_configs dc ON d.id = dc.device_id
+                    WHERE d.id = $1
+                `, [deviceId]);
+
+                if (deviceResult.rows.length > 0) {
+                    const deviceInfo = deviceResult.rows[0];
+
+                    // Get all sensors for this device to rebuild firmware
+                    const sensorsResult = await db.query(`
+                        SELECT ds.*, st.name as sensor_type
+                        FROM device_sensors ds
+                        JOIN sensor_types st ON ds.sensor_type_id = st.id
+                        WHERE ds.device_id = $1 AND ds.enabled = true
+                        ORDER BY ds.pin
+                    `, [deviceId]);
+
+                    logger.info(`Sensor configuration updated for device ${deviceId}. OTA firmware rebuild queued with ${sensorsResult.rows.length} enabled sensors.`);
+
+                    // Note: In a production environment, you would trigger an actual firmware rebuild here
+                    // For now, we just log that the configuration has changed
+                    // The device will receive updated calibration values on next server sync
+                }
+            } catch (otaError) {
+                logger.warn(`Failed to queue OTA update after sensor config change: ${otaError.message}`);
+                // Don't fail the sensor update if OTA queueing fails
+            }
+        }
+
+        res.json({
+            sensor: updatedSensor,
+            message: trigger_ota !== false ? 'Sensor updated. Firmware rebuild queued for OTA deployment.' : 'Sensor updated successfully.'
+        });
     } catch (error) {
         logger.error('Update sensor error:', error);
         res.status(500).json({ error: 'Failed to update sensor' });

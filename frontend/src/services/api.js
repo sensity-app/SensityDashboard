@@ -110,6 +110,7 @@ export const apiService = {
     createSensor: (deviceId, sensorData) => apiClient.post(`/devices/${deviceId}/sensors`, sensorData),
     updateSensor: (deviceId, sensorId, sensorData) => apiClient.put(`/devices/${deviceId}/sensors/${sensorId}`, sensorData),
     deleteSensor: (deviceId, sensorId) => apiClient.delete(`/devices/${deviceId}/sensors/${sensorId}`),
+    getSensorTypes: () => apiClient.get('/sensor-types'),
 
     // Sensor Rules
     getSensorRules: (sensorId) => apiClient.get(`/sensors/${sensorId}/rules`),

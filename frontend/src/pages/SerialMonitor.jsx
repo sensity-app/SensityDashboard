@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Usb, Play, Square, Trash2, Download, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const SerialMonitor = () => {
+    const { t } = useTranslation();
     const [isConnected, setIsConnected] = useState(false);
     const [isMonitoring, setIsMonitoring] = useState(false);
     const [port, setPort] = useState(null);
@@ -316,14 +318,14 @@ const SerialMonitor = () => {
 
             {/* Instructions */}
             <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 mb-2">How to use:</h3>
+                <h3 className="font-semibold text-blue-900 mb-2">{t('serialMonitor.howToUse', 'How to use:')}</h3>
                 <ol className="list-decimal list-inside space-y-1 text-blue-800 text-sm">
-                    <li>Connect your ESP8266/ESP32 device via USB</li>
-                    <li>Click "Connect Device" and select the serial port</li>
-                    <li>Select the appropriate baud rate (usually 115200 for ESP devices)</li>
-                    <li>Click "Start" to begin monitoring</li>
-                    <li>View real-time serial output from your device</li>
-                    <li>Use "Download" to save the log to a file</li>
+                    <li>{t('serialMonitor.step1', 'Connect your ESP8266/ESP32 device via USB')}</li>
+                    <li>{t('serialMonitor.step2', 'Click "Connect Device" and select the serial port')}</li>
+                    <li>{t('serialMonitor.step3', 'Select the appropriate baud rate (usually 115200 for ESP devices)')}</li>
+                    <li>{t('serialMonitor.step4', 'Click "Start" to begin monitoring')}</li>
+                    <li>{t('serialMonitor.step5', 'View real-time serial output from your device')}</li>
+                    <li>{t('serialMonitor.step6', 'Use "Download" to save the log to a file')}</li>
                 </ol>
             </div>
         </div>

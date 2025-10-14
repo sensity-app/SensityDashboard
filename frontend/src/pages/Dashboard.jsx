@@ -440,7 +440,7 @@ function Dashboard() {
                                                 ) : (
                                                     <>
                                                         <Check className="w-4 h-4" />
-                                                        <span>Resolve</span>
+                                                        <span>{t('alerts.resolve', 'Resolve')}</span>
                                                     </>
                                                 )}
                                             </button>

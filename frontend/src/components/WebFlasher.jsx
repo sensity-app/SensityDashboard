@@ -272,12 +272,12 @@ const WebFlasher = ({ config, onClose }) => {
             setFlashProgress(25);
 
             transport = new Transport(port);
+            transportRef.current = transport;
 
             const connectWithRetry = async () => {
                 const maxAttempts = 3;
                 for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                     try {
-                        transportRef.current = transport;
                         await transport.connect(115200, {
                             dataBits: 8,
                             stopBits: 1,
@@ -293,13 +293,18 @@ const WebFlasher = ({ config, onClose }) => {
                             throw transportError;
                         }
 
-                        transportRef.current = null;
-
                         if (attempt === maxAttempts) {
                             throw new Error('Unable to gain access to the serial port. Please unplug and reconnect the device, then try again.');
                         }
 
                         addLog(`Serial port still busy (retry ${attempt} of ${maxAttempts - 1})...`, 'warning');
+
+                        try {
+                            await transport.disconnect();
+                        } catch (disconnectError) {
+                            console.warn('Transport disconnect during retry failed:', disconnectError);
+                        }
+
                         await closePortIfOpen(port);
                         await new Promise(resolve => setTimeout(resolve, 400 * attempt));
                     }

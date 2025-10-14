@@ -409,7 +409,10 @@
     "alertsEmpty": "Za posledních 24 hodin nebyla u tohoto zařízení zaznamenána žádná upozornění.",
     "alerts": {
       "defaultType": "Upozornění",
-      "noContext": "Žádné doplňující informace"
+      "noContext": "Žádné doplňující informace",
+      "resolve": "Vyřešit",
+      "unresolved": "Nevyřešená upozornění",
+      "unresolvedBadge": "nevyřešeno"
     },
     "alertSeverity": {
       "low": "Nízká",
@@ -1033,14 +1036,24 @@
     "subtitle": "AI-powered doporučení a pozorování senzorů",
     "selectDevice": "Vybrat zařízení",
     "selectSensor": "Vybrat senzor",
-    "timeRange": "Časový rozsah",
+    "timeRange": "Časové rozmezí",
+    "1hour": "1 hodina",
+    "6hours": "6 hodin",
+    "24hours": "24 hodin",
+    "7days": "7 dní",
+    "30days": "30 dní",
+    "chartType": "Typ grafu",
+    "lineChart": "Čárový graf",
+    "areaChart": "Plošný graf",
+    "dataPoints": "Datové body",
     "recommendations": "AI doporučení",
     "currentThresholds": "Současné prahy",
     "recommendedThresholds": "Doporučené prahy",
     "confidenceScore": "Jistota",
     "noRecommendations": "Žádná doporučení nejsou k dispozici",
     "loadError": "Nepodařilo se načíst analytická data",
-    "noData": "Pro vybrané období nejsou k dispozici žádná data"
+    "noData": "Pro vybrané časové rozmezí nejsou dostupná žádná data",
+    "notEnoughData": "Nedostatek historických dat pro analýzu. Je potřeba alespoň 50 datových bodů na senzor."
   },
   "deviceGroups": {
     "title": "Správce skupin zařízení",
@@ -1186,5 +1199,41 @@
       "change": "Změna",
       "pattern": "Vzor"
     }
+  },
+  "serialMonitor": {
+    "title": "Sériový monitor",
+    "description": "Monitorujte výstup ze sériového portu vašich ESP8266/ESP32 zařízení v reálném čase",
+    "howToUse": "Jak používat:",
+    "step1": "Připojte své ESP8266/ESP32 zařízení přes USB",
+    "step2": "Klikněte na \"Připojit zařízení\" a vyberte sériový port",
+    "step3": "Vyberte vhodnou přenosovou rychlost (obvykle 115200 pro ESP zařízení)",
+    "step4": "Klikněte na \"Start\" pro zahájení monitorování",
+    "step5": "Zobrazte výstup ze sériového portu v reálném čase",
+    "step6": "Použijte \"Stáhnout\" pro uložení logu do souboru"
+  },
+  "deviceLocations": {
+    "title": "Umístění zařízení",
+    "subtitle": "Spravujte fyzická umístění, kde jsou vaše zařízení nasazena",
+    "noLocations": "Zatím žádná umístění",
+    "createGroup": "Vytvořit skupinu",
+    "selectGroup": "Vyberte skupinu ze seznamu vlevo pro zobrazení a správu jejích zařízení."
+  },
+  "deviceConfig": {
+    "networkConfig": "Konfigurace sítě",
+    "deviceConfig": "Konfigurace zařízení",
+    "deviceBehavior": "Chování zařízení",
+    "deviceOptions": "Možnosti zařízení",
+    "previousStep": "Předchozí: Nastavení zařízení",
+    "openWifi": "Otevřená WiFi (bez hesla)",
+    "openWifiHelp": "Zaškrtněte, pokud se připojujete k otevřené WiFi síti bez hesla"
+  },
+  "protocolSettings": {
+    "description": "Nakonfigurujte komunikační protokoly pro vaše zařízení (HTTP nebo MQTT)"
+  },
+  "deviceDetail": {
+    "viewHistory": "Zobrazit historii"
+  },
+  "dashboard": {
+    "viewDevices": "Zobrazit zařízení"
   }
 }

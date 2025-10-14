@@ -409,7 +409,10 @@
   "alertsEmpty": "No alerts have been raised for this device in the last 24 hours.",
   "alerts": {
     "defaultType": "Alert",
-    "noContext": "No additional context"
+    "noContext": "No additional context",
+    "resolve": "Resolve",
+    "unresolved": "Unresolved alerts",
+    "unresolvedBadge": "unresolved"
   },
   "alertSeverity": {
     "low": "Low",
@@ -898,13 +901,23 @@
     "selectDevice": "Select Device",
     "selectSensor": "Select Sensor",
     "timeRange": "Time Range",
+    "1hour": "1 Hour",
+    "6hours": "6 Hours",
+    "24hours": "24 Hours",
+    "7days": "7 Days",
+    "30days": "30 Days",
+    "chartType": "Chart Type",
+    "lineChart": "Line Chart",
+    "areaChart": "Area Chart",
+    "dataPoints": "Data Points",
     "recommendations": "AI Recommendations",
     "currentThresholds": "Current Thresholds",
     "recommendedThresholds": "Recommended Thresholds",
     "confidenceScore": "Confidence",
     "noRecommendations": "No recommendations available",
     "loadError": "Failed to load analytics data",
-    "noData": "No data available for selected period"
+    "noData": "No data available for the selected time range",
+    "notEnoughData": "Not enough historical data for analytics. At least 50 data points needed per sensor."
   },
   "deviceGroups": {
     "title": "Device Groups Manager",
@@ -1215,5 +1228,41 @@
       "sessions": "Session Management",
       "sessionTimeout": "Session Timeout (hours)"
     }
+  },
+  "serialMonitor": {
+    "title": "Serial Monitor",
+    "description": "Monitor serial output from your ESP8266/ESP32 devices in real-time",
+    "howToUse": "How to use:",
+    "step1": "Connect your ESP8266/ESP32 device via USB",
+    "step2": "Click \"Connect Device\" and select the serial port",
+    "step3": "Select the appropriate baud rate (usually 115200 for ESP devices)",
+    "step4": "Click \"Start\" to begin monitoring",
+    "step5": "View real-time serial output from your device",
+    "step6": "Use \"Download\" to save the log to a file"
+  },
+  "deviceLocations": {
+    "title": "Device Locations",
+    "subtitle": "Manage physical locations where your devices are deployed",
+    "noLocations": "No locations yet",
+    "createGroup": "Create Group",
+    "selectGroup": "Choose a group from the left to view and manage its devices."
+  },
+  "deviceConfig": {
+    "networkConfig": "Network Configuration",
+    "deviceConfig": "Device Configuration",
+    "deviceBehavior": "Device Behavior",
+    "deviceOptions": "Device Options",
+    "previousStep": "Previous: Device Setup",
+    "openWifi": "Open WiFi (no password)",
+    "openWifiHelp": "Check this if connecting to an open WiFi network without password"
+  },
+  "protocolSettings": {
+    "description": "Configure communication protocols for your devices (HTTP or MQTT)"
+  },
+  "deviceDetail": {
+    "viewHistory": "View history"
+  },
+  "dashboard": {
+    "viewDevices": "View Devices"
   }
 }

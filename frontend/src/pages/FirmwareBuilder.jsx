@@ -540,7 +540,7 @@ const FirmwareBuilder = () => {
                                             </button>
                                         ))}
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-2">Select the hardware platform for your IoT device</p>
+                                    <p className="text-xs text-gray-500 mt-2">{getCopy('sections.device.platformHelp', 'Select the hardware platform for your IoT device')}</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -649,7 +649,7 @@ const FirmwareBuilder = () => {
                             <div className="card-header">
                                 <h2 className="card-title">
                                     <Wifi className="w-6 h-6 text-primary" />
-                                    <span>Network Configuration</span>
+                                    <span>{getCopy('deviceConfig.networkConfig', 'Network Configuration')}</span>
                                 </h2>
                             </div>
                             <div className="space-y-6">
@@ -697,10 +697,10 @@ const FirmwareBuilder = () => {
                                                     }}
                                                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                 />
-                                                <span className="text-sm text-gray-700">Open WiFi (no password)</span>
+                                                <span className="text-sm text-gray-700">{getCopy('deviceConfig.openWifi', 'Open WiFi (no password)')}</span>
                                             </label>
                                             <p className="text-xs text-gray-500 mt-1">
-                                                Check this if connecting to an open WiFi network without password
+                                                {getCopy('deviceConfig.openWifiHelp', 'Check this if connecting to an open WiFi network without password')}
                                             </p>
                                         </div>
                                     </div>
@@ -729,7 +729,7 @@ const FirmwareBuilder = () => {
                                 <div className="glass p-6 rounded-xl">
                                     <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
                                         <Settings className="w-5 h-5 mr-2" />
-                                        Device Behavior
+                                        {getCopy('deviceConfig.deviceBehavior', 'Device Behavior')}
                                     </h3>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div className="form-group">
@@ -763,7 +763,7 @@ const FirmwareBuilder = () => {
                                     </div>
 
                                     <div className="mt-6">
-                                        <h4 className="text-sm font-medium text-gray-700 mb-3">Device Options</h4>
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3">{getCopy('deviceConfig.deviceOptions', 'Device Options')}</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
                                                 <input
@@ -813,7 +813,7 @@ const FirmwareBuilder = () => {
                                     className="btn-secondary flex items-center space-x-2"
                                 >
                                     <ArrowLeft className="w-4 h-4" />
-                                    <span>Previous: Device Setup</span>
+                                    <span>{getCopy('deviceConfig.previousStep', 'Previous: Device Setup')}</span>
                                 </button>
                                 <button
                                     onClick={nextStep}
@@ -1072,7 +1072,7 @@ const FirmwareBuilder = () => {
                                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                                             <Smartphone className="w-5 h-5 text-blue-600 mr-2" />
-                                            Device Configuration
+                                            {getCopy('deviceConfig.deviceConfig', 'Device Configuration')}
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                             <div>
@@ -1098,7 +1098,7 @@ const FirmwareBuilder = () => {
                                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                                             <Wifi className="w-5 h-5 text-green-600 mr-2" />
-                                            Network Configuration
+                                            {getCopy('deviceConfig.networkConfig', 'Network Configuration')}
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                             <div>
@@ -1165,7 +1165,7 @@ const FirmwareBuilder = () => {
                                     <div className="bg-white border border-gray-200 rounded-lg p-6">
                                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                                             <Settings className="w-5 h-5 text-gray-600 mr-2" />
-                                            Device Options
+                                            {getCopy('deviceConfig.deviceOptions', 'Device Options')}
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div className="flex items-center space-x-2">

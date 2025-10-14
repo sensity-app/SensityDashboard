@@ -547,12 +547,13 @@
     "sensorLabel": "Senzor",
     "historyTitle": "Historie a trendy",
     "historySubtitle": "Zobrazuje se {{sensor}}",
-    "historyPrompt": "Vyberte výše senzor a prohlédněte si jeho historická data.",
-    "historySelectPlaceholder": "Vyberte senzor…",
-    "historyNoSensor": "Vyberte výše senzor a zobrazte jeho historická data",
-    "liveConnection": "Stav spojení",
-    "lastHeartbeat": "Poslední heartbeat",
-    "ipAddress": "IP adresa",
+        "historyPrompt": "Vyberte výše senzor a prohlédněte si jeho historická data.",
+        "historySelectPlaceholder": "Vyberte senzor…",
+        "historyNoSensor": "Vyberte výše senzor a zobrazte jeho historická data",
+        "viewHistory": "Zobrazit historii",
+        "liveConnection": "Stav spojení",
+        "lastHeartbeat": "Poslední heartbeat",
+        "ipAddress": "IP adresa",
     "wifiSignal": "Síla signálu Wi‑Fi",
     "targetFirmware": "Cílový firmware",
     "targetFirmwareNone": "Žádný",
@@ -1588,8 +1589,5 @@
     "reset": "Obnovit výchozí",
     "testing": "Testuji...",
     "testConnection": "Otestovat připojení"
-  },
-  "deviceDetail": {
-    "viewHistory": "Zobrazit historii"
   }
 }

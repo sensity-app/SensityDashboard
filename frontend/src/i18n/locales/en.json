@@ -547,12 +547,13 @@
     "sensorLabel": "Sensor",
     "historyTitle": "History & trends",
     "historySubtitle": "Viewing {{sensor}}",
-    "historyPrompt": "Select a sensor above to explore its historical readings.",
-    "historySelectPlaceholder": "Select sensor…",
-    "historyNoSensor": "Select a sensor above to explore its historical readings.",
-    "liveConnection": "Live connection",
-    "lastHeartbeat": "Last heartbeat",
-    "ipAddress": "IP address",
+        "historyPrompt": "Select a sensor above to explore its historical readings.",
+        "historySelectPlaceholder": "Select sensor…",
+        "historyNoSensor": "Select a sensor above to explore its historical readings.",
+        "viewHistory": "View history",
+        "liveConnection": "Live connection",
+        "lastHeartbeat": "Last heartbeat",
+        "ipAddress": "IP address",
     "wifiSignal": "Wi-Fi signal",
     "targetFirmware": "Target firmware",
     "targetFirmwareNone": "None",
@@ -630,9 +631,9 @@
       "triggerOtaHint": "Device receives the updated configuration on next sync.",
       "cancel": "Cancel",
       "save": "Save changes",
-      "saving": "Saving…"
-    }
-  },
+        "saving": "Saving…"
+      }
+    },
   "devices": {
     "title": "Devices",
     "deviceList": "Device List",
@@ -1617,8 +1618,5 @@
     "reset": "Reset to Default",
     "testing": "Testing...",
     "testConnection": "Test Connection"
-  },
-  "deviceDetail": {
-    "viewHistory": "View history"
   }
 }

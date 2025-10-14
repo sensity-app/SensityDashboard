@@ -765,8 +765,7 @@ void updateSensorConfiguration(JsonArray sensorConfigs) {
                     if (sensorConfig.containsKey("name")) {
                         const char* nameStr = sensorConfig["name"];
                         if (nameStr != nullptr) {
-                            strncpy(sensors[j].name, nameStr, sizeof(sensors[j].name) - 1);
-                            sensors[j].name[sizeof(sensors[j].name) - 1] = '\0';
+                            sensors[j].name = nameStr;
                         }
                     }
 

@@ -523,6 +523,7 @@ const WebFlasher = ({ config, onClose }) => {
                 const connectionStart = Date.now();
                 let romBaudrate = DEFAULT_BAUD_RATE;
                 let loweredBaud = false;
+                let lastError = null;
 
                 for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                     const elapsed = Date.now() - connectionStart;
@@ -544,7 +545,7 @@ const WebFlasher = ({ config, onClose }) => {
                         setFlashStatus('Connecting to chip...');
                         addLog(`Connecting to device${attempt > 1 ? ` (attempt ${attempt})` : ''}...`, 'info');
 
-                        const chipName = await esploaderInstance.main();
+                        const chipName = await esploaderInstance.main('classic_reset');
                         addLog('Serial connection established', 'success');
                         addLog(`Connected to ${chipName}`, 'success');
                         setFlashProgress(35);
@@ -553,6 +554,7 @@ const WebFlasher = ({ config, onClose }) => {
 
                         return { esploaderInstance, chipName, romBaudrate, loweredBaud };
                     } catch (error) {
+                        lastError = error;
                         const alreadyOpen = error.name === 'InvalidStateError' ||
                             error.message?.includes('already open');
 
@@ -564,7 +566,13 @@ const WebFlasher = ({ config, onClose }) => {
                             throw new Error('Unable to gain access to the serial port. Please unplug and reconnect the device, then try again.');
                         }
 
-                        addLog(`Serial port still busy (retry ${attempt} of ${maxAttempts - 1})...`, 'warning');
+                        const nextAttempt = attempt + 1;
+                        const remaining = maxAttempts - attempt;
+                        const baseMessage = `Connection attempt ${attempt} failed (${error.message || error}).`;
+                        const guidance = remaining > 0
+                            ? `Retrying in ${Math.min(400 * attempt, 2000)}ms... (${remaining} retries left)`
+                            : 'No retries left.';
+                        addLog(`${baseMessage} ${guidance}`, 'warning');
 
                         try {
                             await transport.disconnect();
@@ -577,7 +585,11 @@ const WebFlasher = ({ config, onClose }) => {
                     }
                 }
 
-                throw new Error('Failed to establish serial connection.');
+                const finalMessage = lastError?.message || 'Failed to establish serial connection.';
+                if (lastError?.stack) {
+                    console.warn('Final connection error stack:', lastError);
+                }
+                throw new Error(finalMessage);
             };
 
             const { esploaderInstance: esploader, chipName: chip, romBaudrate, loweredBaud } = await connectToChip();

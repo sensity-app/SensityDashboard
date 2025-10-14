@@ -17,6 +17,14 @@ const WebFlasher = ({ config, onClose }) => {
     const monitorReaderRef = useRef(null);
     const monitorStreamClosedRef = useRef(null);
     const transportRef = useRef(null);
+    const portRef = useRef(null);
+    const componentActiveRef = useRef(true);
+
+    const DEFAULT_BAUD_RATE = 115200;
+    const FALLBACK_BAUD_RATE = 74880;
+    const MAX_CONNECT_WINDOW_MS = 60_000;
+    const STUB_VERIFY_TIMEOUT_MS = 1_000;
+    const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     React.useEffect(() => {
         // Check if browser supports WebSerial API
@@ -50,6 +58,28 @@ const WebFlasher = ({ config, onClose }) => {
     }, []);
 
     React.useEffect(() => {
+        return () => {
+            componentActiveRef.current = false;
+            (async () => {
+                try {
+                    await stopSerialMonitor({ silent: true });
+                } catch (_) {
+                    // best-effort cleanup
+                }
+                try {
+                    await closePortIfOpen(portRef.current);
+                } catch (_) {
+                    // ignore cleanup errors on unmount
+                }
+            })();
+        };
+    }, []);
+
+    React.useEffect(() => {
+        portRef.current = port;
+    }, [port]);
+
+    React.useEffect(() => {
         // Auto-scroll log
         if (logRef.current) {
             logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -57,9 +87,60 @@ const WebFlasher = ({ config, onClose }) => {
     }, [log]);
 
     const addLog = (message, type = 'info') => {
+        if (!componentActiveRef.current) return;
         const timestamp = new Date().toLocaleTimeString();
         setLog(prev => [...prev, { message, type, timestamp }]);
     };
+
+    React.useEffect(() => {
+        if (!('serial' in navigator)) {
+            return;
+        }
+
+        const handleConnect = (event) => {
+            if (!componentActiveRef.current) return;
+            try {
+                addLog('Serial device connected', 'info');
+                ensurePortReady();
+            } catch (error) {
+                console.warn('Serial connect handler error:', error);
+            }
+        };
+
+        const handleDisconnect = async (event) => {
+            const disconnectedPort = event?.port;
+            const currentPort = portRef.current;
+            const isCurrentPort = disconnectedPort && currentPort &&
+                getPortIdentifier(disconnectedPort) === getPortIdentifier(currentPort);
+
+            if (!componentActiveRef.current) return;
+
+            if (isCurrentPort) {
+                addLog('Serial device disconnected', 'warning');
+                await stopSerialMonitor({ silent: true });
+                try {
+                    await closePortIfOpen(currentPort);
+                } catch (error) {
+                    console.warn('Error closing port after disconnect event:', error);
+                }
+                if (componentActiveRef.current) {
+                    portRef.current = null;
+                    setPort(null);
+                    setIsConnected(false);
+                }
+            } else {
+                addLog('A different serial device disconnected', 'info');
+            }
+        };
+
+        navigator.serial.addEventListener('connect', handleConnect);
+        navigator.serial.addEventListener('disconnect', handleDisconnect);
+
+        return () => {
+            navigator.serial.removeEventListener('connect', handleConnect);
+            navigator.serial.removeEventListener('disconnect', handleDisconnect);
+        };
+    }, []);
 
     const closePortIfOpen = async (serialPort) => {
         if (!serialPort) return;
@@ -78,7 +159,7 @@ const WebFlasher = ({ config, onClose }) => {
                     return;
                 }
 
-                await new Promise(resolve => setTimeout(resolve, 150));
+                await wait(150);
             }
         };
 
@@ -152,6 +233,152 @@ const WebFlasher = ({ config, onClose }) => {
         }
     };
 
+    const getPortIdentifier = (serialPort) => {
+        if (!serialPort?.getInfo) {
+            return null;
+        }
+        const info = serialPort.getInfo();
+        if (!info) return null;
+        const vendor = info.usbVendorId ?? 'unknownVendor';
+        const product = info.usbProductId ?? 'unknownProduct';
+        return `${vendor}:${product}`;
+    };
+
+    const pingSerialPort = async (serialPort) => {
+        if (!serialPort) return;
+
+        let openedForPing = false;
+        try {
+            if (!serialPort.readable && !serialPort.writable) {
+                await serialPort.open({
+                    baudRate: DEFAULT_BAUD_RATE,
+                    dataBits: 8,
+                    stopBits: 1,
+                    parity: 'none',
+                    flowControl: 'none'
+                });
+                openedForPing = true;
+            }
+
+            if (typeof serialPort.setSignals === 'function') {
+                await serialPort.setSignals({ dataTerminalReady: false, requestToSend: false });
+                await wait(25);
+                await serialPort.setSignals({ dataTerminalReady: true, requestToSend: true });
+                await wait(25);
+                await serialPort.setSignals({ dataTerminalReady: false, requestToSend: false });
+            }
+        } catch (error) {
+            if (error.name !== 'InvalidStateError' && !error.message?.includes('closed')) {
+                throw error;
+            }
+        } finally {
+            if (openedForPing) {
+                try {
+                    await serialPort.close();
+                } catch (error) {
+                    if (error.name !== 'InvalidStateError') {
+                        console.warn('Ping port close failed:', error);
+                    }
+                }
+            }
+        }
+    };
+
+    const ensurePortReady = async () => {
+        if (!('serial' in navigator)) {
+            return;
+        }
+
+        try {
+            const availablePorts = await navigator.serial.getPorts();
+            if (!availablePorts || availablePorts.length === 0) {
+                return;
+            }
+
+            const currentPort = portRef.current;
+            const currentId = getPortIdentifier(currentPort);
+
+            let matchingPort = currentId
+                ? availablePorts.find(portCandidate => getPortIdentifier(portCandidate) === currentId)
+                : null;
+
+            if (!matchingPort && availablePorts.length === 1) {
+                matchingPort = availablePorts[0];
+            }
+
+            if (!matchingPort) {
+                return;
+            }
+
+            if ((!currentPort || matchingPort !== currentPort) && componentActiveRef.current) {
+                portRef.current = matchingPort;
+                setPort(matchingPort);
+                setIsConnected(true);
+                addLog('Reusing previously authorized serial device', 'info');
+            }
+
+            await pingSerialPort(matchingPort);
+            addLog('Serial port responded to readiness check', 'info');
+        } catch (error) {
+            console.warn('Serial readiness check failed:', error);
+            addLog(`Serial readiness check failed: ${error.message}`, 'warning');
+        }
+    };
+
+    const verifyStubAlive = async (esploaderInstance) => {
+        if (!esploaderInstance) {
+            return false;
+        }
+
+        try {
+            await Promise.race([
+                esploaderInstance.readReg(esploaderInstance.CHIP_DETECT_MAGIC_REG_ADDR),
+                wait(STUB_VERIFY_TIMEOUT_MS).then(() => {
+                    throw new Error('Stub verification timeout');
+                })
+            ]);
+            addLog('Stub heartbeat verified', 'info');
+            return true;
+        } catch (error) {
+            addLog(`Stub verification failed: ${error.message}`, 'warning');
+            return false;
+        }
+    };
+
+    const ensureStubAlive = async (esploaderInstance) => {
+        const isStubAlive = await verifyStubAlive(esploaderInstance);
+        if (isStubAlive) {
+            return;
+        }
+
+        addLog('Stub unresponsive, retrying upload...', 'warning');
+
+        try {
+            if (esploaderInstance) {
+                esploaderInstance.syncStubDetected = false;
+                esploaderInstance.IS_STUB = false;
+                await esploaderInstance.runStub();
+                if (esploaderInstance.romBaudrate && esploaderInstance.romBaudrate !== esploaderInstance.baudrate) {
+                    await esploaderInstance.changeBaud();
+                }
+                const verified = await verifyStubAlive(esploaderInstance);
+                if (!verified) {
+                    throw new Error('No response after stub re-upload');
+                }
+                addLog('Stub restarted successfully', 'success');
+            }
+        } catch (error) {
+            throw new Error(`Stub verification failed: ${error.message}`);
+        }
+    };
+
+    React.useEffect(() => {
+        if (!supportsWebSerial) {
+            return;
+        }
+        ensurePortReady();
+    }, [supportsWebSerial]);
+
     const connectToDevice = async () => {
         if (isConnecting || isConnected) {
             addLog('Already connected or connecting...', 'warning');
@@ -169,6 +396,7 @@ const WebFlasher = ({ config, onClose }) => {
             // The port will be opened by the Transport layer during flashing
             setPort(newPort);
             setIsConnected(true);
+            portRef.current = newPort;
             addLog('Serial device ready for flashing', 'success');
 
         } catch (error) {
@@ -193,13 +421,26 @@ const WebFlasher = ({ config, onClose }) => {
         } finally {
             setPort(null);
             setIsConnected(false);
+            portRef.current = null;
         }
     };
 
     const flashFirmware = async () => {
-        if (!isConnected || !port) {
+        let activePort = portRef.current || port;
+
+        if (!activePort) {
+            await ensurePortReady();
+            activePort = portRef.current;
+        }
+
+        if (!activePort) {
             addLog('Please connect to device first', 'error');
             return;
+        }
+
+        if (activePort && activePort !== port && componentActiveRef.current) {
+            setPort(activePort);
+            setIsConnected(true);
         }
 
         const requestedPlatform = config?.platform || config?.device_type;
@@ -211,7 +452,9 @@ const WebFlasher = ({ config, onClose }) => {
 
         try {
             await stopSerialMonitor({ silent: true });
-            await closePortIfOpen(port);
+            await closePortIfOpen(activePort);
+            await ensurePortReady();
+            activePort = portRef.current || activePort;
         } catch (error) {
             console.error('Pre-flash port cleanup failed:', error);
             addLog(`Failed to prepare port: ${error.message}`, 'error');
@@ -258,39 +501,63 @@ const WebFlasher = ({ config, onClose }) => {
     };
 
     const flashToDevice = async (flashFiles) => {
-        if (!port) {
+        const activePort = portRef.current || port;
+        if (!activePort) {
             throw new Error('Device not connected');
         }
 
         let transport;
 
         try {
-            await closePortIfOpen(port);
+            await closePortIfOpen(activePort);
 
             setFlashStatus('Connecting to device...');
             addLog('Initializing ESPTool...', 'info');
             setFlashProgress(25);
 
-            transport = new Transport(port);
+            transport = new Transport(activePort);
             transportRef.current = transport;
 
-            const connectWithRetry = async () => {
-                const maxAttempts = 3;
+            const connectToChip = async () => {
+                const maxAttempts = 5;
+                const connectionStart = Date.now();
+                let romBaudrate = DEFAULT_BAUD_RATE;
+                let loweredBaud = false;
+
                 for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                    const elapsed = Date.now() - connectionStart;
+                    if (!loweredBaud && elapsed > MAX_CONNECT_WINDOW_MS) {
+                        loweredBaud = true;
+                        romBaudrate = FALLBACK_BAUD_RATE;
+                        addLog(`Connection taking longer than expected. Switching to fallback baud rate ${FALLBACK_BAUD_RATE}.`, 'warning');
+                    }
+
+                    transportRef.current = transport;
+                    const esploaderInstance = new ESPLoader({
+                        transport,
+                        baudrate: DEFAULT_BAUD_RATE,
+                        romBaudrate,
+                        debugLogging: false
+                    });
+
                     try {
-                        await transport.connect(115200, {
-                            dataBits: 8,
-                            stopBits: 1,
-                            parity: 'none',
-                            flowControl: 'none'
-                        });
-                        return;
-                    } catch (transportError) {
-                        const alreadyOpen = transportError.name === 'InvalidStateError' ||
-                            transportError.message?.includes('already open');
+                        setFlashStatus('Connecting to chip...');
+                        addLog(`Connecting to device${attempt > 1 ? ` (attempt ${attempt})` : ''}...`, 'info');
+
+                        const chipName = await esploaderInstance.main();
+                        addLog('Serial connection established', 'success');
+                        addLog(`Connected to ${chipName}`, 'success');
+                        setFlashProgress(35);
+
+                        await ensureStubAlive(esploaderInstance);
+
+                        return { esploaderInstance, chipName, romBaudrate, loweredBaud };
+                    } catch (error) {
+                        const alreadyOpen = error.name === 'InvalidStateError' ||
+                            error.message?.includes('already open');
 
                         if (!alreadyOpen) {
-                            throw transportError;
+                            throw error;
                         }
 
                         if (attempt === maxAttempts) {
@@ -305,29 +572,19 @@ const WebFlasher = ({ config, onClose }) => {
                             console.warn('Transport disconnect during retry failed:', disconnectError);
                         }
 
-                        await closePortIfOpen(port);
-                        await new Promise(resolve => setTimeout(resolve, 400 * attempt));
+                        await closePortIfOpen(activePort);
+                        await wait(400 * attempt);
                     }
                 }
+
+                throw new Error('Failed to establish serial connection.');
             };
 
-            await connectWithRetry();
-            addLog('Serial connection established', 'success');
+            const { esploaderInstance: esploader, chipName: chip, romBaudrate, loweredBaud } = await connectToChip();
 
-            const esploader = new ESPLoader({
-                transport,
-                baudrate: 115200,
-                romBaudrate: 115200,
-                debugLogging: false
-            });
-
-            setFlashStatus('Connecting to chip...');
-            addLog('Connecting to device...', 'info');
-
-            const chip = await esploader.main();
-
-            addLog(`Connected to ${chip}`, 'success');
-            setFlashProgress(35);
+            if (loweredBaud) {
+                addLog(`Connection established using fallback baud rate ${romBaudrate}.`, 'info');
+            }
 
             setFlashStatus('Preparing flash data...');
             addLog('Preparing firmware for flashing...', 'info');
@@ -402,7 +659,7 @@ const WebFlasher = ({ config, onClose }) => {
                 } finally {
                     transportRef.current = null;
                     try {
-                        await closePortIfOpen(port);
+                        await closePortIfOpen(activePort);
                     } catch (closeError) {
                         console.error('Port close after flash failed:', closeError);
                         addLog(`Warning: ${closeError.message}`, 'warning');
@@ -424,7 +681,7 @@ const WebFlasher = ({ config, onClose }) => {
         }
 
         try {
-            await port.open({ baudRate: 115200 });
+            await port.open({ baudRate: DEFAULT_BAUD_RATE });
         } catch (error) {
             if (error.name !== 'InvalidStateError') {
                 console.error('Serial monitor error:', error);
@@ -484,7 +741,9 @@ const WebFlasher = ({ config, onClose }) => {
                     }
                 }
 
-                setIsMonitoring(false);
+                if (componentActiveRef.current) {
+                    setIsMonitoring(false);
+                }
             }
         })();
     };
@@ -522,7 +781,9 @@ const WebFlasher = ({ config, onClose }) => {
             addLog('Serial monitor stopped', 'info');
         }
 
-        setIsMonitoring(false);
+        if (componentActiveRef.current) {
+            setIsMonitoring(false);
+        }
     };
 
     const downloadInsteadOfFlash = async () => {

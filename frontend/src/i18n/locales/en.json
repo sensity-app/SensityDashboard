@@ -11,12 +11,14 @@
     "close": "Close",
     "confirm": "Confirm",
     "refresh": "Refresh",
+    "refreshing": "Refreshing...",
     "search": "Search",
     "filter": "Filter",
     "export": "Export",
     "download": "Download",
     "upload": "Upload",
     "settings": "Settings",
+    "saving": "Saving...",
     "dashboard": "Dashboard",
     "devices": "Devices",
     "alerts": "Alerts",
@@ -194,11 +196,17 @@
       }
     },
     "navigation": {
-      "nextNetwork": "Next: Network Config"
+      "nextNetwork": "Next: Network Config",
+      "nextSensors": "Next: Sensor Selection",
+      "nextReview": "Next: Review & Build",
+      "prevDevice": "Previous: Device Setup",
+      "prevNetwork": "Previous: Network Config",
+      "prevSensors": "Previous: Sensor Selection"
     },
     "sections": {
       "device": {
         "title": "Device Setup",
+        "platformHelp": "Select the hardware platform for your IoT device",
         "fields": {
           "name": {
             "label": "Device Name *",
@@ -222,14 +230,146 @@
             "regenerate": "Regenerate"
           }
         }
+      },
+      "network": {
+        "wifi": {
+          "title": "WiFi Connection",
+          "fields": {
+            "ssid": {
+              "label": "WiFi Network Name (SSID) *",
+              "placeholder": "Your WiFi network name"
+            },
+            "password": {
+              "label": "WiFi Password",
+              "placeholder": "Your WiFi password",
+              "placeholderOpen": "No password required"
+            },
+            "open": {
+              "label": "Open WiFi (no password)",
+              "helper": "Check this if connecting to an open WiFi network without password"
+            }
+          }
+        },
+        "server": {
+          "title": "Server Connection",
+          "fields": {
+            "url": {
+              "label": "Server URL *",
+              "placeholder": "https://your-server.com",
+              "helper": "The device will connect to this server to send data"
+            }
+          }
+        }
+      },
+      "behavior": {
+        "fields": {
+          "heartbeat": {
+            "label": "Heartbeat Interval (seconds)",
+            "helper": "How often the device reports it's online (60-3600 seconds)"
+          },
+          "sensorRead": {
+            "label": "Sensor Read Interval (ms)",
+            "helper": "How often sensors are read (1000-60000 ms)"
+          }
+        }
+      },
+      "options": {
+        "debug": {
+          "label": "Debug Mode",
+          "helper": "Enable detailed logging"
+        },
+        "ota": {
+          "label": "OTA Updates",
+          "helper": "Allow over-the-air firmware updates"
+        },
+        "armed": {
+          "label": "Device Armed",
+          "helper": "Enable sensor-triggered actions"
+        }
+      },
+      "sensors": {
+        "title": "Sensor Selection",
+        "conflict": {
+          "title": "Pin Conflict Warning",
+          "item": "Pin {{pin}} is being used by: {{sensors}}. Please select different pins."
+        },
+        "availableTitle": "Available Sensor Types",
+        "configuredCount": "{{count}} sensors configured",
+        "conflictCount": "{{count}} conflict{{count, plural, one {} other {s}}}",
+        "loading": "Loading sensor options...",
+        "addButton": "Add",
+        "configuredTitle": "Configured Sensors",
+        "pinReference": "Pin Reference Guide ({{platform}})",
+        "nameLabel": "Sensor Name",
+        "namePlaceholder": "Enter name for {{sensor}}",
+        "pinConflictDetail": "Pin {{pin}} is also used by: {{conflicts}}",
+        "pinLabel": "Pin {{pin}}",
+        "conflictBadge": "Conflict!"
       }
-    }
+    },
+    "deviceConfig": {
+      "networkConfig": "Network Configuration",
+      "deviceConfig": "Device Configuration",
+      "deviceBehavior": "Device Behavior",
+      "deviceOptions": "Device Options",
+      "previousStep": "Previous: Device Setup",
+      "openWifi": "Open WiFi (no password)",
+      "openWifiHelp": "Check this if connecting to an open WiFi network without password"
+    },
+    "review": {
+      "title": "Review & Build",
+      "labels": {
+        "deviceName": "Device Name:",
+        "location": "Location:",
+        "deviceId": "Device ID:",
+        "apiKey": "API Key:",
+        "wifiSsid": "WiFi SSID:",
+        "wifiSecurity": "WiFi Security:",
+        "serverUrl": "Server URL:",
+        "heartbeat": "Heartbeat:",
+        "sensorRead": "Sensor read interval:"
+      },
+      "values": {
+        "wifiOpen": "Open (no password)",
+        "wifiSecured": "Secured"
+      },
+      "sensors": {
+        "title": "Sensor Configuration ({{count}} sensors)",
+        "conflictBadge": "Conflict!"
+      }
+    },
+    "actions": {
+      "buildTitle": "Build Firmware",
+      "buildDescription": "Generate your custom firmware and download it as a ZIP package.",
+      "conflictNotice": "{{count}} pin conflict{{count, plural, one {} other {s}}} detected",
+      "flashTooltip": "Flash firmware directly via Web Serial API",
+      "flash": "Flash to Device",
+      "download": "Download Firmware",
+      "building": "Building..."
+    },
+    "summary": {
+      "title": "Firmware Generated Successfully!",
+      "description": "Your custom firmware has been downloaded. The ZIP file contains:",
+      "items": {
+        "ino": "Arduino sketch file (.ino)",
+        "configHeader": "Device configuration header",
+        "instructions": "Installation instructions",
+        "libraries": "Required libraries list",
+        "wiring": "Wiring diagram"
+      }
+    },
+    "validation": {
+      "pinConflict": "Pin {{pin}} conflict: {{sensors}}"
+    },
+    "finalStep": "Final step - Build your firmware above"
   },
   "auth": {
     "login": "Login",
     "register": "Register",
     "logout": "Logout",
     "email": "Email",
+    "emailAddress": "Email Address",
+    "fullName": "Full Name",
     "password": "Password",
     "confirmPassword": "Confirm Password",
     "forgotPassword": "Forgot Password?",
@@ -258,31 +398,43 @@
   "dashboard": {
     "title": "Sensity IoT Dashboard",
     "overview": "System Overview",
-  "deviceCount": "Total Devices",
-  "deviceCountLabel": "devices",
+    "deviceCount": "Total Devices",
+    "deviceCountLabel": "devices",
     "totalDevices": "Total Devices",
     "activeDevices": "Active Devices",
     "onlineDevices": "Online Devices",
     "offlineDevices": "Offline Devices",
     "activeAlerts": "Active Alerts",
-  "recentActivity": "Recent Activity",
-  "systemHealth": "System Health",
-  "lastUpdate": "Last Update",
-  "welcomeMessage": "Welcome to your IoT platform",
-  "noData": "No data available",
-  "viewAll": "View all",
-  "quickActions": "Quick Actions",
-  "buildFirmware": "Build New Firmware",
-  "buildFirmwareDesc": "Create and deploy firmware for new devices",
-  "manageDevices": "Manage Devices",
-  "manageDevicesDesc": "View and configure all your IoT devices",
-  "systemSettings": "System Settings",
-  "systemSettingsDesc": "Configure platform and notifications",
-  "toast": {
-    "acknowledgeSuccess": "Alert acknowledged successfully",
-    "acknowledgeError": "Failed to acknowledge alert"
-  }
-},
+    "alertSeverity": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "info": "Info"
+    },
+    "recentActivity": "Recent Activity",
+    "systemHealth": "System Health",
+    "lastUpdate": "Last Update",
+    "welcomeMessage": "Welcome to your IoT platform",
+    "noData": "No data available",
+    "noDevicesYet": "No devices yet",
+    "noLocation": "No location",
+    "viewAll": "View all",
+    "viewDevices": "View Devices",
+    "unresolvedAlerts": "Unresolved Alerts",
+    "quickActions": "Quick Actions",
+    "buildFirmware": "Build New Firmware",
+    "buildFirmwareDesc": "Create and deploy firmware for new devices",
+    "manageDevices": "Manage Devices",
+    "manageDevicesDesc": "View and configure all your IoT devices",
+    "systemSettings": "System Settings",
+    "systemSettingsDesc": "Configure platform and notifications",
+    "acknowledgeTooltip": "Acknowledge this alert",
+    "toast": {
+      "acknowledgeSuccess": "Alert acknowledged successfully",
+      "acknowledgeError": "Failed to acknowledge alert"
+    }
+  },
   "license": {
     "managementTitle": "License Management",
     "activateSuccess": "License activated successfully!",
@@ -667,7 +819,16 @@
     "escalationDelay": "Escalation Delay (minutes)",
     "maxEscalationLevel": "Maximum Escalation Level",
     "recipients": "Recipients",
+    "defaultType": "Alert",
+    "noContext": "No additional context",
+    "deviceColumn": "Device",
     "noAlertsFound": "No alerts found",
+    "noAlertsDescription": "Monitor devices and rules to see new alerts appear here.",
+    "noAlertsForDevice": "This device has no recorded alerts yet.",
+    "loadFailed": "Failed to load alerts",
+    "clearFilter": "Clear filter",
+    "backToDevice": "Back to device",
+    "deviceFilter": "Showing alerts for device {{id}}",
     "alertCreated": "Alert rule created successfully",
     "alertUpdated": "Alert rule updated successfully",
     "alertDeleted": "Alert rule deleted successfully",
@@ -738,6 +899,7 @@
   },
   "users": {
     "title": "Users",
+    "subtitle": "Manage system users and permissions",
     "userList": "User List",
     "addUser": "Add User",
     "editUser": "Edit User",
@@ -786,7 +948,9 @@
     "expires": "Expires",
     "invitedBy": "By",
     "sendInvitation": "Send Invitation",
-    "role": "Role"
+    "role": "Role",
+    "locationAccess": "Location Access",
+    "locationAccessHelp": "Select which locations this user can access"
   },
   "otaManager": {
     "title": "OTA Update Manager",
@@ -1233,12 +1397,180 @@
     "title": "Serial Monitor",
     "description": "Monitor serial output from your ESP8266/ESP32 devices in real-time",
     "howToUse": "How to use:",
+    "status": {
+      "connected": "Connected",
+      "disconnected": "Not connected",
+      "monitoring": "Monitoring at {{baudRate}} baud",
+      "ready": "Ready",
+      "lines": "{{count}} {{count, plural, one {line} other {lines}}}"
+    },
+    "actions": {
+      "connect": "Connect Device",
+      "disconnect": "Disconnect",
+      "start": "Start",
+      "stop": "Stop",
+      "clear": "Clear",
+      "download": "Download"
+    },
+    "labels": {
+      "baud": "baud",
+      "timestamps": "Timestamps",
+      "autoScroll": "Auto-scroll"
+    },
+    "log": {
+      "deviceConnected": "Device connected successfully",
+      "connectionFailed": "Connection failed: {{message}}",
+      "deviceDisconnected": "Device disconnected",
+      "monitorStarted": "Serial monitor started at {{baudRate}} baud",
+      "readError": "Read error: {{message}}",
+      "portBusy": "Port is busy, please disconnect and reconnect device",
+      "monitorError": "Serial monitor error: {{message}}",
+      "monitorStopped": "Serial monitor stopped",
+      "empty": "Connect a device and start monitoring to see output"
+    },
     "step1": "Connect your ESP8266/ESP32 device via USB",
     "step2": "Click \"Connect Device\" and select the serial port",
     "step3": "Select the appropriate baud rate (usually 115200 for ESP devices)",
     "step4": "Click \"Start\" to begin monitoring",
     "step5": "View real-time serial output from your device",
     "step6": "Use \"Download\" to save the log to a file"
+  },
+  "webFlasher": {
+    "title": "Web Flasher",
+    "status": {
+      "compiling": "Compiling firmware...",
+      "building": "Building firmware...",
+      "failed": "Flash failed",
+      "connectingDevice": "Connecting to device...",
+      "connectingChip": "Connecting to chip...",
+      "preparingData": "Preparing flash data...",
+      "erasing": "Erasing flash...",
+      "writing": "Writing firmware...",
+      "restarting": "Restarting device...",
+      "completed": "Flash completed successfully!"
+    },
+    "connection": {
+      "connected": "Connected to device",
+      "disconnected": "Not connected",
+      "connecting": "Connecting..."
+    },
+    "buttons": {
+      "retryDetection": "Retry Detection",
+      "downloadFirmware": "Download Firmware",
+      "connect": "Connect Device",
+      "disconnect": "Disconnect",
+      "flashing": "Flashing...",
+      "flash": "Flash Firmware",
+      "stopMonitor": "Stop Monitor",
+      "serialMonitor": "Serial Monitor",
+      "downloadZip": "Download firmware archive"
+    },
+    "console": {
+      "title": "Console Output",
+      "clear": "Clear",
+      "empty": "Console output will appear here..."
+    },
+    "instructions": {
+      "title": "Before Flashing:",
+      "step1": "Connect your device to your computer via USB",
+      "step2": "Install the CP210x or CH340 USB driver if needed",
+      "step3": "Hold the FLASH button while clicking \"Connect Device\"",
+      "step4": "Release the FLASH button after connection is established"
+    },
+    "unsupported": {
+      "title": "Browser Not Supported",
+      "description": "Web-based flashing requires a browser that supports the WebSerial API.",
+      "instructionsTitle": "To enable web flashing:",
+      "steps": {
+        "browser": "Use Chrome 89+ or Edge 89+ (You appear to be using Chrome {{version}})",
+        "secure": "Access the site via HTTPS or localhost",
+        "flags": "Enable \"Experimental Web Platform features\" in chrome://flags",
+        "restart": "Restart your browser after enabling the flag"
+      },
+      "contextSecure": "✅ Secure (HTTPS/localhost)",
+      "contextInsecure": "❌ Not secure",
+      "webSerialAvailable": "✅ Available",
+      "webSerialUnavailable": "❌ Not available",
+      "statusLine": "Current context: {{secure}} | Protocol: {{protocol}} | WebSerial: {{webSerial}}"
+    },
+    "log": {
+      "apiDetected": "Web Serial API detected - web flashing available",
+      "apiUnavailable": "Web Serial API not available. Chrome: {{isChrome}}, Version: {{version}}",
+      "contextInfo": "Secure context: {{secure}}, Protocol: {{protocol}}",
+      "requiresSecureContext": "Web Serial API requires HTTPS or localhost",
+      "deviceAttached": "Serial device connected",
+      "deviceDetached": "Serial device disconnected",
+      "otherDeviceDetached": "A different serial device disconnected",
+      "portBusyRelease": "Serial port busy, attempting to release previous connection...",
+      "reusingAuthorizedDevice": "Reusing previously authorized serial device",
+      "readyCheckSuccess": "Serial port responded to readiness check",
+      "readyCheckFailed": "Serial readiness check failed: {{message}}",
+      "stubHeartbeat": "Stub heartbeat verified",
+      "stubVerifyFailed": "Stub verification failed: {{message}}",
+      "stubRetry": "Stub unresponsive, retrying upload...",
+      "stubRestarted": "Stub restarted successfully",
+      "registrationSkipped": "Skipping device registration: device ID missing from configuration",
+      "locationCreated": "Created new location \"{{name}}\"",
+      "registrationStarted": "Registering device in platform...",
+      "registrationSucceeded": "Device registered successfully",
+      "registrationExists": "Device already exists in platform; skipping registration",
+      "locationFailed": "Location setup failed: {{message}}",
+      "alreadyConnecting": "Already connected or connecting...",
+      "requestingDevice": "Requesting device connection...",
+      "deviceReady": "Serial device ready for flashing",
+      "deviceDisconnected": "Disconnected from device",
+      "connectionFailed": "Connection failed: {{message}}",
+      "disconnectError": "Disconnect error: {{message}}",
+      "promptConnect": "Please connect to device first",
+      "unsupportedPlatform": "Web flashing is not yet available for {{platform}}.",
+      "useDownloadOption": "Use the download option and flash the binary with a platform-appropriate tool.",
+      "preparePortFailed": "Failed to prepare port: {{message}}",
+      "compiling": "Compiling firmware...",
+      "compileSuccess": "Firmware compiled successfully - Version: {{version}}",
+      "flashFailed": "Flash failed: {{message}}",
+      "initializing": "Initializing ESPTool...",
+      "fallbackBaud": "Connection taking longer than expected. Switching to fallback baud rate {{baud}}.",
+      "prepareBootloader": "Preparing device for bootloader...",
+      "connectingDevice": "Connecting to device...",
+      "connectingDeviceRetry": "Connecting to device (attempt {{attempt}})...",
+      "serialEstablished": "Serial connection established",
+      "chipConnected": "Connected to {{name}}",
+      "connectionRetry": "Connection attempt {{attempt}} failed ({{message}}). Retrying in {{delay}} ms... ({{remaining}} retries left)",
+      "fallbackBaudSuccess": "Connection established using fallback baud rate {{baud}}.",
+      "preparingFirmware": "Preparing firmware for flashing...",
+      "erasing": "Erasing flash memory...",
+      "eraseComplete": "Flash erased",
+      "writing": "Writing firmware to flash...",
+      "writingProgress": "Writing: {{percent}}% ({{written}} / {{total}} bytes)",
+      "writingFile": "Writing {{bytes}} bytes at address 0x{{address}}...",
+      "writeComplete": "Firmware written successfully",
+      "resetting": "Resetting device...",
+      "resetSignal": "Device reset signal sent",
+      "resetWarning": "Reset warning: {{message}}",
+      "flashComplete": "Firmware flashed successfully!",
+      "registrationFailed": "Device registration failed: {{message}}",
+      "postFlashOnline": "Device should connect to WiFi and appear online shortly",
+      "postFlashMonitor": "Click \"Start Serial Monitor\" to view device output",
+      "flashError": "Flash error: {{message}}",
+      "disconnectWarning": "Warning: failed to release serial port cleanly ({{message}})",
+      "closeWarning": "Warning: {{message}}",
+      "monitorAlreadyRunning": "Serial monitor is already running",
+      "monitorError": "Serial monitor error: {{message}}",
+      "monitorStarted": "Serial monitor started - Listening for device output...",
+      "deviceOutput": "[Device] {{line}}",
+      "monitorStopError": "Serial monitor stop error: {{message}}",
+      "monitorStopped": "Serial monitor stopped",
+      "downloadGenerating": "Generating firmware for download...",
+      "downloadSuccess": "Firmware downloaded successfully",
+      "downloadFailed": "Download failed: {{message}}"
+    },
+    "errors": {
+      "registrationFailed": "Device registration failed: {{message}}",
+      "maxRetries": "Unable to gain access to the serial port after multiple retries. Last error: {{message}}",
+      "downloadFailed": "Failed to generate firmware",
+      "deviceDisconnected": "Device not connected",
+      "compileFailed": "Failed to compile firmware"
+    }
   },
   "deviceLocations": {
     "title": "Device Locations",
@@ -1257,12 +1589,36 @@
     "openWifiHelp": "Check this if connecting to an open WiFi network without password"
   },
   "protocolSettings": {
-    "description": "Configure communication protocols for your devices (HTTP or MQTT)"
+    "title": "Protocol Settings",
+    "description": "Configure communication protocols for your devices (HTTP or MQTT)",
+    "updateSuccess": "Protocol settings updated successfully",
+    "updateError": "Failed to update protocol settings",
+    "resetSuccess": "Protocol settings reset to default",
+    "resetError": "Failed to reset protocol settings",
+    "testSuccess": "Connection test successful",
+    "testFailed": "Connection test failed",
+    "testError": "Failed to test connection",
+    "selectDevice": "Please select a device",
+    "confirmReset": "Are you sure you want to reset protocol settings to default HTTP?",
+    "chooseDevice": "Choose a device...",
+    "protocol": "Protocol",
+    "httpConfiguration": "HTTP Configuration",
+    "httpEndpoint": "HTTP Endpoint",
+    "httpEndpointPlaceholder": "http://localhost:3001/api",
+    "mqttConfiguration": "MQTT Configuration",
+    "mqttBrokerHost": "MQTT Broker Host",
+    "mqttBrokerHostPlaceholder": "localhost",
+    "mqttBrokerPort": "Port",
+    "mqttUsername": "Username (optional)",
+    "mqttPassword": "Password (optional)",
+    "mqttTopicPrefix": "Topic Prefix",
+    "mqttQos": "QoS Level",
+    "heartbeatInterval": "Heartbeat Interval (seconds)",
+    "reset": "Reset to Default",
+    "testing": "Testing...",
+    "testConnection": "Test Connection"
   },
   "deviceDetail": {
     "viewHistory": "View history"
-  },
-  "dashboard": {
-    "viewDevices": "View Devices"
   }
 }

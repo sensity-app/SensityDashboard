@@ -30,9 +30,9 @@ const SerialMonitor = () => {
             const selectedPort = await navigator.serial.requestPort();
             setPort(selectedPort);
             setIsConnected(true);
-            addLog('Device connected successfully', 'success');
+            addLog(t('serialMonitor.log.deviceConnected'), 'success');
         } catch (error) {
-            addLog(`Connection failed: ${error.message}`, 'error');
+            addLog(t('serialMonitor.log.connectionFailed', { message: error.message }), 'error');
         }
     };
 
@@ -48,7 +48,7 @@ const SerialMonitor = () => {
             }
             setPort(null);
             setIsConnected(false);
-            addLog('Device disconnected', 'info');
+            addLog(t('serialMonitor.log.deviceDisconnected'), 'info');
         }
     };
 
@@ -58,7 +58,7 @@ const SerialMonitor = () => {
         try {
             await port.open({ baudRate: baudRate });
             setIsMonitoring(true);
-            addLog(`Serial monitor started at ${baudRate} baud`, 'info');
+            addLog(t('serialMonitor.log.monitorStarted', { baudRate }), 'info');
 
             const textDecoder = new TextDecoderStream();
             const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
@@ -84,15 +84,15 @@ const SerialMonitor = () => {
                     if (error.message.includes('cancel')) {
                         // Normal cancellation
                     } else {
-                        addLog(`Read error: ${error.message}`, 'error');
+                        addLog(t('serialMonitor.log.readError', { message: error.message }), 'error');
                     }
                 }
             })();
         } catch (error) {
             if (error.message.includes('readable is locked')) {
-                addLog('Port is busy, please disconnect and reconnect device', 'error');
+                addLog(t('serialMonitor.log.portBusy'), 'error');
             } else {
-                addLog(`Serial monitor error: ${error.message}`, 'error');
+                addLog(t('serialMonitor.log.monitorError', { message: error.message }), 'error');
             }
             setIsMonitoring(false);
         }
@@ -115,7 +115,7 @@ const SerialMonitor = () => {
             }
         }
         setIsMonitoring(false);
-        addLog('Serial monitor stopped', 'info');
+        addLog(t('serialMonitor.log.monitorStopped'), 'info');
     };
 
     const clearLog = () => {
@@ -153,8 +153,8 @@ const SerialMonitor = () => {
     return (
         <div className="p-6 max-w-7xl mx-auto">
             <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900">Serial Monitor</h1>
-                <p className="text-gray-600 mt-2">Monitor serial output from your ESP8266/ESP32 devices in real-time</p>
+                <h1 className="text-3xl font-bold text-gray-900">{t('serialMonitor.title')}</h1>
+                <p className="text-gray-600 mt-2">{t('serialMonitor.description')}</p>
             </div>
 
             <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -165,7 +165,7 @@ const SerialMonitor = () => {
                         <div className="flex items-center space-x-2">
                             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                             <span className="text-sm font-medium">
-                                {isConnected ? 'Connected' : 'Not Connected'}
+                                {isConnected ? t('serialMonitor.status.connected') : t('serialMonitor.status.disconnected')}
                             </span>
                         </div>
 
@@ -176,7 +176,7 @@ const SerialMonitor = () => {
                                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                             >
                                 <Usb className="w-4 h-4" />
-                                <span>Connect Device</span>
+                                <span>{t('serialMonitor.actions.connect')}</span>
                             </button>
                         ) : (
                             <button
@@ -184,7 +184,7 @@ const SerialMonitor = () => {
                                 disabled={isMonitoring}
                                 className="px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
                             >
-                                Disconnect
+                                {t('serialMonitor.actions.disconnect')}
                             </button>
                         )}
 
@@ -204,7 +204,7 @@ const SerialMonitor = () => {
                                 <option value={115200}>115200</option>
                                 <option value={230400}>230400</option>
                             </select>
-                            <span className="text-sm text-gray-600">baud</span>
+                            <span className="text-sm text-gray-600">{t('serialMonitor.labels.baud')}</span>
                         </div>
 
                         {/* Start/Stop Monitoring */}
@@ -216,7 +216,7 @@ const SerialMonitor = () => {
                                         className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                                     >
                                         <Play className="w-4 h-4" />
-                                        <span>Start</span>
+                                        <span>{t('serialMonitor.actions.start')}</span>
                                     </button>
                                 ) : (
                                     <button
@@ -224,7 +224,7 @@ const SerialMonitor = () => {
                                         className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                                     >
                                         <Square className="w-4 h-4" />
-                                        <span>Stop</span>
+                                        <span>{t('serialMonitor.actions.stop')}</span>
                                     </button>
                                 )}
                             </>
@@ -241,7 +241,7 @@ const SerialMonitor = () => {
                                 onChange={(e) => setShowTimestamp(e.target.checked)}
                                 className="rounded"
                             />
-                            <span className="text-sm">Timestamps</span>
+                            <span className="text-sm">{t('serialMonitor.labels.timestamps')}</span>
                         </label>
 
                         <label className="flex items-center space-x-2 cursor-pointer">
@@ -251,7 +251,7 @@ const SerialMonitor = () => {
                                 onChange={(e) => setAutoScroll(e.target.checked)}
                                 className="rounded"
                             />
-                            <span className="text-sm">Auto-scroll</span>
+                            <span className="text-sm">{t('serialMonitor.labels.autoScroll')}</span>
                         </label>
 
                         {/* Clear Button */}
@@ -260,7 +260,7 @@ const SerialMonitor = () => {
                             className="flex items-center space-x-2 px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
                         >
                             <Trash2 className="w-4 h-4" />
-                            <span>Clear</span>
+                            <span>{t('serialMonitor.actions.clear')}</span>
                         </button>
 
                         {/* Download Button */}
@@ -270,7 +270,7 @@ const SerialMonitor = () => {
                             className="flex items-center space-x-2 px-3 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 disabled:opacity-50"
                         >
                             <Download className="w-4 h-4" />
-                            <span>Download</span>
+                            <span>{t('serialMonitor.actions.download')}</span>
                         </button>
                     </div>
                 </div>
@@ -284,7 +284,7 @@ const SerialMonitor = () => {
                     {log.length === 0 ? (
                         <div className="text-gray-500 text-center mt-20">
                             <Usb className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                            <p>Connect a device and start monitoring to see output</p>
+                            <p>{t('serialMonitor.log.empty')}</p>
                         </div>
                     ) : (
                         log.map((entry, index) => (
@@ -304,14 +304,14 @@ const SerialMonitor = () => {
                         {isMonitoring ? (
                             <span className="flex items-center space-x-2">
                                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                <span>Monitoring at {baudRate} baud</span>
+                                <span>{t('serialMonitor.status.monitoring', { baudRate })}</span>
                             </span>
                         ) : (
-                            <span>Ready</span>
+                            <span>{t('serialMonitor.status.ready')}</span>
                         )}
                     </div>
                     <div>
-                        {log.length} line{log.length !== 1 ? 's' : ''}
+                        {t('serialMonitor.status.lines', { count: log.length })}
                     </div>
                 </div>
             </div>

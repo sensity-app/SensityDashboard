@@ -76,20 +76,20 @@ function Dashboard() {
     // Format severity label for display
     const formatSeverityLabel = (severity) => {
         if (!severity) {
-            return t('dashboard.alertSeverity.info', 'Info');
+            return t('dashboard.alertSeverity.info');
         }
         const severityLower = severity.toLowerCase();
         switch (severityLower) {
             case 'critical':
-                return t('dashboard.alertSeverity.critical', 'Critical');
+                return t('dashboard.alertSeverity.critical');
             case 'high':
-                return t('dashboard.alertSeverity.high', 'High');
+                return t('dashboard.alertSeverity.high');
             case 'medium':
-                return t('dashboard.alertSeverity.medium', 'Medium');
+                return t('dashboard.alertSeverity.medium');
             case 'low':
-                return t('dashboard.alertSeverity.low', 'Low');
+                return t('dashboard.alertSeverity.low');
             default:
-                return t('dashboard.alertSeverity.info', 'Info');
+                return t('dashboard.alertSeverity.info');
         }
     };
 
@@ -102,7 +102,7 @@ function Dashboard() {
 
     const formatStatusLabel = (status) => {
         if (!status) {
-            return t('deviceDetail.status.unknown', 'Unknown');
+            return t('deviceDetail.status.unknown');
         }
         return t(`deviceDetail.status.${status}`, { defaultValue: status });
     };
@@ -170,7 +170,7 @@ function Dashboard() {
                         </div>
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 mb-1">
-                                {t('dashboard.totalDevices', 'Total Devices')}
+                                {t('dashboard.totalDevices')}
                             </p>
                             <p className="text-3xl font-bold text-gray-900">
                                 {devices.length}
@@ -186,7 +186,7 @@ function Dashboard() {
                         </div>
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 mb-1">
-                                {t('dashboard.onlineDevices', 'Online')}
+                                {t('dashboard.onlineDevices')}
                             </p>
                             <p className="text-3xl font-bold text-green-600">
                                 {devices.filter(d => resolveDeviceStatus(d) === 'online').length}
@@ -202,7 +202,7 @@ function Dashboard() {
                         </div>
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 mb-1">
-                                {t('dashboard.offlineDevices', 'Offline')}
+                                {t('dashboard.offlineDevices')}
                             </p>
                             <p className="text-3xl font-bold text-gray-600">
                                 {devices.filter(d => resolveDeviceStatus(d) === 'offline').length}
@@ -218,7 +218,7 @@ function Dashboard() {
                         </div>
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600 mb-1">
-                                {t('dashboard.activeAlerts', 'Active Alerts')}
+                                {t('dashboard.activeAlerts')}
                             </p>
                             <p className="text-3xl font-bold text-red-600">
                                 {alerts.filter(a => a.status === 'active').length}
@@ -235,7 +235,7 @@ function Dashboard() {
                     <div className="card-header">
                         <h2 className="card-title">
                             <Activity className="w-6 h-6 text-primary" />
-                            <span>{t('dashboard.recentActivity', 'Recent Activity')}</span>
+                            <span>{t('dashboard.recentActivity')}</span>
                         </h2>
                     </div>
                     <div className="p-6">
@@ -243,46 +243,49 @@ function Dashboard() {
                             <div className="text-center py-8">
                                 <Monitor className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                                 <p className="text-gray-500 text-sm">
-                                    {t('dashboard.noDevicesYet', 'No devices yet')}
+                                    {t('dashboard.noDevicesYet')}
                                 </p>
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {devices.slice(0, 5).map((device, index) => (
-                                    <Link
-                                        key={device.id}
-                                        to={`/devices/${device.id}`}
-                                        className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group"
-                                    >
-                                        <div className="flex items-center space-x-3 flex-1">
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                                device.status === 'online' ? 'bg-green-100' :
-                                                device.status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
-                                            }`}>
-                                                {getStatusIcon(device.status)}
+                                {devices.slice(0, 5).map((device) => {
+                                    const status = resolveDeviceStatus(device);
+                                    return (
+                                        <Link
+                                            key={device.id}
+                                            to={`/devices/${device.id}`}
+                                            className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                                        >
+                                            <div className="flex items-center space-x-3 flex-1">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                                    status === 'online' ? 'bg-green-100' :
+                                                    status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
+                                                }`}>
+                                                    {getStatusIcon(status)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-medium text-gray-900 group-hover:text-primary transition-colors truncate">
+                                                        {device.name}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {device.location_name || t('dashboard.noLocation')}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-gray-900 group-hover:text-primary transition-colors truncate">
-                                                    {device.name}
-                                                </p>
-                                                <p className="text-xs text-gray-500">
-                                                    {device.location_name || 'No location'}
-                                                </p>
+                                            <div className="flex items-center space-x-2">
+                                                <span className={`badge text-xs ${
+                                                    status === 'online' ? 'badge-success' :
+                                                    status === 'alarm' ? 'badge-error' : 'badge-warning'
+                                                }`}>
+                                                    {formatStatusLabel(status)}
+                                                </span>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <span className={`badge text-xs ${
-                                                device.status === 'online' ? 'badge-success' :
-                                                device.status === 'alarm' ? 'badge-error' : 'badge-warning'
-                                            }`}>
-                                                {device.status}
-                                            </span>
-                                        </div>
-                                    </Link>
-                                ))}
+                                        </Link>
+                                    );
+                                })}
                                 {devices.length > 5 && (
                                 <Link to="/devices" className="block text-center py-2 text-sm text-primary hover:underline">
-                                    {t('dashboard.viewAll')} {devices.length} {t('devices.deviceCountLabel', 'devices')} →
+                                    {t('dashboard.viewAll')} {devices.length} {t('devices.deviceCountLabel')} →
                                 </Link>
                             )}
                             </div>
@@ -295,7 +298,7 @@ function Dashboard() {
                     <div className="card-header">
                         <h2 className="card-title">
                             <Zap className="w-6 h-6 text-primary" />
-                            <span>{t('dashboard.quickActions', 'Quick Actions')}</span>
+                            <span>{t('dashboard.quickActions')}</span>
                         </h2>
                     </div>
                     <div className="p-6">
@@ -309,10 +312,10 @@ function Dashboard() {
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                        {t('dashboard.buildFirmware', 'Build New Firmware')}
+                                        {t('dashboard.buildFirmware')}
                                     </p>
                                     <p className="text-xs text-gray-600">
-                                        {t('dashboard.buildFirmwareDesc', 'Create and deploy firmware for new devices')}
+                                        {t('dashboard.buildFirmwareDesc')}
                                     </p>
                                 </div>
                             </Link>
@@ -326,10 +329,10 @@ function Dashboard() {
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
-                                        {t('dashboard.manageDevices', 'Manage Devices')}
+                                        {t('dashboard.manageDevices')}
                                     </p>
                                     <p className="text-xs text-gray-600">
-                                        {t('dashboard.manageDevicesDesc', 'View and configure all your IoT devices')}
+                                        {t('dashboard.manageDevicesDesc')}
                                     </p>
                                 </div>
                             </Link>
@@ -343,10 +346,10 @@ function Dashboard() {
                                 </div>
                                 <div className="flex-1">
                                     <p className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
-                                        {t('dashboard.systemSettings', 'System Settings')}
+                                        {t('dashboard.systemSettings')}
                                     </p>
                                     <p className="text-xs text-gray-600">
-                                        {t('dashboard.systemSettingsDesc', 'Configure platform and notifications')}
+                                        {t('dashboard.systemSettingsDesc')}
                                     </p>
                                 </div>
                             </Link>
@@ -361,13 +364,13 @@ function Dashboard() {
                     <div className="card-header">
                         <h2 className="card-title">
                             <AlertTriangle className="w-6 h-6 text-red-500" />
-                            <span>{t('dashboard.unresolvedAlerts', 'Unresolved Alerts')}</span>
+                            <span>{t('dashboard.unresolvedAlerts')}</span>
                         </h2>
                         <div className="flex items-center space-x-2">
-                            <span className="badge badge-error">{alerts.filter(a => a.status === 'active').length} {t('alerts.unresolvedBadge', 'unresolved')}</span>
+                            <span className="badge badge-error">{alerts.filter(a => a.status === 'active').length} {t('alerts.unresolvedBadge')}</span>
                             <Link to="/devices" className="btn-secondary px-4 py-2 text-sm">
                                 <Eye className="w-4 h-4 mr-1" />
-                                {t('dashboard.viewDevices', 'View Devices')}
+                                {t('dashboard.viewDevices')}
                             </Link>
                         </div>
                     </div>
@@ -401,7 +404,7 @@ function Dashboard() {
                                                         }`}>
                                                             {formatSeverityLabel(alert.severity)}
                                                         </span>
-                                                        <span className="badge badge-error">{t('alerts.unresolved', 'Unresolved')}</span>
+                                                        <span className="badge badge-error">{t('alerts.unresolvedBadge')}</span>
                                                     </div>
                                                     <div className="mb-2">
                                                         <h3 className="text-base font-semibold text-gray-900 mb-1">
@@ -433,14 +436,14 @@ function Dashboard() {
                                                 onClick={(e) => handleAcknowledgeAlert(alert.id, e)}
                                                 disabled={acknowledgeAlertMutation.isLoading}
                                                 className="btn-success flex items-center space-x-2 px-4 py-2 text-sm disabled:opacity-50"
-                                                title="Acknowledge this alert"
+                                                title={t('dashboard.acknowledgeTooltip')}
                                             >
                                                 {acknowledgeAlertMutation.isLoading ? (
                                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                                 ) : (
                                                     <>
                                                         <Check className="w-4 h-4" />
-                                                        <span>{t('alerts.resolve', 'Resolve')}</span>
+                                                        <span>{t('alerts.resolve')}</span>
                                                     </>
                                                 )}
                                             </button>
@@ -452,7 +455,7 @@ function Dashboard() {
                         {alerts.filter(a => a.status === 'active').length > 5 && (
                             <div className="mt-4 text-center">
                                 <Link to="/devices" className="btn-ghost">
-                                    {t('dashboard.viewAll')} {alerts.filter(a => a.status === 'active').length} {t('alerts.unresolved', 'Unresolved alerts')}
+                                    {t('dashboard.viewAll')} {alerts.filter(a => a.status === 'active').length} {t('alerts.unresolved')}
                                 </Link>
                             </div>
                         )}

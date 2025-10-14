@@ -1,8 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { Zap, Download, AlertTriangle, CheckCircle, Upload, Usb } from 'lucide-react';
 import { ESPLoader, Transport } from 'esptool-js';
+import { useTranslation } from 'react-i18next';
+import { apiService } from '../services/api';
 
 const WebFlasher = ({ config, onClose }) => {
+    const { t } = useTranslation();
     const [isFlashing, setIsFlashing] = useState(false);
     const [flashProgress, setFlashProgress] = useState(0);
     const [flashStatus, setFlashStatus] = useState('');
@@ -43,17 +46,23 @@ const WebFlasher = ({ config, onClose }) => {
             if ('serial' in navigator) {
                 console.log('Web Serial API is available!');
                 setSupportsWebSerial(true);
-                addLog('Web Serial API detected - web flashing available', 'success');
+                logMessage('apiDetected', 'success');
             } else {
                 console.log('Web Serial API is NOT available');
                 const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
                 const chromeVersion = navigator.userAgent.match(/Chrome\/(\d+)/)?.[1];
 
-                addLog(`Web Serial API not available. Chrome: ${isChrome}, Version: ${chromeVersion || 'unknown'}`, 'error');
-                addLog(`Secure context: ${window.isSecureContext}, Protocol: ${window.location.protocol}`, 'info');
+                logMessage('apiUnavailable', 'error', {
+                    isChrome: isChrome ? t('common.yes') : t('common.no'),
+                    version: chromeVersion || 'unknown'
+                });
+                logMessage('contextInfo', 'info', {
+                    secure: window.isSecureContext ? t('common.yes') : t('common.no'),
+                    protocol: window.location.protocol
+                });
 
                 if (!window.isSecureContext && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-                    addLog('Web Serial API requires HTTPS or localhost', 'error');
+                    logMessage('requiresSecureContext', 'error');
                 }
             }
         };
@@ -96,6 +105,10 @@ const WebFlasher = ({ config, onClose }) => {
         setLog(prev => [...prev, { message, type, timestamp }]);
     };
 
+    const logMessage = (key, type = 'info', values) => {
+        addLog(t(`webFlasher.log.${key}`, values), type);
+    };
+
     React.useEffect(() => {
         if (!('serial' in navigator)) {
             return;
@@ -104,7 +117,7 @@ const WebFlasher = ({ config, onClose }) => {
         const handleConnect = (event) => {
             if (!componentActiveRef.current) return;
             try {
-                addLog('Serial device connected', 'info');
+                logMessage('deviceAttached', 'info');
                 ensurePortReady();
             } catch (error) {
                 console.warn('Serial connect handler error:', error);
@@ -120,7 +133,7 @@ const WebFlasher = ({ config, onClose }) => {
             if (!componentActiveRef.current) return;
 
             if (isCurrentPort) {
-                addLog('Serial device disconnected', 'warning');
+                logMessage('deviceDetached', 'warning');
                 await stopSerialMonitor({ silent: true });
                 try {
                     await closePortIfOpen(currentPort);
@@ -133,7 +146,7 @@ const WebFlasher = ({ config, onClose }) => {
                     setIsConnected(false);
                 }
             } else {
-                addLog('A different serial device disconnected', 'info');
+                logMessage('otherDeviceDetached', 'info');
             }
         };
 
@@ -169,7 +182,7 @@ const WebFlasher = ({ config, onClose }) => {
 
         try {
             if (serialPort.readable?.locked || serialPort.writable?.locked) {
-                addLog('Serial port busy, attempting to release previous connection...', 'warning');
+                logMessage('portBusyRelease', 'warning');
 
                 if (monitorReaderRef.current) {
                     try {
@@ -318,14 +331,14 @@ const WebFlasher = ({ config, onClose }) => {
                 portRef.current = matchingPort;
                 setPort(matchingPort);
                 setIsConnected(true);
-                addLog('Reusing previously authorized serial device', 'info');
+                logMessage('reusingAuthorizedDevice', 'info');
             }
 
             await pingSerialPort(matchingPort);
-            addLog('Serial port responded to readiness check', 'info');
+            logMessage('readyCheckSuccess', 'info');
         } catch (error) {
             console.warn('Serial readiness check failed:', error);
-            addLog(`Serial readiness check failed: ${error.message}`, 'warning');
+            logMessage('readyCheckFailed', 'warning', { message: error.message });
         }
     };
 
@@ -341,10 +354,10 @@ const WebFlasher = ({ config, onClose }) => {
                     throw new Error('Stub verification timeout');
                 })
             ]);
-            addLog('Stub heartbeat verified', 'info');
+            logMessage('stubHeartbeat', 'info');
             return true;
         } catch (error) {
-            addLog(`Stub verification failed: ${error.message}`, 'warning');
+            logMessage('stubVerifyFailed', 'warning', { message: error.message });
             return false;
         }
     };
@@ -355,7 +368,7 @@ const WebFlasher = ({ config, onClose }) => {
             return;
         }
 
-        addLog('Stub unresponsive, retrying upload...', 'warning');
+        logMessage('stubRetry', 'warning');
 
         try {
             if (esploaderInstance) {
@@ -369,10 +382,69 @@ const WebFlasher = ({ config, onClose }) => {
                 if (!verified) {
                     throw new Error('No response after stub re-upload');
                 }
-                addLog('Stub restarted successfully', 'success');
+                logMessage('stubRestarted', 'success');
             }
         } catch (error) {
             throw new Error(`Stub verification failed: ${error.message}`);
+        }
+    };
+
+    const registerDeviceRecord = async () => {
+        if (!config?.device_id) {
+            logMessage('registrationSkipped', 'warning');
+            return;
+        }
+
+        const devicePayload = {
+            id: config.device_id,
+            name: config.device_name || config.device_id,
+            device_type: config.platform || config.device_type || 'esp8266',
+            wifi_ssid: config.wifi_ssid || '',
+            wifi_password: config.open_wifi ? '' : (config.wifi_password || '')
+        };
+
+        let locationId = config.location_id ?? null;
+
+        try {
+            if (!locationId && config.device_location) {
+                try {
+                    const locationsResponse = await apiService.getLocations();
+                    const locations = locationsResponse?.locations || [];
+                    const existingLocation = locations.find(loc => loc.name?.toLowerCase() === config.device_location.toLowerCase());
+
+                    if (existingLocation) {
+                        locationId = existingLocation.id;
+                    } else {
+                        const createdLocation = await apiService.createLocation({
+                            name: config.device_location,
+                            description: `Auto-created from web flasher for ${devicePayload.name}`
+                        });
+                        locationId = createdLocation?.location?.id || createdLocation?.id || null;
+                        if (locationId) {
+                            logMessage('locationCreated', 'success', { name: config.device_location });
+                        }
+                    }
+                } catch (locationError) {
+                    console.warn('Location lookup/creation failed:', locationError);
+                    logMessage('locationFailed', 'warning', { message: locationError.message });
+                }
+            }
+
+            if (locationId) {
+                devicePayload.location_id = locationId;
+            }
+
+            logMessage('registrationStarted', 'info');
+            await apiService.createDevice(devicePayload);
+            logMessage('registrationSucceeded', 'success');
+        } catch (error) {
+            if (error?.response?.status === 409) {
+                logMessage('registrationExists', 'info');
+                return;
+            }
+
+            console.error('Device registration failed:', error);
+            throw new Error(t('webFlasher.errors.registrationFailed', { message: error?.response?.data?.error || error.message }));
         }
     };
 
@@ -425,13 +497,13 @@ const WebFlasher = ({ config, onClose }) => {
 
     const connectToDevice = async () => {
         if (isConnecting || isConnected) {
-            addLog('Already connected or connecting...', 'warning');
+            logMessage('alreadyConnecting', 'warning');
             return;
         }
 
         try {
             setIsConnecting(true);
-            addLog('Requesting device connection...', 'info');
+            logMessage('requestingDevice', 'info');
 
             // Request serial port - don't open it yet, just get the permission
             const newPort = await navigator.serial.requestPort();
@@ -441,11 +513,11 @@ const WebFlasher = ({ config, onClose }) => {
             setPort(newPort);
             setIsConnected(true);
             portRef.current = newPort;
-            addLog('Serial device ready for flashing', 'success');
+            logMessage('deviceReady', 'success');
 
         } catch (error) {
             console.error('Connection failed:', error);
-            addLog(`Connection failed: ${error.message}`, 'error');
+            logMessage('connectionFailed', 'error', { message: error.message });
         } finally {
             setIsConnecting(false);
         }
@@ -458,10 +530,10 @@ const WebFlasher = ({ config, onClose }) => {
 
         try {
             await closePortIfOpen(port);
-            addLog('Disconnected from device', 'info');
+            logMessage('deviceDisconnected', 'info');
         } catch (error) {
             console.error('Disconnect error:', error);
-            addLog(`Disconnect error: ${error.message}`, 'error');
+            logMessage('disconnectError', 'error', { message: error.message });
         } finally {
             setPort(null);
             setIsConnected(false);
@@ -478,7 +550,7 @@ const WebFlasher = ({ config, onClose }) => {
         }
 
         if (!activePort) {
-            addLog('Please connect to device first', 'error');
+            logMessage('promptConnect', 'error');
             return;
         }
 
@@ -489,8 +561,8 @@ const WebFlasher = ({ config, onClose }) => {
 
         const requestedPlatform = config?.platform || config?.device_type;
         if (requestedPlatform && requestedPlatform !== 'esp8266') {
-            addLog(`Web flashing is not yet available for ${requestedPlatform}.`, 'error');
-            addLog('Use the download option and flash the binary with a platform-appropriate tool.', 'info');
+            logMessage('unsupportedPlatform', 'error', { platform: requestedPlatform });
+            logMessage('useDownloadOption', 'info');
             return;
         }
 
@@ -501,18 +573,18 @@ const WebFlasher = ({ config, onClose }) => {
             activePort = portRef.current || activePort;
         } catch (error) {
             console.error('Pre-flash port cleanup failed:', error);
-            addLog(`Failed to prepare port: ${error.message}`, 'error');
+            logMessage('preparePortFailed', 'error', { message: error.message });
             return;
         }
 
         setIsFlashing(true);
         setFlashProgress(0);
-        setFlashStatus('Building firmware...');
+        setFlashStatus(t('webFlasher.status.building'));
 
         try {
             // Step 1: Compile firmware to binary
-            addLog('Compiling firmware...', 'info');
-            setFlashStatus('Compiling firmware...');
+            logMessage('compiling', 'info');
+            setFlashStatus(t('webFlasher.status.compiling'));
 
             const compileResponse = await fetch('/api/firmware-builder/compile', {
                 method: 'POST',
@@ -525,11 +597,11 @@ const WebFlasher = ({ config, onClose }) => {
 
             if (!compileResponse.ok) {
                 const error = await compileResponse.json();
-                throw new Error(error.error || 'Failed to compile firmware');
+                throw new Error(error.error || t('webFlasher.errors.compileFailed'));
             }
 
             const compiledFirmware = await compileResponse.json();
-            addLog(`Firmware compiled successfully - Version: ${compiledFirmware.firmwareVersion}`, 'success');
+            logMessage('compileSuccess', 'success', { version: compiledFirmware.firmwareVersion });
             setFlashProgress(20);
 
             // Step 2: Flash to device using ESPTool
@@ -537,8 +609,8 @@ const WebFlasher = ({ config, onClose }) => {
 
         } catch (error) {
             console.error('Flash error:', error);
-            addLog(`Flash failed: ${error.message}`, 'error');
-            setFlashStatus('Flash failed');
+            logMessage('flashFailed', 'error', { message: error.message });
+            setFlashStatus(t('webFlasher.status.failed'));
         } finally {
             setIsFlashing(false);
         }
@@ -547,7 +619,7 @@ const WebFlasher = ({ config, onClose }) => {
     const flashToDevice = async (flashFiles) => {
         const activePort = portRef.current || port;
         if (!activePort) {
-            throw new Error('Device not connected');
+            throw new Error(t('webFlasher.errors.deviceDisconnected'));
         }
 
         let transport;
@@ -555,8 +627,8 @@ const WebFlasher = ({ config, onClose }) => {
         try {
             await closePortIfOpen(activePort);
 
-            setFlashStatus('Connecting to device...');
-            addLog('Initializing ESPTool...', 'info');
+            setFlashStatus(t('webFlasher.status.connectingDevice'));
+            logMessage('initializing', 'info');
             setFlashProgress(25);
 
             transport = new Transport(activePort);
@@ -574,11 +646,11 @@ const WebFlasher = ({ config, onClose }) => {
                     if (!loweredBaud && elapsed > MAX_CONNECT_WINDOW_MS) {
                         loweredBaud = true;
                         romBaudrate = FALLBACK_BAUD_RATE;
-                        addLog(`Connection taking longer than expected. Switching to fallback baud rate ${FALLBACK_BAUD_RATE}.`, 'warning');
+                        logMessage('fallbackBaud', 'warning', { baud: FALLBACK_BAUD_RATE });
                     }
 
                     if (attempt === 1) {
-                        addLog('Preparing device for bootloader...', 'info');
+                        logMessage('prepareBootloader', 'info');
                     }
                     await prepareBootloaderEntry(activePort);
                     transportRef.current = transport;
@@ -590,12 +662,13 @@ const WebFlasher = ({ config, onClose }) => {
                     });
 
                     try {
-                        setFlashStatus('Connecting to chip...');
-                        addLog(`Connecting to device${attempt > 1 ? ` (attempt ${attempt})` : ''}...`, 'info');
+                        setFlashStatus(t('webFlasher.status.connectingChip'));
+                        const connectKey = attempt > 1 ? 'connectingDeviceRetry' : 'connectingDevice';
+                        logMessage(connectKey, 'info', { attempt });
 
                         const chipName = await esploaderInstance.main('classic_reset');
-                        addLog('Serial connection established', 'success');
-                        addLog(`Connected to ${chipName}`, 'success');
+                        logMessage('serialEstablished', 'success');
+                        logMessage('chipConnected', 'success', { name: chipName });
                         setFlashProgress(35);
 
                         await ensureStubAlive(esploaderInstance);
@@ -613,16 +686,16 @@ const WebFlasher = ({ config, onClose }) => {
                         }
 
                         if (attempt === maxAttempts) {
-                            throw new Error(`Unable to gain access to the serial port after multiple retries. Last error: ${error.message}`);
+                            throw new Error(t('webFlasher.errors.maxRetries', { message: error.message }));
                         }
 
-                        const nextAttempt = attempt + 1;
                         const remaining = maxAttempts - attempt;
-                        const baseMessage = `Connection attempt ${attempt} failed (${error.message || error}).`;
-                        const guidance = remaining > 0
-                            ? `Retrying in ${Math.min(400 * attempt, 2000)}ms... (${remaining} retries left)`
-                            : 'No retries left.';
-                        addLog(`${baseMessage} ${guidance}`, 'warning');
+                        logMessage('connectionRetry', 'warning', {
+                            attempt,
+                            message: error.message || String(error),
+                            delay: Math.min(400 * attempt, 2000),
+                            remaining
+                        });
 
                         try {
                             await transport.disconnect();
@@ -645,11 +718,11 @@ const WebFlasher = ({ config, onClose }) => {
             const { esploaderInstance: esploader, chipName: chip, romBaudrate, loweredBaud } = await connectToChip();
 
             if (loweredBaud) {
-                addLog(`Connection established using fallback baud rate ${romBaudrate}.`, 'info');
+                logMessage('fallbackBaudSuccess', 'info', { baud: romBaudrate });
             }
 
-            setFlashStatus('Preparing flash data...');
-            addLog('Preparing firmware for flashing...', 'info');
+            setFlashStatus(t('webFlasher.status.preparingData'));
+            logMessage('preparingFirmware', 'info');
 
             const fileArray = flashFiles.map(file => {
                 const toBinaryString = (input) => {
@@ -694,15 +767,15 @@ const WebFlasher = ({ config, onClose }) => {
 
             setFlashProgress(45);
 
-            setFlashStatus('Erasing flash...');
-            addLog('Erasing flash memory...', 'info');
+            setFlashStatus(t('webFlasher.status.erasing'));
+            logMessage('erasing', 'info');
 
             await esploader.eraseFlash();
-            addLog('Flash erased', 'success');
+            logMessage('eraseComplete', 'success');
             setFlashProgress(55);
 
-            setFlashStatus('Writing firmware...');
-            addLog('Writing firmware to flash...', 'info');
+            setFlashStatus(t('webFlasher.status.writing'));
+            logMessage('writing', 'info');
 
             flashProgressLogRef.current = {};
             const flashOptions = {
@@ -723,36 +796,50 @@ const WebFlasher = ({ config, onClose }) => {
                         const humanPercent = Math.min(100, Math.round(progressPercent));
                         const writtenDisplay = Number.isFinite(written) ? written.toLocaleString() : written;
                         const totalDisplay = Number.isFinite(total) ? total.toLocaleString() : total;
-                        addLog(`Writing: ${humanPercent}% (${writtenDisplay} / ${totalDisplay} bytes)`, 'info');
+                        logMessage('writingProgress', 'info', {
+                            percent: humanPercent,
+                            written: writtenDisplay,
+                            total: totalDisplay
+                        });
                     }
                 }
             };
 
-            addLog(`Writing ${fileArray[0].data.length} bytes at address 0x${fileArray[0].address.toString(16)}...`, 'info');
+            logMessage('writingFile', 'info', {
+                bytes: fileArray[0].data.length,
+                address: fileArray[0].address.toString(16)
+            });
             await esploader.writeFlash(flashOptions);
             flashProgressLogRef.current = {};
-            addLog('Firmware written successfully', 'success');
+            logMessage('writeComplete', 'success');
 
             setFlashProgress(90);
 
-            setFlashStatus('Restarting device...');
-            addLog('Resetting device...', 'info');
+            setFlashStatus(t('webFlasher.status.restarting'));
+            logMessage('resetting', 'info');
 
             try {
                 await esploader.after('hard_reset');
-                addLog('Device reset signal sent', 'info');
+                logMessage('resetSignal', 'info');
             } catch (resetError) {
                 console.warn('Device reset failed:', resetError);
-                addLog(`Reset warning: ${resetError.message}`, 'warning');
+                logMessage('resetWarning', 'warning', { message: resetError.message });
             }
 
             setFlashProgress(100);
-            setFlashStatus('Flash completed successfully!');
-            addLog('Firmware flashed successfully!', 'success');
-            addLog('Device should connect to WiFi and appear online shortly', 'success');
-            addLog('Click "Start Serial Monitor" to view device output', 'info');
+            setFlashStatus(t('webFlasher.status.completed'));
+            logMessage('flashComplete', 'success');
+
+            try {
+                await registerDeviceRecord();
+            } catch (registrationError) {
+                logMessage('registrationFailed', 'warning', { message: registrationError.message });
+            }
+
+            logMessage('postFlashOnline', 'success');
+            logMessage('postFlashMonitor', 'info');
         } catch (error) {
-            addLog(`Flash error: ${error.message}`, 'error');
+            logMessage('flashError', 'error', { message: error.message });
             throw error;
         } finally {
             if (transport) {
@@ -760,14 +847,14 @@ const WebFlasher = ({ config, onClose }) => {
                     await transport.disconnect();
                 } catch (disconnectError) {
                     console.warn('Transport disconnect failed:', disconnectError);
-                    addLog(`Warning: failed to release serial port cleanly (${disconnectError.message})`, 'error');
+                    logMessage('disconnectWarning', 'error', { message: disconnectError.message });
                 } finally {
                     transportRef.current = null;
                     try {
                         await closePortIfOpen(activePort);
                     } catch (closeError) {
                         console.error('Port close after flash failed:', closeError);
-                        addLog(`Warning: ${closeError.message}`, 'warning');
+                        logMessage('closeWarning', 'warning', { message: closeError.message });
                     }
                 }
             }
@@ -776,12 +863,12 @@ const WebFlasher = ({ config, onClose }) => {
 
     const startSerialMonitor = async () => {
         if (!port) {
-            addLog('Please connect to a device first', 'error');
+            logMessage('promptConnect', 'error');
             return;
         }
 
         if (isMonitoring) {
-            addLog('Serial monitor is already running', 'info');
+            logMessage('monitorAlreadyRunning', 'info');
             return;
         }
 
@@ -790,7 +877,7 @@ const WebFlasher = ({ config, onClose }) => {
         } catch (error) {
             if (error.name !== 'InvalidStateError') {
                 console.error('Serial monitor error:', error);
-                addLog(`Serial monitor error: ${error.message}`, 'error');
+                logMessage('monitorError', 'error', { message: error.message });
                 return;
             }
             // Port already open - continue
@@ -803,7 +890,7 @@ const WebFlasher = ({ config, onClose }) => {
         const reader = textDecoder.readable.getReader();
         monitorReaderRef.current = reader;
         setIsMonitoring(true);
-        addLog('Serial monitor started - Listening for device output...', 'info');
+        logMessage('monitorStarted', 'info');
 
         (async () => {
             try {
@@ -812,16 +899,16 @@ const WebFlasher = ({ config, onClose }) => {
                     if (done) break;
                     if (!value) continue;
 
-                    value.split('\n').forEach(line => {
-                        if (line.trim()) {
-                            addLog(`[Device] ${line.trim()}`, 'info');
-                        }
-                    });
+                        value.split('\n').forEach(line => {
+                            if (line.trim()) {
+                                logMessage('deviceOutput', 'info', { line: line.trim() });
+                            }
+                        });
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
                     console.error('Serial monitor error:', error);
-                    addLog(`Serial monitor error: ${error.message}`, 'error');
+                    logMessage('monitorError', 'error', { message: error.message });
                 }
             } finally {
                 try {
@@ -867,7 +954,7 @@ const WebFlasher = ({ config, onClose }) => {
                 if (error.name !== 'AbortError') {
                     console.error('Error stopping serial monitor:', error);
                     if (!silent) {
-                        addLog(`Serial monitor stop error: ${error.message}`, 'error');
+                        logMessage('monitorStopError', 'error', { message: error.message });
                     }
                 }
             }
@@ -883,7 +970,7 @@ const WebFlasher = ({ config, onClose }) => {
         }
 
         if (!silent) {
-            addLog('Serial monitor stopped', 'info');
+            logMessage('monitorStopped', 'info');
         }
 
         if (componentActiveRef.current) {
@@ -893,7 +980,7 @@ const WebFlasher = ({ config, onClose }) => {
 
     const downloadInsteadOfFlash = async () => {
         try {
-            addLog('Generating firmware for download...', 'info');
+            logMessage('downloadGenerating', 'info');
 
             const response = await fetch('/api/firmware-builder/build', {
                 method: 'POST',
@@ -915,42 +1002,54 @@ const WebFlasher = ({ config, onClose }) => {
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
 
-                addLog('Firmware downloaded successfully', 'success');
+                logMessage('downloadSuccess', 'success');
             } else {
-                throw new Error('Failed to generate firmware');
+                throw new Error(t('webFlasher.errors.downloadFailed'));
             }
         } catch (error) {
             console.error('Download error:', error);
-            addLog(`Download failed: ${error.message}`, 'error');
+            logMessage('downloadFailed', 'error', { message: error.message });
         }
     };
 
     if (!supportsWebSerial) {
+        const chromeVersion = navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] || 'unknown';
+        const unsupportedSteps = [
+            t('webFlasher.unsupported.steps.browser', { version: chromeVersion }),
+            t('webFlasher.unsupported.steps.secure'),
+            t('webFlasher.unsupported.steps.flags'),
+            t('webFlasher.unsupported.steps.restart')
+        ];
+        const secureStatus = window.isSecureContext
+            ? t('webFlasher.unsupported.contextSecure')
+            : t('webFlasher.unsupported.contextInsecure');
+        const webSerialStatus = 'serial' in navigator
+            ? t('webFlasher.unsupported.webSerialAvailable')
+            : t('webFlasher.unsupported.webSerialUnavailable');
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
                     <div className="p-6">
                         <div className="flex items-center space-x-3 mb-4">
                             <AlertTriangle className="w-6 h-6 text-orange-500" />
-                            <h3 className="text-lg font-semibold">Browser Not Supported</h3>
+                            <h3 className="text-lg font-semibold">{t('webFlasher.unsupported.title')}</h3>
                         </div>
                         <div className="text-gray-600 mb-6 space-y-3">
-                            <p>
-                                Web-based flashing requires a browser that supports the WebSerial API.
-                            </p>
+                            <p>{t('webFlasher.unsupported.description')}</p>
                             <div className="bg-gray-50 p-4 rounded-lg text-sm">
-                                <p className="font-semibold text-gray-800 mb-2">To enable web flashing:</p>
+                                <p className="font-semibold text-gray-800 mb-2">{t('webFlasher.unsupported.instructionsTitle')}</p>
                                 <ul className="list-disc list-inside space-y-1">
-                                    <li>Use Chrome 89+ or Edge 89+ (You appear to be using Chrome {navigator.userAgent.match(/Chrome\/(\d+)/)?.[1] || 'unknown'})</li>
-                                    <li>Access the site via HTTPS or localhost</li>
-                                    <li>Enable "Experimental Web Platform features" in chrome://flags</li>
-                                    <li>Restart your browser after enabling the flag</li>
+                                    {unsupportedSteps.map((step, index) => (
+                                        <li key={index}>{step}</li>
+                                    ))}
                                 </ul>
                             </div>
                             <p className="text-sm">
-                                Current context: {window.isSecureContext ? '✅ Secure (HTTPS/localhost)' : '❌ Not secure'} |
-                                Protocol: {window.location.protocol} |
-                                WebSerial: {'serial' in navigator ? '✅ Available' : '❌ Not available'}
+                                {t('webFlasher.unsupported.statusLine', {
+                                    secure: secureStatus,
+                                    protocol: window.location.protocol,
+                                    webSerial: webSerialStatus
+                                })}
                             </p>
                         </div>
                         <div className="flex space-x-3">
@@ -958,20 +1057,20 @@ const WebFlasher = ({ config, onClose }) => {
                                 onClick={() => window.location.reload()}
                                 className="px-4 py-2 text-green-600 border border-green-600 rounded-lg hover:bg-green-50"
                             >
-                                Retry Detection
+                                {t('webFlasher.buttons.retryDetection')}
                             </button>
                             <button
                                 onClick={downloadInsteadOfFlash}
                                 className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                             >
                                 <Download className="w-4 h-4" />
-                                <span>Download Firmware</span>
+                                <span>{t('webFlasher.buttons.downloadFirmware')}</span>
                             </button>
                             <button
                                 onClick={onClose}
                                 className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                         </div>
                     </div>
@@ -987,7 +1086,7 @@ const WebFlasher = ({ config, onClose }) => {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
                             <Zap className="w-6 h-6 text-blue-600" />
-                            <h3 className="text-lg font-semibold">Web Flasher</h3>
+                            <h3 className="text-lg font-semibold">{t('webFlasher.title')}</h3>
                         </div>
                         <button
                             onClick={onClose}
@@ -1005,7 +1104,7 @@ const WebFlasher = ({ config, onClose }) => {
                         <div className="flex items-center space-x-3">
                             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
                             <span className="text-sm font-medium">
-                                {isConnected ? 'Connected to device' : 'Not connected'}
+                                {isConnected ? t('webFlasher.connection.connected') : t('webFlasher.connection.disconnected')}
                             </span>
                         </div>
                         {!isConnected ? (
@@ -1015,7 +1114,7 @@ const WebFlasher = ({ config, onClose }) => {
                                 className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
                             >
                                 <Usb className="w-4 h-4" />
-                                <span>{isConnecting ? 'Connecting...' : 'Connect Device'}</span>
+                                <span>{isConnecting ? t('webFlasher.connection.connecting') : t('webFlasher.buttons.connect')}</span>
                             </button>
                         ) : (
                             <button
@@ -1023,7 +1122,7 @@ const WebFlasher = ({ config, onClose }) => {
                                 disabled={isFlashing}
                                 className="px-3 py-2 text-red-600 border border-red-600 text-sm rounded-lg hover:bg-red-50 disabled:opacity-50"
                             >
-                                Disconnect
+                                {t('webFlasher.buttons.disconnect')}
                             </button>
                         )}
                     </div>
@@ -1047,12 +1146,12 @@ const WebFlasher = ({ config, onClose }) => {
                     {/* Console Log */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-medium">Console Output</h4>
+                            <h4 className="text-sm font-medium">{t('webFlasher.console.title')}</h4>
                             <button
                                 onClick={() => setLog([])}
                                 className="text-xs text-gray-500 hover:text-gray-700"
                             >
-                                Clear
+                                {t('webFlasher.console.clear')}
                             </button>
                         </div>
                         <div
@@ -1060,7 +1159,7 @@ const WebFlasher = ({ config, onClose }) => {
                             className="h-48 bg-gray-900 text-green-400 text-xs p-3 rounded-lg font-mono overflow-y-auto"
                         >
                             {log.length === 0 ? (
-                                <div className="text-gray-500">Console output will appear here...</div>
+                                <div className="text-gray-500">{t('webFlasher.console.empty')}</div>
                             ) : (
                                 log.map((entry, index) => (
                                     <div key={index} className="mb-1">
@@ -1083,12 +1182,12 @@ const WebFlasher = ({ config, onClose }) => {
                         <div className="flex items-start space-x-3">
                             <AlertTriangle className="w-5 h-5 text-blue-500 mt-0.5" />
                             <div className="text-sm">
-                                <h4 className="font-medium text-blue-800 mb-1">Before Flashing:</h4>
+                                <h4 className="font-medium text-blue-800 mb-1">{t('webFlasher.instructions.title')}</h4>
                                 <ol className="text-blue-700 space-y-1 list-decimal list-inside">
-                                    <li>Connect your device to your computer via USB</li>
-                                    <li>Install the CP210x or CH340 USB driver if needed</li>
-                                    <li>Hold the FLASH button while clicking "Connect Device"</li>
-                                    <li>Release the FLASH button after connection is established</li>
+                                    <li>{t('webFlasher.instructions.step1')}</li>
+                                    <li>{t('webFlasher.instructions.step2')}</li>
+                                    <li>{t('webFlasher.instructions.step3')}</li>
+                                    <li>{t('webFlasher.instructions.step4')}</li>
                                 </ol>
                             </div>
                         </div>
@@ -1104,12 +1203,12 @@ const WebFlasher = ({ config, onClose }) => {
                             {isFlashing ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    <span>Flashing...</span>
+                                    <span>{t('webFlasher.buttons.flashing')}</span>
                                 </>
                             ) : (
                                 <>
                                     <Upload className="w-4 h-4" />
-                                    <span>Flash Firmware</span>
+                                    <span>{t('webFlasher.buttons.flash')}</span>
                                 </>
                             )}
                         </button>
@@ -1123,13 +1222,14 @@ const WebFlasher = ({ config, onClose }) => {
                                 }`}
                             >
                                 <Usb className="w-4 h-4" />
-                                <span>{isMonitoring ? 'Stop Monitor' : 'Serial Monitor'}</span>
+                                <span>{isMonitoring ? t('webFlasher.buttons.stopMonitor') : t('webFlasher.buttons.serialMonitor')}</span>
                             </button>
                         )}
                         <button
                             onClick={downloadInsteadOfFlash}
                             disabled={isFlashing}
                             className="px-4 py-3 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 disabled:opacity-50"
+                            aria-label={t('webFlasher.buttons.downloadZip')}
                         >
                             <Download className="w-4 h-4" />
                         </button>

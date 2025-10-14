@@ -11,12 +11,14 @@
     "close": "Zavřít",
     "confirm": "Potvrdit",
     "refresh": "Obnovit",
+    "refreshing": "Aktualizuji...",
     "search": "Hledat",
     "filter": "Filtrovat",
     "export": "Exportovat",
     "download": "Stáhnout",
     "upload": "Nahrát",
     "settings": "Nastavení",
+    "saving": "Ukládám...",
     "dashboard": "Přehled",
     "devices": "Zařízení",
     "alerts": "Upozornění",
@@ -194,11 +196,17 @@
       }
     },
     "navigation": {
-      "nextNetwork": "Pokračovat: Síťová konfigurace"
+      "nextNetwork": "Pokračovat: Síťová konfigurace",
+      "nextSensors": "Pokračovat: Výběr senzorů",
+      "nextReview": "Pokračovat: Kontrola a sestavení",
+      "prevDevice": "Zpět: Nastavení zařízení",
+      "prevNetwork": "Zpět: Síťová konfigurace",
+      "prevSensors": "Zpět: Výběr senzorů"
     },
     "sections": {
       "device": {
         "title": "Nastavení zařízení",
+        "platformHelp": "Vyberte hardwarovou platformu pro své IoT zařízení",
         "fields": {
           "name": {
             "label": "Název zařízení *",
@@ -222,14 +230,146 @@
             "regenerate": "Znovu vygenerovat"
           }
         }
+      },
+      "network": {
+        "wifi": {
+          "title": "WiFi připojení",
+          "fields": {
+            "ssid": {
+              "label": "Název WiFi sítě (SSID) *",
+              "placeholder": "Název vaší WiFi sítě"
+            },
+            "password": {
+              "label": "WiFi heslo",
+              "placeholder": "Vaše WiFi heslo",
+              "placeholderOpen": "Heslo není potřeba"
+            },
+            "open": {
+              "label": "Otevřená WiFi (bez hesla)",
+              "helper": "Zaškrtněte, pokud se připojujete k otevřené WiFi síti bez hesla"
+            }
+          }
+        },
+        "server": {
+          "title": "Připojení k serveru",
+          "fields": {
+            "url": {
+              "label": "Adresa serveru *",
+              "placeholder": "https://vas-server.cz",
+              "helper": "Zařízení se k tomuto serveru připojí pro odesílání dat"
+            }
+          }
+        }
+      },
+      "behavior": {
+        "fields": {
+          "heartbeat": {
+            "label": "Interval heartbeat (sekundy)",
+            "helper": "Jak často zařízení hlásí, že je online (60–3600 sekund)"
+          },
+          "sensorRead": {
+            "label": "Interval čtení senzorů (ms)",
+            "helper": "Jak často se čtou senzory (1000–60000 ms)"
+          }
+        }
+      },
+      "options": {
+        "debug": {
+          "label": "Režim ladění",
+          "helper": "Zapne podrobné logování"
+        },
+        "ota": {
+          "label": "OTA aktualizace",
+          "helper": "Povolí aktualizace firmwaru přes síť"
+        },
+        "armed": {
+          "label": "Strážní režim",
+          "helper": "Povolí akce spouštěné senzory"
+        }
+      },
+      "sensors": {
+        "title": "Výběr senzorů",
+        "conflict": {
+          "title": "Varování konfliktu pinů",
+          "item": "Pin {{pin}} používají: {{sensors}}. Zvolte prosím jiné piny."
+        },
+        "availableTitle": "Dostupné typy senzorů",
+        "configuredCount": "{{count}} nakonfigurovaných senzorů",
+        "conflictCount": "{{count, plural, one {1 konflikt} few {{count} konflikty} other {{count} konfliktů}}",
+        "loading": "Načítám seznam senzorů...",
+        "addButton": "Přidat",
+        "configuredTitle": "Nakonfigurované senzory",
+        "pinReference": "Referenční tabulka pinů ({{platform}})",
+        "nameLabel": "Název senzoru",
+        "namePlaceholder": "Zadejte název pro {{sensor}}",
+        "pinConflictDetail": "Pin {{pin}} je také použit: {{conflicts}}",
+        "pinLabel": "Pin {{pin}}",
+        "conflictBadge": "Konflikt!"
       }
-    }
+    },
+    "deviceConfig": {
+      "networkConfig": "Síťová konfigurace",
+      "deviceConfig": "Konfigurace zařízení",
+      "deviceBehavior": "Chování zařízení",
+      "deviceOptions": "Možnosti zařízení",
+      "previousStep": "Předchozí: Nastavení zařízení",
+      "openWifi": "Otevřená WiFi (bez hesla)",
+      "openWifiHelp": "Zaškrtněte, pokud se připojujete k otevřené WiFi síti bez hesla"
+    },
+    "review": {
+      "title": "Kontrola a sestavení",
+      "labels": {
+        "deviceName": "Název zařízení:",
+        "location": "Umístění:",
+        "deviceId": "ID zařízení:",
+        "apiKey": "API klíč:",
+        "wifiSsid": "WiFi SSID:",
+        "wifiSecurity": "Bezpečnost WiFi:",
+        "serverUrl": "Adresa serveru:",
+        "heartbeat": "Heartbeat:",
+        "sensorRead": "Interval čtení senzorů:"
+      },
+      "values": {
+        "wifiOpen": "Otevřená (bez hesla)",
+        "wifiSecured": "Zabezpečená"
+      },
+      "sensors": {
+        "title": "Konfigurace senzorů ({{count}})",
+        "conflictBadge": "Konflikt!"
+      }
+    },
+    "actions": {
+      "buildTitle": "Sestavit firmware",
+      "buildDescription": "Vytvořte vlastní firmware a stáhněte si jej jako ZIP balíček.",
+      "conflictNotice": "{{count, plural, one {1 konflikt pinu zjištěn} few {{count} konflikty pinů zjištěny} other {{count} konfliktů pinů zjištěno}}",
+      "flashTooltip": "Nahrajte firmware přímo přes Web Serial API",
+      "flash": "Nahrát do zařízení",
+      "download": "Stáhnout firmware",
+      "building": "Probíhá sestavování..."
+    },
+    "summary": {
+      "title": "Firmware byl úspěšně vygenerován!",
+      "description": "Váš vlastní firmware byl stažen. ZIP soubor obsahuje:",
+      "items": {
+        "ino": "Soubor Arduino sketch (.ino)",
+        "configHeader": "Hlavičkový soubor s konfigurací zařízení",
+        "instructions": "Instalační instrukce",
+        "libraries": "Seznam potřebných knihoven",
+        "wiring": "Schéma zapojení"
+      }
+    },
+    "validation": {
+      "pinConflict": "Konflikt na pinu {{pin}}: {{sensors}}"
+    },
+    "finalStep": "Závěrečný krok – vytvořte firmware výše"
   },
   "auth": {
     "login": "Přihlášení",
     "register": "Registrace",
     "logout": "Odhlášení",
     "email": "E-mail",
+    "emailAddress": "E-mailová adresa",
+    "fullName": "Celé jméno",
     "password": "Heslo",
     "confirmPassword": "Potvrďte heslo",
     "forgotPassword": "Zapomenuté heslo?",
@@ -258,19 +398,30 @@
   "dashboard": {
     "title": "Sensity IoT Přehled",
     "overview": "Přehled systému",
-  "deviceCount": "Celkem zařízení",
-  "deviceCountLabel": "zařízení",
+    "deviceCount": "Celkem zařízení",
+    "deviceCountLabel": "zařízení",
     "totalDevices": "Celkem zařízení",
     "activeDevices": "Aktivní zařízení",
     "onlineDevices": "Online zařízení",
     "offlineDevices": "Offline zařízení",
     "activeAlerts": "Aktivní upozornění",
+    "alertSeverity": {
+      "critical": "Kritická",
+      "high": "Vysoká",
+      "medium": "Střední",
+      "low": "Nízká",
+      "info": "Informace"
+    },
     "recentActivity": "Poslední aktivita",
     "systemHealth": "Stav systému",
     "lastUpdate": "Poslední aktualizace",
     "welcomeMessage": "Vítejte na vaší IoT platformě",
     "noData": "Žádná data k dispozici",
+    "noDevicesYet": "Zatím žádná zařízení",
+    "noLocation": "Bez umístění",
     "viewAll": "Zobrazit vše",
+    "viewDevices": "Zobrazit zařízení",
+    "unresolvedAlerts": "Neřešená upozornění",
     "quickActions": "Rychlé akce",
     "buildFirmware": "Vytvořit nový firmware",
     "buildFirmwareDesc": "Vytvořte a nasazujte firmware pro nová zařízení",
@@ -278,6 +429,7 @@
     "manageDevicesDesc": "Zobrazte a konfigurujte všechna IoT zařízení",
     "systemSettings": "Systémová nastavení",
     "systemSettingsDesc": "Nastavení platformy a upozornění",
+    "acknowledgeTooltip": "Potvrdit toto upozornění",
     "toast": {
       "acknowledgeSuccess": "Upozornění bylo potvrzeno",
       "acknowledgeError": "Upozornění se nepodařilo potvrdit"
@@ -667,7 +819,16 @@
     "escalationDelay": "Zpoždění eskalace (minuty)",
     "maxEscalationLevel": "Maximální úroveň eskalace",
     "recipients": "Příjemci",
+    "defaultType": "Upozornění",
+    "noContext": "Žádné doplňující informace",
+    "deviceColumn": "Zařízení",
     "noAlertsFound": "Nebyla nalezena žádná upozornění",
+    "noAlertsDescription": "Sledujte zařízení a pravidla – nová upozornění se zobrazí zde.",
+    "noAlertsForDevice": "Toto zařízení zatím nemá žádná zaznamenaná upozornění.",
+    "loadFailed": "Upozornění se nepodařilo načíst",
+    "clearFilter": "Zrušit filtr",
+    "backToDevice": "Zpět na zařízení",
+    "deviceFilter": "Zobrazená upozornění pro zařízení {{id}}",
     "alertCreated": "Pravidlo upozornění bylo úspěšně vytvořeno",
     "alertUpdated": "Pravidlo upozornění bylo úspěšně aktualizováno",
     "alertDeleted": "Pravidlo upozornění bylo úspěšně smazáno",
@@ -738,6 +899,7 @@
   },
   "users": {
     "title": "Uživatelé",
+    "subtitle": "Spravujte uživatele systému a jejich oprávnění",
     "userList": "Seznam uživatelů",
     "addUser": "Přidat uživatele",
     "editUser": "Upravit uživatele",
@@ -786,7 +948,9 @@
     "expires": "Vyprší",
     "invitedBy": "Pozval(a)",
     "sendInvitation": "Odeslat pozvánku",
-    "role": "Role"
+    "role": "Role",
+    "locationAccess": "Přístup k umístěním",
+    "locationAccessHelp": "Vyberte, k jakým umístěním má mít uživatel přístup"
   },
   "otaManager": {
     "title": "Správce OTA aktualizací",
@@ -1204,12 +1368,180 @@
     "title": "Sériový monitor",
     "description": "Monitorujte výstup ze sériového portu vašich ESP8266/ESP32 zařízení v reálném čase",
     "howToUse": "Jak používat:",
+    "status": {
+      "connected": "Připojeno",
+      "disconnected": "Nepřipojeno",
+      "monitoring": "Monitoruji při {{baudRate}} baudech",
+      "ready": "Připraveno",
+      "lines": "{{count}} {{count, plural, one {řádek} few {řádky} other {řádků}}}"
+    },
+    "actions": {
+      "connect": "Připojit zařízení",
+      "disconnect": "Odpojit",
+      "start": "Spustit",
+      "stop": "Zastavit",
+      "clear": "Vymazat",
+      "download": "Stáhnout"
+    },
+    "labels": {
+      "baud": "baud",
+      "timestamps": "Časová razítka",
+      "autoScroll": "Automatické posouvání"
+    },
+    "log": {
+      "deviceConnected": "Zařízení bylo úspěšně připojeno",
+      "connectionFailed": "Připojení selhalo: {{message}}",
+      "deviceDisconnected": "Zařízení bylo odpojeno",
+      "monitorStarted": "Sériový monitor spuštěn při {{baudRate}} baudech",
+      "readError": "Chyba čtení: {{message}}",
+      "portBusy": "Port je zaneprázdněn, odpojte a znovu připojte zařízení",
+      "monitorError": "Chyba sériového monitoru: {{message}}",
+      "monitorStopped": "Sériový monitor zastaven",
+      "empty": "Připojte zařízení a spusťte monitorování, aby se zobrazil výstup"
+    },
     "step1": "Připojte své ESP8266/ESP32 zařízení přes USB",
     "step2": "Klikněte na \"Připojit zařízení\" a vyberte sériový port",
     "step3": "Vyberte vhodnou přenosovou rychlost (obvykle 115200 pro ESP zařízení)",
     "step4": "Klikněte na \"Start\" pro zahájení monitorování",
     "step5": "Zobrazte výstup ze sériového portu v reálném čase",
     "step6": "Použijte \"Stáhnout\" pro uložení logu do souboru"
+  },
+  "webFlasher": {
+    "title": "Webový programátor",
+    "status": {
+      "compiling": "Probíhá kompilace firmwaru...",
+      "building": "Probíhá příprava firmwaru...",
+      "failed": "Flashování selhalo",
+      "connectingDevice": "Připojování k zařízení...",
+      "connectingChip": "Připojování k čipu...",
+      "preparingData": "Příprava dat pro flash...",
+      "erasing": "Mazání paměti...",
+      "writing": "Zapisování firmwaru...",
+      "restarting": "Restartuji zařízení...",
+      "completed": "Flashování bylo úspěšně dokončeno!"
+    },
+    "connection": {
+      "connected": "Zařízení připojeno",
+      "disconnected": "Nepřipojeno",
+      "connecting": "Připojuji..."
+    },
+    "buttons": {
+      "retryDetection": "Zkusit znovu",
+      "downloadFirmware": "Stáhnout firmware",
+      "connect": "Připojit zařízení",
+      "disconnect": "Odpojit",
+      "flashing": "Flashuji...",
+      "flash": "Flashnout firmware",
+      "stopMonitor": "Zastavit monitor",
+      "serialMonitor": "Sériový monitor",
+      "downloadZip": "Stáhnout archiv firmwaru"
+    },
+    "console": {
+      "title": "Konzolový výstup",
+      "clear": "Vymazat",
+      "empty": "Výstup se zobrazí po připojení zařízení..."
+    },
+    "instructions": {
+      "title": "Před flashováním:",
+      "step1": "Připojte zařízení k počítači přes USB",
+      "step2": "V případě potřeby nainstalujte ovladač CP210x nebo CH340",
+      "step3": "Držte tlačítko FLASH a klikněte na \"Připojit zařízení\"",
+      "step4": "Po navázání spojení tlačítko FLASH uvolněte"
+    },
+    "unsupported": {
+      "title": "Prohlížeč není podporován",
+      "description": "Webové flashování vyžaduje prohlížeč s podporou WebSerial API.",
+      "instructionsTitle": "Jak webové flashování povolit:",
+      "steps": {
+        "browser": "Použijte Chrome 89+ nebo Edge 89+ (zjištěná verze Chrome {{version}})",
+        "secure": "Přistupujte na stránku přes HTTPS nebo z localhostu",
+        "flags": "Povolte \"Experimental Web Platform features\" v chrome://flags",
+        "restart": "Po aktivaci příznaku restartujte prohlížeč"
+      },
+      "contextSecure": "✅ Zabezpečeno (HTTPS/localhost)",
+      "contextInsecure": "❌ Nezabezpečeno",
+      "webSerialAvailable": "✅ Dostupné",
+      "webSerialUnavailable": "❌ Nedostupné",
+      "statusLine": "Aktuální stav: {{secure}} | Protokol: {{protocol}} | WebSerial: {{webSerial}}"
+    },
+    "log": {
+      "apiDetected": "Web Serial API nalezeno – webové flashování je k dispozici",
+      "apiUnavailable": "Web Serial API není dostupné. Chrome: {{isChrome}}, verze: {{version}}",
+      "contextInfo": "Zabezpečený kontext: {{secure}}, protokol: {{protocol}}",
+      "requiresSecureContext": "Web Serial API vyžaduje HTTPS nebo localhost",
+      "deviceAttached": "Sériové zařízení připojeno",
+      "deviceDetached": "Sériové zařízení odpojeno",
+      "otherDeviceDetached": "Bylo odpojeno jiné sériové zařízení",
+      "portBusyRelease": "Sériový port je zaneprázdněn, pokouším se uvolnit předchozí připojení...",
+      "reusingAuthorizedDevice": "Používám dříve povolené zařízení",
+      "readyCheckSuccess": "Sériový port reaguje na kontrolu připravenosti",
+      "readyCheckFailed": "Kontrola připravenosti sériového portu se nezdařila: {{message}}",
+      "stubHeartbeat": "Heartbeat stubu ověřen",
+      "stubVerifyFailed": "Ověření stubu selhalo: {{message}}",
+      "stubRetry": "Stub nereaguje, zkouším znovu nahrát...",
+      "stubRestarted": "Stub byl znovu spuštěn",
+      "registrationSkipped": "Registrace zařízení přeskočena: v konfiguraci chybí ID zařízení",
+      "locationCreated": "Vytvořeno nové umístění \"{{name}}\"",
+      "registrationStarted": "Registruji zařízení v platformě...",
+      "registrationSucceeded": "Zařízení bylo úspěšně zaregistrováno",
+      "registrationExists": "Zařízení již v platformě existuje – registraci přeskakuji",
+      "locationFailed": "Nastavení umístění selhalo: {{message}}",
+      "alreadyConnecting": "Připojení již probíhá...",
+      "requestingDevice": "Vyžaduji přístup k zařízení...",
+      "deviceReady": "Sériové zařízení připraveno k flashování",
+      "deviceDisconnected": "Zařízení bylo odpojeno",
+      "connectionFailed": "Připojení selhalo: {{message}}",
+      "disconnectError": "Chyba při odpojení: {{message}}",
+      "promptConnect": "Nejprve připojte zařízení",
+      "unsupportedPlatform": "Webové flashování zatím není dostupné pro {{platform}}.",
+      "useDownloadOption": "Použijte možnost stažení a nahrajte firmware vhodným nástrojem.",
+      "preparePortFailed": "Port se nepodařilo připravit: {{message}}",
+      "compiling": "Probíhá kompilace firmwaru...",
+      "compileSuccess": "Firmware úspěšně zkompilován – verze: {{version}}",
+      "flashFailed": "Flashování selhalo: {{message}}",
+      "initializing": "Inicializuji ESPTool...",
+      "fallbackBaud": "Připojení trvá déle. Přepínám na záložní rychlost {{baud}}.",
+      "prepareBootloader": "Připravuji zařízení pro bootloader...",
+      "connectingDevice": "Připojuji se k zařízení...",
+      "connectingDeviceRetry": "Připojuji se k zařízení (pokus {{attempt}})...",
+      "serialEstablished": "Sériové spojení navázáno",
+      "chipConnected": "Připojeno k {{name}}",
+      "connectionRetry": "Pokus {{attempt}} selhal ({{message}}). Další pokus za {{delay}} ms… (zbývá {{remaining}} pokusů)",
+      "fallbackBaudSuccess": "Připojení navázáno pomocí záložní rychlosti {{baud}}.",
+      "preparingFirmware": "Připravuji firmware k flashování...",
+      "erasing": "Mažu flash paměť...",
+      "eraseComplete": "Paměť vymazána",
+      "writing": "Zapisování firmwaru do flash...",
+      "writingProgress": "Zapisování: {{percent}} % ({{written}} / {{total}} bajtů)",
+      "writingFile": "Zapisuje se {{bytes}} bajtů na adresu 0x{{address}}...",
+      "writeComplete": "Firmware byl úspěšně zapsán",
+      "resetting": "Resetuji zařízení...",
+      "resetSignal": "Resetovací signál odeslán",
+      "resetWarning": "Varování při resetu: {{message}}",
+      "flashComplete": "Firmware byl úspěšně nahrán!",
+      "registrationFailed": "Registrace zařízení selhala: {{message}}",
+      "postFlashOnline": "Zařízení by se mělo během chvíle připojit k Wi-Fi a objevit online",
+      "postFlashMonitor": "Klikněte na \"Spustit sériový monitor\" pro zobrazení výstupu zařízení",
+      "flashError": "Chyba při flashování: {{message}}",
+      "disconnectWarning": "Varování: nepodařilo se čistě uvolnit sériový port ({{message}})",
+      "closeWarning": "Varování: {{message}}",
+      "monitorAlreadyRunning": "Sériový monitor již běží",
+      "monitorError": "Chyba sériového monitoru: {{message}}",
+      "monitorStarted": "Sériový monitor spuštěn – čekám na výstup zařízení...",
+      "deviceOutput": "[Zařízení] {{line}}",
+      "monitorStopError": "Chyba při zastavení sériového monitoru: {{message}}",
+      "monitorStopped": "Sériový monitor zastaven",
+      "downloadGenerating": "Generuji firmware ke stažení...",
+      "downloadSuccess": "Firmware byl úspěšně stažen",
+      "downloadFailed": "Stažení selhalo: {{message}}"
+    },
+    "errors": {
+      "registrationFailed": "Registrace zařízení selhala: {{message}}",
+      "maxRetries": "Ani po opakovaných pokusech se nepodařilo získat přístup k sériovému portu. Poslední chyba: {{message}}",
+      "downloadFailed": "Nepodařilo se vygenerovat firmware",
+      "deviceDisconnected": "Zařízení není připojeno",
+      "compileFailed": "Nepodařilo se zkompilovat firmware"
+    }
   },
   "deviceLocations": {
     "title": "Umístění zařízení",
@@ -1228,12 +1560,36 @@
     "openWifiHelp": "Zaškrtněte, pokud se připojujete k otevřené WiFi síti bez hesla"
   },
   "protocolSettings": {
-    "description": "Nakonfigurujte komunikační protokoly pro vaše zařízení (HTTP nebo MQTT)"
+    "title": "Nastavení protokolů",
+    "description": "Nakonfigurujte komunikační protokoly pro vaše zařízení (HTTP nebo MQTT)",
+    "updateSuccess": "Nastavení protokolů bylo úspěšně uloženo",
+    "updateError": "Nastavení protokolů se nepodařilo uložit",
+    "resetSuccess": "Nastavení protokolů bylo vráceno na výchozí hodnoty",
+    "resetError": "Nastavení protokolů se nepodařilo obnovit",
+    "testSuccess": "Test připojení byl úspěšný",
+    "testFailed": "Test připojení selhal",
+    "testError": "Test připojení se nepodařilo spustit",
+    "selectDevice": "Vyberte prosím zařízení",
+    "confirmReset": "Opravdu chcete obnovit protokol na výchozí HTTP nastavení?",
+    "chooseDevice": "Vyberte zařízení...",
+    "protocol": "Protokol",
+    "httpConfiguration": "Nastavení HTTP",
+    "httpEndpoint": "HTTP endpoint",
+    "httpEndpointPlaceholder": "http://localhost:3001/api",
+    "mqttConfiguration": "Nastavení MQTT",
+    "mqttBrokerHost": "MQTT broker host",
+    "mqttBrokerHostPlaceholder": "localhost",
+    "mqttBrokerPort": "Port",
+    "mqttUsername": "Uživatelské jméno (volitelné)",
+    "mqttPassword": "Heslo (volitelné)",
+    "mqttTopicPrefix": "Předpona tématu",
+    "mqttQos": "Úroveň QoS",
+    "heartbeatInterval": "Interval heartbeat (v sekundách)",
+    "reset": "Obnovit výchozí",
+    "testing": "Testuji...",
+    "testConnection": "Otestovat připojení"
   },
   "deviceDetail": {
     "viewHistory": "Zobrazit historii"
-  },
-  "dashboard": {
-    "viewDevices": "Zobrazit zařízení"
   }
 }

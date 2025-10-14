@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import { Wifi, WifiOff, AlertTriangle, Settings, Zap, Clock, Activity, Signal, TrendingUp } from 'lucide-react';
@@ -662,12 +662,12 @@ function DeviceDetail() {
                                 )}
                             </div>
                             <div className="mt-4 text-right">
-                                <a
-                                    href={`/alerts?device=${id}`}
+                                <Link
+                                    to={`/alerts?device=${id}`}
                                     className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500"
                                 >
                                     {t('deviceDetail.viewAllAlerts')}
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     </aside>

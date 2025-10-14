@@ -452,7 +452,7 @@ function InviteUserModal({ user, onClose }) {
                     <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
                         <div>
                             <label className="block text-sm font-medium text-gray-700">
-                                {t('auth.fullName', 'Full Name')}
+                                {t('auth.fullName')}
                             </label>
                             <input
                                 type="text"
@@ -466,7 +466,7 @@ function InviteUserModal({ user, onClose }) {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700">
-                                {t('auth.email', 'Email Address')}
+                                {t('auth.emailAddress')}
                             </label>
                             <input
                                 type="email"

@@ -19,6 +19,7 @@ import UserManagement from './pages/UserManagement';
 import Settings from './pages/Settings';
 import FirmwareBuilder from './pages/FirmwareBuilder';
 import SerialMonitor from './pages/SerialMonitor';
+import AlertsPage from './pages/Alerts';
 
 import LanguageSelector from './components/LanguageSelector';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
@@ -840,6 +841,14 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                         element={
                             <FeatureGate feature="analytics_basic">
                                 <AlertRulesManager />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/alerts"
+                        element={
+                            <FeatureGate feature="analytics_basic">
+                                <AlertsPage />
                             </FeatureGate>
                         }
                     />

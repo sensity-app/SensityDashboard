@@ -214,7 +214,7 @@ const FirmwareBuilder = () => {
         const pinConflicts = Object.entries(usedPins).filter(([pin, sensors]) => sensors.length > 1);
 
         for (const [pin, sensors] of pinConflicts) {
-            errors.push(`Pin ${pin} conflict: ${sensors.join(', ')}`);
+            errors.push(t('firmwareBuilder.validation.pinConflict', { pin, sensors: sensors.join(', ') }));
         }
 
         return errors;
@@ -656,31 +656,33 @@ const FirmwareBuilder = () => {
                                 <div className="glass p-6 rounded-xl">
                                     <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
                                         <Wifi className="w-5 h-5 mr-2" />
-                                        WiFi Connection
+                                        {getCopy('sections.network.wifi.title', 'WiFi Connection')}
                                     </h3>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div className="form-group">
                                             <label className="form-label">
-                                                WiFi Network Name (SSID) *
+                                                {getCopy('sections.network.wifi.fields.ssid.label', 'WiFi Network Name (SSID) *')}
                                             </label>
                                             <input
                                                 type="text"
                                                 value={config.wifi_ssid}
                                                 onChange={(e) => handleConfigChange('wifi_ssid', e.target.value)}
                                                 className="input-field"
-                                                placeholder="Your WiFi network name"
+                                                placeholder={getCopy('sections.network.wifi.fields.ssid.placeholder', 'Your WiFi network name')}
                                             />
                                         </div>
                                         <div className="form-group">
                                             <label className="form-label">
-                                                WiFi Password {!config.open_wifi && '*'}
+                                                {getCopy('sections.network.wifi.fields.password.label', 'WiFi Password')} {!config.open_wifi && '*'}
                                             </label>
                                             <input
                                                 type="password"
                                                 value={config.wifi_password}
                                                 onChange={(e) => handleConfigChange('wifi_password', e.target.value)}
                                                 className="input-field"
-                                                placeholder={config.open_wifi ? "No password required" : "Your WiFi password"}
+                                                placeholder={config.open_wifi
+                                                    ? getCopy('sections.network.wifi.fields.password.placeholderOpen', 'No password required')
+                                                    : getCopy('sections.network.wifi.fields.password.placeholder', 'Your WiFi password')}
                                                 disabled={config.open_wifi}
                                             />
                                         </div>
@@ -697,10 +699,10 @@ const FirmwareBuilder = () => {
                                                     }}
                                                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                 />
-                                                <span className="text-sm text-gray-700">{getCopy('deviceConfig.openWifi', 'Open WiFi (no password)')}</span>
+                                                <span className="text-sm text-gray-700">{getCopy('sections.network.wifi.fields.open.label', 'Open WiFi (no password)')}</span>
                                             </label>
                                             <p className="text-xs text-gray-500 mt-1">
-                                                {getCopy('deviceConfig.openWifiHelp', 'Check this if connecting to an open WiFi network without password')}
+                                                {getCopy('sections.network.wifi.fields.open.helper', 'Check this if connecting to an open WiFi network without password')}
                                             </p>
                                         </div>
                                     </div>
@@ -709,20 +711,22 @@ const FirmwareBuilder = () => {
                                 <div className="glass p-6 rounded-xl">
                                     <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
                                         <Globe className="w-5 h-5 mr-2" />
-                                        Server Connection
+                                        {getCopy('sections.network.server.title', 'Server Connection')}
                                     </h3>
                                     <div className="form-group">
                                         <label className="form-label">
-                                            Server URL *
+                                            {getCopy('sections.network.server.fields.url.label', 'Server URL *')}
                                         </label>
                                         <input
                                             type="url"
                                             value={config.server_url}
                                             onChange={(e) => handleConfigChange('server_url', e.target.value)}
                                             className="input-field"
-                                            placeholder="https://your-server.com"
+                                            placeholder={getCopy('sections.network.server.fields.url.placeholder', 'https://your-server.com')}
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">The device will connect to this server to send data</p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {getCopy('sections.network.server.fields.url.helper', 'The device will connect to this server to send data')}
+                                        </p>
                                     </div>
                                 </div>
 
@@ -734,7 +738,7 @@ const FirmwareBuilder = () => {
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div className="form-group">
                                             <label className="form-label">
-                                                Heartbeat Interval (seconds)
+                                                {getCopy('sections.behavior.fields.heartbeat.label', 'Heartbeat Interval (seconds)')}
                                             </label>
                                             <input
                                                 type="number"
@@ -744,11 +748,11 @@ const FirmwareBuilder = () => {
                                                 max="3600"
                                                 className="input-field"
                                             />
-                                            <p className="text-xs text-gray-500 mt-1">How often the device reports it's online (60-3600 seconds)</p>
+                                            <p className="text-xs text-gray-500 mt-1">{getCopy('sections.behavior.fields.heartbeat.helper', \"How often the device reports it's online (60-3600 seconds)\" )}</p>
                                         </div>
                                         <div className="form-group">
                                             <label className="form-label">
-                                                Sensor Read Interval (ms)
+                                                {getCopy('sections.behavior.fields.sensorRead.label', 'Sensor Read Interval (ms)')}
                                             </label>
                                             <input
                                                 type="number"
@@ -758,7 +762,7 @@ const FirmwareBuilder = () => {
                                                 max="60000"
                                                 className="input-field"
                                             />
-                                            <p className="text-xs text-gray-500 mt-1">How often sensors are read (1000-60000 ms)</p>
+                                            <p className="text-xs text-gray-500 mt-1">{getCopy('sections.behavior.fields.sensorRead.helper', 'How often sensors are read (1000-60000 ms)')}</p>
                                         </div>
                                     </div>
 
@@ -773,8 +777,8 @@ const FirmwareBuilder = () => {
                                                     className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                                                 />
                                                 <div>
-                                                    <span className="text-sm font-medium text-gray-700">Debug Mode</span>
-                                                    <p className="text-xs text-gray-500">Enable detailed logging</p>
+                                                    <span className="text-sm font-medium text-gray-700">{getCopy('sections.options.debug.label', 'Debug Mode')}</span>
+                                                    <p className="text-xs text-gray-500">{getCopy('sections.options.debug.helper', 'Enable detailed logging')}</p>
                                                 </div>
                                             </label>
                                             <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
@@ -785,8 +789,8 @@ const FirmwareBuilder = () => {
                                                     className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                                                 />
                                                 <div>
-                                                    <span className="text-sm font-medium text-gray-700">OTA Updates</span>
-                                                    <p className="text-xs text-gray-500">Over-the-air firmware updates</p>
+                                                    <span className="text-sm font-medium text-gray-700">{getCopy('sections.options.ota.label', 'OTA Updates')}</span>
+                                                    <p className="text-xs text-gray-500">{getCopy('sections.options.ota.helper', 'Allow over-the-air firmware updates')}</p>
                                                 </div>
                                             </label>
                                             <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
@@ -797,8 +801,8 @@ const FirmwareBuilder = () => {
                                                     className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
                                                 />
                                                 <div>
-                                                    <span className="text-sm font-medium text-gray-700">Device Armed</span>
-                                                    <p className="text-xs text-gray-500">Start monitoring on boot</p>
+                                                    <span className="text-sm font-medium text-gray-700">{getCopy('sections.options.armed.label', 'Device Armed')}</span>
+                                                    <p className="text-xs text-gray-500">{getCopy('sections.options.armed.helper', 'Start monitoring on boot')}</p>
                                                 </div>
                                             </label>
                                         </div>
@@ -820,7 +824,7 @@ const FirmwareBuilder = () => {
                                     disabled={!config.wifi_ssid || (!config.open_wifi && !config.wifi_password)}
                                     className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <span>Next: Sensor Selection</span>
+                                    <span>{getCopy('navigation.nextSensors', 'Next: Sensor Selection')}</span>
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
                             </div>
@@ -833,7 +837,7 @@ const FirmwareBuilder = () => {
                             <div className="card-header">
                                 <h2 className="card-title">
                                     <Activity className="w-6 h-6 text-primary" />
-                                    <span>Sensor Selection</span>
+                                    <span>{steps[2].title}</span>
                                 </h2>
                             </div>
                             <div className="space-y-6">
@@ -843,11 +847,11 @@ const FirmwareBuilder = () => {
                                 <div className="flex items-start space-x-3">
                                     <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
                                     <div>
-                                        <h3 className="text-sm font-medium text-red-800">Pin Conflict Warning</h3>
+                                        <h3 className="text-sm font-medium text-red-800">{getCopy('sections.sensors.conflict.title', 'Pin Conflict Warning')}</h3>
                                         <div className="text-sm text-red-700 mt-1">
                                             {pinConflicts.map(([pin, sensors]) => (
                                                 <p key={pin} className="mb-1">
-                                                    Pin {pin} is being used by: {sensors.join(', ')}. Please select different pins.
+                                                    {t('firmwareBuilder.sections.sensors.conflict.item', { pin, sensors: sensors.join(', ') })}
                                                 </p>
                                             ))}
                                         </div>
@@ -859,13 +863,13 @@ const FirmwareBuilder = () => {
                         {/* Available Sensor Types */}
                         <div className="space-y-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-gray-900">Available Sensor Types</h3>
+                                <h3 className="text-lg font-semibold text-gray-900">{getCopy('sections.sensors.availableTitle', 'Available Sensor Types')}</h3>
                                 <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                    <span>{enabledSensorsCount} sensors configured</span>
+                                    <span>{t('firmwareBuilder.sections.sensors.configuredCount', { count: enabledSensorsCount })}</span>
                                     {pinConflicts.length > 0 && (
                                         <div className="flex items-center space-x-1 text-red-600">
                                             <AlertTriangle className="w-4 h-4" />
-                                            <span>{pinConflicts.length} conflict{pinConflicts.length > 1 ? 's' : ''}</span>
+                                            <span>{t('firmwareBuilder.sections.sensors.conflictCount', { count: pinConflicts.length })}</span>
                                         </div>
                                     )}
                                 </div>
@@ -873,7 +877,7 @@ const FirmwareBuilder = () => {
                             <div>
                                 {Object.entries(sensorOptions).length === 0 ? (
                                     <div className="text-center py-8">
-                                        <p className="text-gray-500">Loading sensor options...</p>
+                                        <p className="text-gray-500">{getCopy('sections.sensors.loading', 'Loading sensor options...')}</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -904,7 +908,7 @@ const FirmwareBuilder = () => {
                                                             className="btn-primary text-sm px-3 py-1"
                                                         >
                                                             <Plus className="w-3 h-3 mr-1" />
-                                                            Add
+                                                            {getCopy('sections.sensors.addButton', 'Add')}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -916,11 +920,11 @@ const FirmwareBuilder = () => {
 
                             {/* Pin Reference - Collapsible */}
                             {Object.keys(pinMapping).length > 0 && (
-                                <details className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <summary className="cursor-pointer font-medium text-blue-900 flex items-center">
-                                        <Info className="w-4 h-4 mr-2" />
-                                        Pin Reference Guide ({config.platform.toUpperCase()})
-                                    </summary>
+                            <details className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <summary className="cursor-pointer font-medium text-blue-900 flex items-center">
+                                    <Info className="w-4 h-4 mr-2" />
+                                    {t('firmwareBuilder.sections.sensors.pinReference', { platform: config.platform.toUpperCase() })}
+                                </summary>
                                     <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {Object.entries(pinMapping).map(([pin, description]) => (
                                             <div key={pin} className="flex text-sm">
@@ -935,7 +939,7 @@ const FirmwareBuilder = () => {
                             {/* Configured Sensors */}
                             {config.sensors.length > 0 && (
                                 <div>
-                                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Configured Sensors</h4>
+                                    <h4 className="text-lg font-semibold text-gray-900 mb-4">{getCopy('sections.sensors.configuredTitle', 'Configured Sensors')}</h4>
                                     <div className="space-y-4">
                                         {config.sensors.map((sensor, index) => {
                                             const sensorInfo = sensorOptions[sensor.type];
@@ -964,7 +968,7 @@ const FirmwareBuilder = () => {
                                                             {hasConflict && (
                                                                 <div className="flex items-center text-red-600">
                                                                     <AlertTriangle className="w-4 h-4 mr-1" />
-                                                                    <span className="text-xs">Pin conflict</span>
+                                                                    <span className="text-xs">{getCopy('sections.sensors.conflictBadge', 'Conflict!')}</span>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1009,20 +1013,23 @@ const FirmwareBuilder = () => {
                                                             </select>
                                                             {hasConflict && (
                                                                 <p className="text-xs text-red-600 mt-1">
-                                                                    Pin {sensor.pin} is also used by: {usedPins[sensor.pin].filter(name => name !== sensor.name).join(', ')}
+                                                                    {t('firmwareBuilder.sections.sensors.pinConflictDetail', {
+                                                                        pin: sensor.pin,
+                                                                        conflicts: usedPins[sensor.pin].filter(name => name !== sensor.name).join(', ')
+                                                                    })}
                                                                 </p>
                                                             )}
                                                         </div>
                                                         <div>
                                                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                                Sensor Name
+                                                                {getCopy('sections.sensors.nameLabel', 'Sensor Name')}
                                                             </label>
                                                             <input
                                                                 type="text"
                                                                 value={sensor.name}
                                                                 onChange={(e) => updateSensor(sensor.id, 'name', e.target.value)}
                                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                                                placeholder={`Enter name for ${sensorInfo?.name || sensor.type}`}
+                                                                placeholder={t('firmwareBuilder.sections.sensors.namePlaceholder', { sensor: sensorInfo?.name || sensor.type })}
                                                             />
                                                         </div>
                                                     </div>
@@ -1041,14 +1048,14 @@ const FirmwareBuilder = () => {
                                         className="btn-secondary flex items-center space-x-2"
                                     >
                                         <ArrowLeft className="w-4 h-4" />
-                                        <span>Previous: Network Config</span>
+                                        <span>{getCopy('navigation.prevNetwork', 'Previous: Network Config')}</span>
                                     </button>
                                     <button
                                         onClick={nextStep}
                                         disabled={pinConflicts.length > 0}
                                         className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <span>Next: Review & Build</span>
+                                        <span>{getCopy('navigation.nextReview', 'Next: Review & Build')}</span>
                                         <ArrowRight className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -1062,7 +1069,7 @@ const FirmwareBuilder = () => {
                             <div className="card-header">
                                 <h2 className="card-title">
                                     <BarChart3 className="w-6 h-6 text-primary" />
-                                    <span>Review & Build</span>
+                                    <span>{steps[3].title}</span>
                                 </h2>
                             </div>
                             <div className="space-y-6">
@@ -1076,19 +1083,19 @@ const FirmwareBuilder = () => {
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                             <div>
-                                                <span className="font-medium text-gray-700">Device Name:</span>
+                                                <span className="font-medium text-gray-700">{getCopy('review.labels.deviceName', 'Device Name:')}</span>
                                                 <span className="ml-2 text-gray-900">{config.device_name}</span>
                                             </div>
                                             <div>
-                                                <span className="font-medium text-gray-700">Location:</span>
+                                                <span className="font-medium text-gray-700">{getCopy('review.labels.location', 'Location:')}</span>
                                                 <span className="ml-2 text-gray-900">{config.device_location}</span>
                                             </div>
                                             <div>
-                                                <span className="font-medium text-gray-700">Device ID:</span>
+                                                <span className="font-medium text-gray-700">{getCopy('review.labels.deviceId', 'Device ID:')}</span>
                                                 <span className="ml-2 font-mono text-xs text-gray-900">{config.device_id}</span>
                                             </div>
                                             <div>
-                                                <span className="font-medium text-gray-700">API Key:</span>
+                                                <span className="font-medium text-gray-700">{getCopy('review.labels.apiKey', 'API Key:')}</span>
                                                 <span className="ml-2 font-mono text-xs text-gray-900">{config.api_key.substring(0, 8)}...</span>
                                             </div>
                                         </div>
@@ -1102,19 +1109,19 @@ const FirmwareBuilder = () => {
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                             <div>
-                                                <span className="font-medium text-gray-700">WiFi SSID:</span>
+                                                <span className="font-medium text-gray-700">{getCopy('review.labels.wifiSsid', 'WiFi SSID:')}</span>
                                                 <span className="ml-2 text-gray-900">{config.wifi_ssid}</span>
                                             </div>
                                             <div>
-                                                <span className="font-medium text-gray-700">WiFi Security:</span>
-                                                <span className="ml-2 text-gray-900">{config.open_wifi ? 'Open (no password)' : 'Secured'}</span>
+                                                <span className="font-medium text-gray-700">{getCopy('review.labels.wifiSecurity', 'WiFi Security:')}</span>
+                                                <span className="ml-2 text-gray-900">{config.open_wifi ? getCopy('review.values.wifiOpen', 'Open (no password)') : getCopy('review.values.wifiSecured', 'Secured')}</span>
                                             </div>
                                             <div>
-                                                <span className="font-medium text-gray-700">Server URL:</span>
+                                                <span className="font-medium text-gray-700">{getCopy('review.labels.serverUrl', 'Server URL:')}</span>
                                                 <span className="ml-2 text-gray-900">{config.server_url}</span>
                                             </div>
                                             <div>
-                                                <span className="font-medium text-gray-700">Heartbeat:</span>
+                                                <span className="font-medium text-gray-700">{getCopy('review.labels.heartbeat', 'Heartbeat:')}</span>
                                                 <span className="ml-2 text-gray-900">{config.heartbeat_interval}s</span>
                                             </div>
                                         </div>
@@ -1125,7 +1132,7 @@ const FirmwareBuilder = () => {
                                         <div className="bg-white border border-gray-200 rounded-lg p-6">
                                             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                                                 <Activity className="w-5 h-5 text-purple-600 mr-2" />
-                                                Sensor Configuration ({config.sensors.length} sensors)
+                                                {t('firmwareBuilder.review.sensors.title', { count: config.sensors.length })}
                                             </h3>
                                             <div className="space-y-3">
                                                 {config.sensors.map((sensor) => {
@@ -1144,11 +1151,11 @@ const FirmwareBuilder = () => {
                                                                     }`}>
                                                                         {sensorInfo?.pin_type || 'digital'}
                                                                     </span>
-                                                                    <span className="text-sm text-gray-600">Pin {sensor.pin}</span>
+                                                                    <span className="text-sm text-gray-600">{t('firmwareBuilder.sections.sensors.pinLabel', { pin: sensor.pin })}</span>
                                                                     {hasConflict && (
                                                                         <div className="flex items-center text-red-600">
                                                                             <AlertTriangle className="w-4 h-4 mr-1" />
-                                                                            <span className="text-xs">Conflict!</span>
+                                                                            <span className="text-xs">{getCopy('sections.sensors.conflictBadge', 'Conflict!')}</span>
                                                                         </div>
                                                                     )}
                                                                 </div>

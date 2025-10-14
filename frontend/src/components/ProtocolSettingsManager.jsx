@@ -247,7 +247,7 @@ const ProtocolSettingsManager = () => {
                             {/* HTTP Configuration */}
                             {protocol === 'http' && (
                                 <div className="space-y-4 p-4 bg-blue-50 rounded-lg">
-                                    <h3 className="text-md font-medium text-blue-900">HTTP Configuration</h3>
+                                    <h3 className="text-md font-medium text-blue-900">{t('protocolSettings.httpConfiguration')}</h3>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             {t('protocolSettings.httpEndpoint', 'HTTP Endpoint')}
@@ -256,7 +256,7 @@ const ProtocolSettingsManager = () => {
                                             type="url"
                                             value={formData.httpEndpoint}
                                             onChange={(e) => handleInputChange('httpEndpoint', e.target.value)}
-                                            placeholder="http://localhost:3001/api"
+                                            placeholder={t('protocolSettings.httpEndpointPlaceholder')}
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                             required
                                         />
@@ -267,7 +267,7 @@ const ProtocolSettingsManager = () => {
                             {/* MQTT Configuration */}
                             {protocol === 'mqtt' && (
                                 <div className="space-y-4 p-4 bg-green-50 rounded-lg">
-                                    <h3 className="text-md font-medium text-green-900">MQTT Configuration</h3>
+                                    <h3 className="text-md font-medium text-green-900">{t('protocolSettings.mqttConfiguration')}</h3>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
@@ -278,7 +278,7 @@ const ProtocolSettingsManager = () => {
                                                 type="text"
                                                 value={formData.mqttBrokerHost}
                                                 onChange={(e) => handleInputChange('mqttBrokerHost', e.target.value)}
-                                                placeholder="localhost"
+                                                placeholder={t('protocolSettings.mqttBrokerHostPlaceholder')}
                                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                                                 required
                                             />

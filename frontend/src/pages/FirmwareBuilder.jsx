@@ -748,7 +748,7 @@ const FirmwareBuilder = () => {
                                                 max="3600"
                                                 className="input-field"
                                             />
-                                            <p className="text-xs text-gray-500 mt-1">{getCopy('sections.behavior.fields.heartbeat.helper', \"How often the device reports it's online (60-3600 seconds)\" )}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{getCopy('sections.behavior.fields.heartbeat.helper', "How often the device reports it's online (60-3600 seconds)")}</p>
                                         </div>
                                         <div className="form-group">
                                             <label className="form-label">

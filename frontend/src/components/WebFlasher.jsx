@@ -25,6 +25,9 @@ const WebFlasher = ({ config, onClose }) => {
     const MAX_CONNECT_WINDOW_MS = 60_000;
     const STUB_VERIFY_TIMEOUT_MS = 1_000;
     const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const latin1Decoder = typeof TextDecoder !== 'undefined'
+        ? new TextDecoder('latin1')
+        : null;
 
     React.useEffect(() => {
         // Check if browser supports WebSerial API
@@ -648,13 +651,42 @@ const WebFlasher = ({ config, onClose }) => {
             addLog('Preparing firmware for flashing...', 'info');
 
             const fileArray = flashFiles.map(file => {
-                const binaryString = atob(file.data);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
+                const toBinaryString = (input) => {
+                    const decodeUint8 = (uint8Array) => {
+                        if (latin1Decoder) {
+                            return latin1Decoder.decode(uint8Array);
+                        }
+                        let result = '';
+                        const chunkSize = 0x8000;
+                        for (let offset = 0; offset < uint8Array.length; offset += chunkSize) {
+                            const chunk = uint8Array.subarray(offset, Math.min(offset + chunkSize, uint8Array.length));
+                            result += String.fromCharCode.apply(null, chunk);
+                        }
+                        return result;
+                    };
+
+                    if (typeof input === 'string') {
+                        try {
+                            return atob(input);
+                        } catch (error) {
+                            // already binary string
+                            return input;
+                        }
+                    }
+                    if (input instanceof Uint8Array) {
+                        return decodeUint8(input);
+                    }
+                    if (Array.isArray(input)) {
+                        return decodeUint8(Uint8Array.from(input));
+                    }
+                    if (input instanceof ArrayBuffer) {
+                        return decodeUint8(new Uint8Array(input));
+                    }
+                    throw new Error('Unsupported firmware data format received from compiler');
+                };
+
                 return {
-                    data: bytes,
+                    data: toBinaryString(file.data),
                     address: file.address
                 };
             });

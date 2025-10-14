@@ -28,6 +28,7 @@ const WebFlasher = ({ config, onClose }) => {
     const latin1Decoder = typeof TextDecoder !== 'undefined'
         ? new TextDecoder('latin1')
         : null;
+    const flashProgressLogRef = useRef({});
 
     React.useEffect(() => {
         // Check if browser supports WebSerial API
@@ -703,6 +704,7 @@ const WebFlasher = ({ config, onClose }) => {
             setFlashStatus('Writing firmware...');
             addLog('Writing firmware to flash...', 'info');
 
+            flashProgressLogRef.current = {};
             const flashOptions = {
                 fileArray,
                 flashSize: 'keep',
@@ -714,14 +716,21 @@ const WebFlasher = ({ config, onClose }) => {
                     const progressPercent = (written / total) * 100;
                     const overallProgress = 55 + (progressPercent * 0.35);
                     setFlashProgress(overallProgress);
-                    if (progressPercent % 10 === 0) {
-                        addLog(`Writing: ${Math.round(progressPercent)}%`, 'info');
+                    const bucket = Math.floor(progressPercent / 5);
+                    const lastBucket = flashProgressLogRef.current[fileIndex] ?? -1;
+                    if (bucket > lastBucket || progressPercent === 100) {
+                        flashProgressLogRef.current[fileIndex] = bucket;
+                        const humanPercent = Math.min(100, Math.round(progressPercent));
+                        const writtenDisplay = Number.isFinite(written) ? written.toLocaleString() : written;
+                        const totalDisplay = Number.isFinite(total) ? total.toLocaleString() : total;
+                        addLog(`Writing: ${humanPercent}% (${writtenDisplay} / ${totalDisplay} bytes)`, 'info');
                     }
                 }
             };
 
             addLog(`Writing ${fileArray[0].data.length} bytes at address 0x${fileArray[0].address.toString(16)}...`, 'info');
             await esploader.writeFlash(flashOptions);
+            flashProgressLogRef.current = {};
             addLog('Firmware written successfully', 'success');
 
             setFlashProgress(90);
@@ -729,7 +738,13 @@ const WebFlasher = ({ config, onClose }) => {
             setFlashStatus('Restarting device...');
             addLog('Resetting device...', 'info');
 
-            await esploader.hardReset();
+            try {
+                await esploader.after('hard_reset');
+                addLog('Device reset signal sent', 'info');
+            } catch (resetError) {
+                console.warn('Device reset failed:', resetError);
+                addLog(`Reset warning: ${resetError.message}`, 'warning');
+            }
 
             setFlashProgress(100);
             setFlashStatus('Flash completed successfully!');

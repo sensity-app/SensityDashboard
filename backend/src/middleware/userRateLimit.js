@@ -11,56 +11,56 @@ class UserRateLimiter {
     constructor(redis) {
         this.redis = redis;
 
-        // Rate limit configurations per role
+        // Rate limit configurations per role - increased for better UX
         this.limits = {
             admin: {
-                points: 2000,      // Number of requests
-                duration: 900,      // Per 15 minutes (900 seconds)
-                blockDuration: 900  // Block for 15 minutes if exceeded
+                points: 10000,     // Number of requests - increased from 2000
+                duration: 900,     // Per 15 minutes (900 seconds)
+                blockDuration: 300 // Block for 5 minutes if exceeded - reduced from 15 min
             },
             user: {
-                points: 500,
+                points: 5000,      // Increased from 500
                 duration: 900,
-                blockDuration: 900
+                blockDuration: 300
             },
             viewer: {
-                points: 200,
+                points: 2000,      // Increased from 200
                 duration: 900,
-                blockDuration: 900
+                blockDuration: 300
             },
             api: {
-                points: 5000,       // Higher limit for API clients
+                points: 20000,     // Increased from 5000
                 duration: 900,
-                blockDuration: 1800
+                blockDuration: 600
             },
             guest: {
-                points: 100,        // Very limited for unauthenticated
+                points: 1000,      // Increased from 100 for better UX
                 duration: 900,
-                blockDuration: 1800
+                blockDuration: 600
             }
         };
 
         // Endpoint-specific limits (more restrictive)
         this.endpointLimits = {
             login: {
-                points: 5,
+                points: 10,          // Increased from 5
                 duration: 900,
-                blockDuration: 3600  // 1 hour block for failed logins
+                blockDuration: 1800  // Reduced from 1 hour to 30 min
             },
             export: {
-                points: 10,
-                duration: 3600,      // 10 exports per hour
-                blockDuration: 3600
-            },
-            'device-control': {
-                points: 100,
-                duration: 3600,      // 100 control actions per hour
+                points: 50,          // Increased from 10
+                duration: 3600,      // 50 exports per hour
                 blockDuration: 1800
             },
+            'device-control': {
+                points: 500,         // Increased from 100
+                duration: 3600,      // 500 control actions per hour
+                blockDuration: 900
+            },
             'firmware-upload': {
-                points: 20,
-                duration: 3600,      // 20 uploads per hour
-                blockDuration: 3600
+                points: 100,         // Increased from 20
+                duration: 3600,      // 100 uploads per hour
+                blockDuration: 1800  // Reduced from 1 hour to 30 min
             }
         };
     }

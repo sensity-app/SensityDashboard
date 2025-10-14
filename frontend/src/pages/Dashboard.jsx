@@ -73,6 +73,26 @@ function Dashboard() {
     const devices = devicesData || [];
     const alerts = alertsData || [];
 
+    // Format severity label for display
+    const formatSeverityLabel = (severity) => {
+        if (!severity) {
+            return t('dashboard.alertSeverity.info', 'Info');
+        }
+        const severityLower = severity.toLowerCase();
+        switch (severityLower) {
+            case 'critical':
+                return t('dashboard.alertSeverity.critical', 'Critical');
+            case 'high':
+                return t('dashboard.alertSeverity.high', 'High');
+            case 'medium':
+                return t('dashboard.alertSeverity.medium', 'Medium');
+            case 'low':
+                return t('dashboard.alertSeverity.low', 'Low');
+            default:
+                return t('dashboard.alertSeverity.info', 'Info');
+        }
+    };
+
     const handleAcknowledgeAlert = async (alertId, event) => {
         event.stopPropagation();
         await acknowledgeAlertMutation.mutateAsync(alertId);

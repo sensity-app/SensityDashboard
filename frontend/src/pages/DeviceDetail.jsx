@@ -259,6 +259,7 @@ function DeviceDetail() {
     const lastHeartbeatLabel = formatRelativeTime(device?.last_heartbeat ? new Date(device.last_heartbeat) : null);
     const uptimeLabel = formatDuration(device?.uptime_seconds);
     const wifiStrengthLabel = formatSignalStrength(device?.wifi_signal_strength);
+    const signalQualityLabel = getSignalQualityLabel(device?.wifi_signal_strength);
     const statusLabel = formatStatusLabel(device?.status);
     const targetFirmware = device?.target_firmware_version && device?.target_firmware_version !== device?.firmware_version
         ? device.target_firmware_version

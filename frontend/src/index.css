@@ -262,21 +262,25 @@
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   }
 
-  /* Animation Classes - Reduced for better UX */
+  /* Animation Classes - Disabled to prevent annoying re-animations on scroll */
   .animate-fade-in {
-    animation: fadeIn 0.15s ease-out;
+    /* Animation disabled - was causing re-animation on scroll */
+    opacity: 1;
   }
 
   .animate-slide-up {
-    animation: slideUp 0.15s ease-out;
+    /* Animation disabled - was causing re-animation on scroll */
+    transform: translateY(0);
   }
 
   .animate-scale-in {
-    animation: scaleIn 0.1s ease-out;
+    /* Animation disabled - was causing re-animation on scroll */
+    transform: scale(1);
   }
 
   .animate-slide-in-right {
-    animation: slideInRight 0.25s ease-out;
+    /* Animation disabled - was causing re-animation on scroll */
+    transform: translateX(0);
   }
 
   /* Utility Classes */

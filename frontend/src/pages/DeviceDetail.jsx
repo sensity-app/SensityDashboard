@@ -53,7 +53,13 @@ function DeviceDetail() {
         {
             enabled: !!id,
             refetchOnWindowFocus: false, // Disable auto-refresh
-            select: (data) => data.stats || []
+            select: (data) => {
+                // Ensure we always return an array
+                if (!data) return [];
+                if (Array.isArray(data.stats)) return data.stats;
+                if (Array.isArray(data)) return data;
+                return [];
+            }
         }
     );
 
@@ -175,7 +181,13 @@ function DeviceDetail() {
 
     const statsByPin = useMemo(() => {
         const map = new Map();
-        (stats || []).forEach((entry) => map.set(entry.pin, entry));
+        // Ensure stats is an array before calling forEach
+        const statsArray = Array.isArray(stats) ? stats : [];
+        statsArray.forEach((entry) => {
+            if (entry && entry.pin) {
+                map.set(entry.pin, entry);
+            }
+        });
         return map;
     }, [stats]);
 

@@ -365,9 +365,9 @@ function Dashboard() {
                         </h2>
                         <div className="flex items-center space-x-2">
                             <span className="badge badge-error">{alerts.filter(a => a.status === 'active').length} {t('alerts.unresolvedBadge', 'unresolved')}</span>
-                            <Link to="/alerts" className="btn-secondary px-4 py-2 text-sm">
+                            <Link to="/devices" className="btn-secondary px-4 py-2 text-sm">
                                 <Eye className="w-4 h-4 mr-1" />
-                                {t('dashboard.viewAll')}
+                                {t('dashboard.viewDevices', 'View Devices')}
                             </Link>
                         </div>
                     </div>
@@ -451,7 +451,7 @@ function Dashboard() {
                         </div>
                         {alerts.filter(a => a.status === 'active').length > 5 && (
                             <div className="mt-4 text-center">
-                                <Link to="/alerts" className="btn-ghost">
+                                <Link to="/devices" className="btn-ghost">
                                     {t('dashboard.viewAll')} {alerts.filter(a => a.status === 'active').length} {t('alerts.unresolved', 'Unresolved alerts')}
                                 </Link>
                             </div>

@@ -1,16 +1,33 @@
 #!/bin/bash
 
 ###############################################################################
-# ESP8266 IoT Platform - System Update Script
+# Sensity Platform - System Update Script
 #
 # This script updates the system from the latest GitHub version
+# Supports multiple instances
+#
+# Usage:
+#   sudo ./update-system.sh              # Update default instance
+#   sudo ./update-system.sh staging      # Update staging instance
+#   sudo ./update-system.sh dev          # Update dev instance
 ###############################################################################
 
 set -e
 
-# Configuration
-APP_USER="sensityapp"
-APP_DIR="/opt/sensity-platform"
+# Check for instance parameter
+INSTANCE_NAME="${1:-default}"
+
+# Configuration based on instance
+if [[ "$INSTANCE_NAME" == "default" ]]; then
+    APP_USER="sensityapp"
+    APP_DIR="/opt/sensity-platform"
+    INSTANCE_LABEL="default"
+else
+    APP_USER="sensity_${INSTANCE_NAME}"
+    APP_DIR="/opt/sensity-platform-${INSTANCE_NAME}"
+    INSTANCE_LABEL="$INSTANCE_NAME"
+fi
+
 REPO_URL="https://github.com/sensity-app/SensityDashboard.git"
 
 # Colors
@@ -43,8 +60,34 @@ check_root() {
     fi
 }
 
+check_instance_exists() {
+    if [[ ! -d "$APP_DIR" ]]; then
+        print_error "Instance '$INSTANCE_NAME' not found at $APP_DIR"
+        print_status "Available instances:"
+        
+        # List all installed instances
+        if [[ -d "/opt/sensity-platform" ]]; then
+            echo "  - default (at /opt/sensity-platform)"
+        fi
+        
+        for dir in /opt/sensity-platform-*; do
+            if [[ -d "$dir" ]]; then
+                instance_name=$(basename "$dir" | sed 's/sensity-platform-//')
+                echo "  - $instance_name (at $dir)"
+            fi
+        done
+        
+        exit 1
+    fi
+    
+    if ! id "$APP_USER" &>/dev/null; then
+        print_error "User '$APP_USER' does not exist for instance '$INSTANCE_NAME'"
+        exit 1
+    fi
+}
+
 check_services() {
-    print_status "🔍 Checking system services..."
+    print_status "🔍 Checking system services for instance '$INSTANCE_LABEL'..."
 
     local failed=0
 
@@ -105,8 +148,11 @@ check_services() {
 }
 
 update_system() {
-    print_status "🔄 Updating ESP8266 IoT Platform..."
+    print_status "🔄 Updating Sensity Platform (instance: $INSTANCE_LABEL)..."
     echo
+
+    # Check instance exists
+    check_instance_exists
 
     # Check services health before updating
     if ! check_services; then
@@ -126,7 +172,11 @@ update_system() {
     # Clean up old backups (keep only the 3 most recent)
     print_status "Cleaning up old backups (keeping 3 most recent)..."
     cd /opt
-    ls -dt esp8266-platform.backup.* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        ls -dt sensity-platform.backup.* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+    else
+        ls -dt sensity-platform-${INSTANCE_NAME}.backup.* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+    fi
 
     # Update from Git
     print_status "Fetching latest version from GitHub..."
@@ -293,21 +343,57 @@ EOF
 main() {
     check_root
 
-    if [[ "$1" == "reset-first-user" ]]; then
+    # Show banner
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║      Sensity Platform Update Script                         ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo
+    
+    if [[ "$INSTANCE_NAME" != "default" ]]; then
+        print_status "Targeting instance: $INSTANCE_LABEL"
+        print_status "Directory: $APP_DIR"
+        print_status "User: $APP_USER"
+        echo
+    fi
+
+    # Handle special commands (only for default instance)
+    if [[ "$2" == "reset-first-user" ]]; then
+        if [[ "$INSTANCE_NAME" != "default" ]]; then
+            print_error "reset-first-user is only supported for the default instance"
+            exit 1
+        fi
         reset_first_user
-    elif [[ "$1" == "create-test-admin" ]]; then
+    elif [[ "$2" == "create-test-admin" ]]; then
+        if [[ "$INSTANCE_NAME" != "default" ]]; then
+            print_error "create-test-admin is only supported for the default instance"
+            exit 1
+        fi
         create_test_admin
         sudo -u sensityapp pm2 restart all
-    elif [[ "$1" == "update" ]] || [[ "$1" == "" ]]; then
+    elif [[ -z "$2" ]] || [[ "$2" == "update" ]]; then
         update_system
     else
-        echo "Sensity Platform Update Script"
-        echo
         echo "Usage:"
-        echo "  sudo $0                      # Update system from GitHub"
-        echo "  sudo $0 update               # Update system from GitHub"
-        echo "  sudo $0 reset-first-user     # Reset database to allow first user registration"
-        echo "  sudo $0 create-test-admin    # Create test admin user (admin@changeme.com / password)"
+        echo "  sudo $0 [instance]                    # Update instance (default if not specified)"
+        echo "  sudo $0 [instance] update             # Update instance"
+        echo "  sudo $0 default reset-first-user      # Reset database to allow first user registration"
+        echo "  sudo $0 default create-test-admin     # Create test admin user"
+        echo
+        echo "Examples:"
+        echo "  sudo $0                               # Update default instance"
+        echo "  sudo $0 staging                       # Update staging instance"
+        echo "  sudo $0 dev update                    # Update dev instance"
+        echo
+        echo "Available instances:"
+        if [[ -d "/opt/sensity-platform" ]]; then
+            echo "  - default (at /opt/sensity-platform)"
+        fi
+        for dir in /opt/sensity-platform-*; do
+            if [[ -d "$dir" ]]; then
+                inst_name=$(basename "$dir" | sed 's/sensity-platform-//')
+                echo "  - $inst_name (at $dir)"
+            fi
+        done
         echo
     fi
 }

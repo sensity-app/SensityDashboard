@@ -558,8 +558,18 @@ gather_input() {
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         print_status "QUESTION 4/8: Domain Configuration"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Each production instance needs its own domain for SSL certificates."
+        echo
+        if [[ ${#EXISTING_INSTANCES[@]} -gt 0 ]]; then
+            print_status "Multi-Production Setup Example:"
+            echo "  • Client A: client-a.sensity.app (instance: client-a)"
+            echo "  • Client B: client-b.sensity.app (instance: client-b)"
+            echo "  • Staging:  staging.sensity.app  (instance: staging)"
+            echo
+        fi
+        echo "Make sure DNS for this domain points to this server's IP before continuing!"
         while [[ -z "$DOMAIN" ]]; do
-            read -p "Enter your domain name (e.g., iot.example.com): " DOMAIN < /dev/tty
+            read -p "Enter domain for instance '$INSTANCE_NAME' (e.g., iot.example.com): " DOMAIN < /dev/tty
             if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
                 print_error "Invalid domain name format"
                 DOMAIN=""
@@ -846,37 +856,11 @@ install_redis() {
 
 # Function to install MQTT broker (optional)
 install_mqtt_broker() {
-    print_status "MQTT Protocol Support"
-    echo
-    echo "MQTT is an optional lightweight messaging protocol for device communication."
-    echo "Benefits:"
-    echo "  • Lower bandwidth usage (~95% less than HTTP)"
-    echo "  • Better for battery-powered devices"
-    echo "  • Real-time bidirectional communication"
-    echo "  • Works well behind NAT/firewalls"
-    echo
-    echo "You can skip this and devices will use HTTP instead."
-    echo
-
-    # Check if running interactively
-    if [[ ! -t 0 ]]; then
-        # Non-interactive mode - check environment variable
-        if [[ "$INSTALL_MQTT" == "true" ]]; then
-            print_status "Installing MQTT broker (configured via INSTALL_MQTT=true)..."
-        else
-            print_status "Skipping MQTT broker installation (set INSTALL_MQTT=true to enable)"
-            MQTT_ENABLED="false"
-            return 0
-        fi
-    else
-        # Interactive mode - ask user
-        read -p "Install Mosquitto MQTT broker? (y/N): " -n 1 -r < /dev/tty
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            print_status "Skipping MQTT broker installation"
-            MQTT_ENABLED="false"
-            return 0
-        fi
+    # Check pre-collected user preference (no prompts!)
+    if [[ "$INSTALL_MQTT" != "true" ]]; then
+        print_status "Skipping MQTT broker installation (user chose HTTP-only mode)"
+        MQTT_ENABLED="false"
+        return 0
     fi
 
     print_status "Installing Mosquitto MQTT broker..."
@@ -1208,13 +1192,24 @@ create_env_files() {
     # Note: PM2 ecosystem.config.js now contains all environment variables
     # The .env file is created as a backup but PM2 uses the ecosystem config
 
+    # Determine log directory based on instance
+    local LOG_DIR
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        LOG_DIR="/var/log/sensity-platform"
+    else
+        LOG_DIR="/var/log/sensity-platform-${INSTANCE_NAME}"
+    fi
+
     # Backend environment (backup - PM2 uses ecosystem.config.js)
     cat > "$APP_DIR/backend/.env" << EOF
+# Instance Configuration
+INSTANCE_NAME=${INSTANCE_NAME}
+
 # Database Configuration
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=sensity_platform
-DB_USER=sensityapp
+DB_NAME=${DB_NAME}
+DB_USER=${APP_USER}
 DB_PASSWORD=$DB_PASSWORD
 
 # Redis Configuration
@@ -1228,8 +1223,8 @@ JWT_EXPIRES_IN=7d
 
 # Server Configuration
 NODE_ENV=production
-PORT=3000
-FRONTEND_URL=https://$DOMAIN
+PORT=${BACKEND_PORT}
+FRONTEND_URL=$([ "$DEVELOPMENT_MODE" == "true" ] && echo "http://localhost:${BACKEND_PORT}" || echo "https://$DOMAIN")
 
 # Email Configuration (configure with your SMTP settings)
 SMTP_HOST=smtp.gmail.com
@@ -1257,18 +1252,18 @@ RATE_LIMIT_MAX_REQUESTS=100
 
 # Logging
 LOG_LEVEL=info
-LOG_FILE=/var/log/esp8266-platform/app.log
+LOG_FILE=${LOG_DIR}/app.log
 
 # SSL/TLS
-USE_HTTPS=true
+USE_HTTPS=$([ "$DEVELOPMENT_MODE" == "true" ] && echo "false" || echo "true")
 SSL_CERT_PATH=/etc/letsencrypt/live/$DOMAIN/fullchain.pem
 SSL_KEY_PATH=/etc/letsencrypt/live/$DOMAIN/privkey.pem
 
-# MQTT Configuration (Optional)
-MQTT_ENABLED=${MQTT_ENABLED:-false}
-MQTT_BROKER_URL=${MQTT_BROKER_URL:-mqtt://localhost:1883}
-MQTT_USERNAME=${MQTT_USERNAME:-}
-MQTT_PASSWORD=${MQTT_PASSWORD:-}
+# MQTT Configuration
+MQTT_ENABLED=${INSTALL_MQTT}
+MQTT_BROKER_URL=mqtt://localhost:1883
+MQTT_USERNAME=${MQTT_USERNAME}
+MQTT_PASSWORD=${MQTT_PASSWORD}
 MQTT_TOPIC_PREFIX=iot
 MQTT_DEFAULT_QOS=1
 EOF
@@ -1313,23 +1308,37 @@ install_pm2() {
 
     npm install -g pm2
 
+    # Determine PM2 app name and log directory based on instance
+    local PM2_APP_NAME
+    local LOG_DIR
+    
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        PM2_APP_NAME="sensity-platform"
+        LOG_DIR="/var/log/sensity-platform"
+    else
+        PM2_APP_NAME="sensity-platform-${INSTANCE_NAME}"
+        LOG_DIR="/var/log/sensity-platform-${INSTANCE_NAME}"
+    fi
+
     # Create PM2 ecosystem file with environment variables
     cat > "$APP_DIR/ecosystem.config.js" << EOF
 module.exports = {
   apps: [{
-    name: 'esp8266-platform',
+    name: '${PM2_APP_NAME}',
     script: 'backend/server.js',
     cwd: '$APP_DIR',
     instances: 'max',
     exec_mode: 'cluster',
     env: {
       NODE_ENV: 'production',
-      PORT: 3000,
+      PORT: ${BACKEND_PORT},
+      // Instance Configuration
+      INSTANCE_NAME: '${INSTANCE_NAME}',
       // Database Configuration
       DB_HOST: 'localhost',
       DB_PORT: 5432,
-      DB_NAME: 'sensity_platform',
-      DB_USER: 'sensityapp',
+      DB_NAME: '${DB_NAME}',
+      DB_USER: '${APP_USER}',
       DB_PASSWORD: '$DB_PASSWORD',
       // Redis Configuration
       REDIS_HOST: 'localhost',
@@ -1338,16 +1347,22 @@ module.exports = {
       // JWT Configuration
       JWT_SECRET: '$JWT_SECRET',
       JWT_EXPIRES_IN: '7d',
+      // MQTT Configuration
+      MQTT_ENABLED: '${INSTALL_MQTT}',
+      MQTT_HOST: 'localhost',
+      MQTT_PORT: 1883,
+      MQTT_USERNAME: '${MQTT_USERNAME}',
+      MQTT_PASSWORD: '${MQTT_PASSWORD}',
       // Telegram Configuration (optional)
       TELEGRAM_BOT_TOKEN: '',
       // Additional Configuration
-      FRONTEND_URL: '$([ "$DEVELOPMENT_MODE" == "true" ] && echo "http://localhost" || echo "https://$DOMAIN")',
+      FRONTEND_URL: '$([ "$DEVELOPMENT_MODE" == "true" ] && echo "http://localhost:${BACKEND_PORT}" || echo "https://$DOMAIN")',
       MAX_FILE_SIZE: '50mb',
       LOG_LEVEL: 'info'
     },
-    error_file: '/var/log/esp8266-platform/pm2-error.log',
-    out_file: '/var/log/esp8266-platform/pm2-out.log',
-    log_file: '/var/log/esp8266-platform/pm2-combined.log',
+    error_file: '${LOG_DIR}/pm2-error.log',
+    out_file: '${LOG_DIR}/pm2-out.log',
+    log_file: '${LOG_DIR}/pm2-combined.log',
     time: true,
     max_restarts: 10,
     min_uptime: '10s',
@@ -1358,14 +1373,17 @@ EOF
 
     chown "$APP_USER:$APP_USER" "$APP_DIR/ecosystem.config.js"
 
-    # Create log directory
-    mkdir -p /var/log/esp8266-platform
-    chown "$APP_USER:$APP_USER" /var/log/esp8266-platform
+    # Create log directory (instance-specific)
+    mkdir -p "${LOG_DIR}"
+    chown "$APP_USER:$APP_USER" "${LOG_DIR}"
 
     # Setup PM2 startup script (run as root to configure systemd)
     sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u "$APP_USER" --hp "/home/$APP_USER" --silent
 
-    print_success "PM2 installed and configured"
+    print_success "PM2 installed and configured for instance '${INSTANCE_NAME}'"
+    print_status "  • Process name: ${PM2_APP_NAME}"
+    print_status "  • Logs: ${LOG_DIR}/"
+    print_status "  • Port: ${BACKEND_PORT}"
 }
 
 # Function to install and configure Nginx
@@ -1374,16 +1392,35 @@ install_nginx() {
 
     apt-get install -y nginx
 
-    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
-        # Development configuration (HTTP only, no SSL)
-        cat > "/etc/nginx/sites-available/esp8266-platform" << EOF
-# Development HTTP server (no SSL)
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+    # Determine Nginx config file name based on instance
+    local NGINX_CONFIG_NAME
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        NGINX_CONFIG_NAME="sensity-platform"
+    else
+        NGINX_CONFIG_NAME="sensity-platform-${INSTANCE_NAME}"
+    fi
 
-    # Allow access from any IP
-    server_name _;
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        # Get server IP for development mode
+        local SERVER_IP=$(hostname -I | awk '{print $1}')
+        
+        # Check if this is the first (default) installation for default_server directive
+        local IS_DEFAULT_SERVER=""
+        if [[ "$INSTANCE_NAME" == "default" ]] && [[ ! -f "/etc/nginx/sites-enabled/sensity-platform" ]]; then
+            IS_DEFAULT_SERVER=" default_server"
+        fi
+        
+        # Development configuration (HTTP only, no SSL)
+        cat > "/etc/nginx/sites-available/${NGINX_CONFIG_NAME}" << EOF
+# Development HTTP server (no SSL) - Instance: ${INSTANCE_NAME}
+# Access at: http://${SERVER_IP}:${BACKEND_PORT}
+server {
+    listen 80${IS_DEFAULT_SERVER};
+    listen [::]:80${IS_DEFAULT_SERVER};
+
+    # For development, we don't use domain name
+    # Access directly via IP:PORT or use proxy_pass from another nginx
+    server_name ${SERVER_IP} localhost;
 
     # Root directory for static files
     root $APP_DIR/frontend/build;
@@ -1397,7 +1434,7 @@ server {
 
     # API routes
     location /api/ {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:$BACKEND_PORT;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -1413,7 +1450,7 @@ server {
 
     # WebSocket support
     location /socket.io/ {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:$BACKEND_PORT;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -1449,8 +1486,10 @@ server {
 EOF
 
         # Enable site
-        ln -sf "/etc/nginx/sites-available/esp8266-platform" "/etc/nginx/sites-enabled/"
+        ln -sf "/etc/nginx/sites-available/${NGINX_CONFIG_NAME}" "/etc/nginx/sites-enabled/"
         print_status "Development mode: HTTP-only configuration created"
+        print_status "  • Config: /etc/nginx/sites-available/${NGINX_CONFIG_NAME}"
+        print_status "  • Access: http://${SERVER_IP}:${BACKEND_PORT} (via proxy)"
 
     else
         # Production configuration - Start with HTTP only for certbot
@@ -1474,7 +1513,7 @@ server {
 
     # API routes
     location /api/ {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:$BACKEND_PORT;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -1490,7 +1529,7 @@ server {
 
     # WebSocket support
     location /socket.io/ {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:$BACKEND_PORT;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -1509,14 +1548,21 @@ EOF
 
         # Enable site
         ln -sf "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/"
-        print_status "Temporary HTTP configuration created"
+        print_status "Temporary HTTP configuration created for domain: $DOMAIN"
+        print_status "  • Config: /etc/nginx/sites-available/$DOMAIN"
     fi
 
-    rm -f /etc/nginx/sites-enabled/default
+    # Remove default nginx site (only if it exists and only on first install)
+    if [[ -f "/etc/nginx/sites-enabled/default" ]] && [[ "$INSTANCE_NAME" == "default" ]]; then
+        rm -f /etc/nginx/sites-enabled/default
+        print_status "Removed default Nginx site"
+    fi
 
     # Test Nginx configuration
     if ! nginx -t; then
         print_error "Nginx configuration test failed"
+        print_status "Checking Nginx error log..."
+        tail -20 /var/log/nginx/error.log
         exit 1
     fi
 
@@ -1602,7 +1648,7 @@ server {
 
     # API routes
     location /api/ {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:$BACKEND_PORT;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -1618,7 +1664,7 @@ server {
 
     # WebSocket support
     location /socket.io/ {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:$BACKEND_PORT;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -1736,18 +1782,27 @@ setup_firewall() {
     ufw default allow outgoing
     ufw allow ssh
 
+    # Always allow port 80 (needed for Let's Encrypt HTTP-01 challenge)
+    ufw allow 80/tcp comment 'HTTP'
+    
     if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
-        ufw allow 'Nginx HTTP'
-        print_status "Development mode: HTTP access allowed"
+        print_status "Development mode: HTTP port 80 opened"
     else
-        ufw allow 'Nginx Full'
-        print_status "Production mode: HTTPS access configured"
+        # Production mode needs both HTTP (for Let's Encrypt) and HTTPS
+        ufw allow 443/tcp comment 'HTTPS'
+        print_status "Production mode: HTTP (80) and HTTPS (443) ports opened"
     fi
 
     # Open MQTT port if MQTT is enabled
     if [[ "$MQTT_ENABLED" == "true" ]]; then
         ufw allow 1883/tcp comment 'MQTT'
         print_status "MQTT port 1883 opened in firewall"
+    fi
+
+    # Open backend port for this instance (useful for direct API access if needed)
+    if [[ "$BACKEND_PORT" != "3000" ]]; then
+        ufw allow ${BACKEND_PORT}/tcp comment "Backend API - ${INSTANCE_NAME}"
+        print_status "Backend port ${BACKEND_PORT} opened for instance ${INSTANCE_NAME}"
     fi
 
     ufw --force enable
@@ -1784,10 +1839,22 @@ create_setup_completion() {
         WEB_SERVER_INFO="Nginx with SSL/TLS"
     fi
 
-    cat > "$APP_DIR/INSTALLATION_INFO.md" << EOF
-# ESP8266 IoT Platform - Installation Complete
+    # Determine PM2 app name and log directory
+    local PM2_APP_NAME
+    local LOG_DIR
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        PM2_APP_NAME="sensity-platform"
+        LOG_DIR="/var/log/sensity-platform"
+    else
+        PM2_APP_NAME="sensity-platform-${INSTANCE_NAME}"
+        LOG_DIR="/var/log/sensity-platform-${INSTANCE_NAME}"
+    fi
 
-## Server Information
+    cat > "$APP_DIR/INSTALLATION_INFO.md" << EOF
+# Sensity Platform - Installation Complete
+
+## Instance Information
+- **Instance Name**: ${INSTANCE_NAME}
 - **Access URL**: $ACCESS_URL
 - **Installation Mode**: $([ "$DEVELOPMENT_MODE" == "true" ] && echo "Development (HTTP)" || echo "Production (HTTPS)")
 - **Installation Date**: $(date)
@@ -1795,10 +1862,11 @@ create_setup_completion() {
 - **Application User**: $APP_USER
 
 ## Service Status
-- **Backend**: PM2 managed Node.js application on port 3000
+- **Backend**: PM2 managed Node.js application on port ${BACKEND_PORT}
 - **Frontend**: Static files served by Nginx
-- **Database**: PostgreSQL on localhost:5432
+- **Database**: PostgreSQL (${DB_NAME} on localhost:5432)
 - **Cache**: Redis on localhost:6379
+- **MQTT**: $([ "$INSTALL_MQTT" == "true" ] && echo "Mosquitto broker on port 1883" || echo "Not installed")
 - **Web Server**: $WEB_SERVER_INFO
 
 ## Important Files
@@ -1818,15 +1886,23 @@ create_setup_completion() {
 ## Management Commands
 \`\`\`bash
 # View application logs
-sudo -u $APP_USER pm2 logs
+sudo -u $APP_USER pm2 logs ${PM2_APP_NAME}
 
 # Restart application
-sudo -u $APP_USER pm2 restart esp8266-platform
+sudo -u $APP_USER pm2 restart ${PM2_APP_NAME}
+
+# Check PM2 status
+sudo -u $APP_USER pm2 status
+
+# View instance-specific logs
+tail -f ${LOG_DIR}/pm2-combined.log
+tail -f ${LOG_DIR}/pm2-error.log
 
 # Check service status
 systemctl status nginx
 systemctl status postgresql
 systemctl status redis-server
+$([ "$INSTALL_MQTT" == "true" ] && echo "systemctl status mosquitto")
 
 # View Nginx logs
 sudo tail -f /var/log/nginx/access.log
@@ -1836,13 +1912,13 @@ sudo tail -f /var/log/nginx/error.log
 ## Database Access
 \`\`\`bash
 # Connect to database
-sudo -u postgres psql -d sensity_platform
+sudo -u $APP_USER psql -d ${DB_NAME}
 
 # Backup database
-sudo -u postgres pg_dump sensity_platform > backup.sql
+sudo -u $APP_USER pg_dump ${DB_NAME} > backup-${INSTANCE_NAME}-\$(date +%Y%m%d).sql
 
 # Restore database
-sudo -u postgres psql -d sensity_platform < backup.sql
+sudo -u $APP_USER psql -d ${DB_NAME} < backup-${INSTANCE_NAME}-*.sql
 \`\`\`
 
 ## Troubleshooting
@@ -2119,23 +2195,55 @@ main() {
     build_frontend
     install_pm2
     install_nginx
+    
+    # IMPORTANT: Configure firewall BEFORE SSL setup (Let's Encrypt needs port 80 open)
+    setup_firewall
 
     if [[ "$DEVELOPMENT_MODE" != "true" ]]; then
         setup_ssl
     fi
 
-    setup_firewall
     start_services
     create_setup_completion
 
+    # Determine PM2 app name and log directory for final message
+    local PM2_APP_NAME
+    local LOG_DIR
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        PM2_APP_NAME="sensity-platform"
+        LOG_DIR="/var/log/sensity-platform"
+    else
+        PM2_APP_NAME="sensity-platform-${INSTANCE_NAME}"
+        LOG_DIR="/var/log/sensity-platform-${INSTANCE_NAME}"
+    fi
+
     # Final success message
     echo
-    print_success "🎉 ESP8266 IoT Platform installation completed successfully!"
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║           INSTALLATION COMPLETED SUCCESSFULLY!               ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo
+    print_success "🎉 Sensity Platform (instance: ${INSTANCE_NAME}) is ready!"
     echo
 
+    # Instance information
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}📦 Instance Details${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  Instance:  ${GREEN}${INSTANCE_NAME}${NC}"
+    echo -e "  Directory: ${GREEN}${APP_DIR}${NC}"
+    echo -e "  User:      ${GREEN}${APP_USER}${NC}"
+    echo -e "  Database:  ${GREEN}${DB_NAME}${NC}"
+    echo -e "  Port:      ${GREEN}${BACKEND_PORT}${NC}"
+    echo -e "  PM2 App:   ${GREEN}${PM2_APP_NAME}${NC}"
+    echo -e "  Logs:      ${GREEN}${LOG_DIR}/${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo
+
+    # Access information
     if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
         SERVER_IP=$(hostname -I | awk '{print $1}')
-        echo -e "${GREEN}✓ Access your platform at: ${CYAN}http://$SERVER_IP${NC}"
+        echo -e "${GREEN}✓ Access your platform at: ${CYAN}http://$SERVER_IP:${BACKEND_PORT}${NC}"
         echo -e "${YELLOW}⚠ Development mode: HTTP only (no SSL)${NC}"
     else
         echo -e "${GREEN}✓ Access your platform at: ${CYAN}https://$DOMAIN${NC}"
@@ -2143,20 +2251,25 @@ main() {
     fi
 
     # Display MQTT credentials if enabled
-    if [[ "$MQTT_ENABLED" == "true" ]]; then
+    if [[ "$INSTALL_MQTT" == "true" ]]; then
         echo
         echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${YELLOW}📡 MQTT Broker Credentials (SAVE THESE!)${NC}"
         echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "  Host:     ${GREEN}localhost:1883${NC}"
         echo -e "  Username: ${GREEN}$MQTT_USERNAME${NC}"
         echo -e "  Password: ${GREEN}$MQTT_PASSWORD${NC}"
         echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     fi
 
     echo
-    echo -e "${BLUE}📋 Installation details saved to: $APP_DIR/INSTALLATION_INFO.md${NC}"
-    echo -e "${BLUE}📊 Check service status: ${CYAN}sudo -u esp8266app pm2 status${NC}"
-    echo -e "${BLUE}📝 View logs: ${CYAN}sudo -u esp8266app pm2 logs${NC}"
+    echo -e "${BLUE}📋 Installation details: ${CYAN}$APP_DIR/INSTALLATION_INFO.md${NC}"
+    echo
+    echo -e "${BLUE}📊 Management Commands:${NC}"
+    echo -e "  Check status:  ${CYAN}sudo -u $APP_USER pm2 status${NC}"
+    echo -e "  View logs:     ${CYAN}sudo -u $APP_USER pm2 logs ${PM2_APP_NAME}${NC}"
+    echo -e "  Restart:       ${CYAN}sudo -u $APP_USER pm2 restart ${PM2_APP_NAME}${NC}"
+    echo -e "  Update system: ${CYAN}sudo ./update-system.sh ${INSTANCE_NAME}${NC}"
     echo
     echo -e "${PURPLE}🚀 Your IoT platform is ready! Register the first admin user via the web interface.${NC}"
     echo

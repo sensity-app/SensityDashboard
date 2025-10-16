@@ -208,7 +208,7 @@ validate_installation() {
                     ;;
                 3000)
                     # Application port - check if PM2 is running it
-                    if pgrep -f "pm2.*esp8266" >/dev/null 2>&1; then
+                    if pgrep -f "pm2.*sensity" >/dev/null 2>&1; then
                         service_name="PM2 (existing installation)"
                     else
                         conflicting_ports+=($port)
@@ -876,9 +876,9 @@ install_mqtt_broker() {
     # Create MQTT configuration directory
     mkdir -p /etc/mosquitto/conf.d
 
-    # Create ESP8266 platform configuration
-    cat > /etc/mosquitto/conf.d/esp8266-platform.conf << 'EOF'
-# ESP8266 Platform MQTT Configuration
+    # Create Sensity platform configuration
+    cat > /etc/mosquitto/conf.d/sensity-platform.conf << 'EOF'
+# Sensity Platform MQTT Configuration
 listener 1883 0.0.0.0
 protocol mqtt
 
@@ -1233,7 +1233,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-SMTP_FROM="ESP8266 Platform <your-email@gmail.com>"
+SMTP_FROM="Sensity Platform <your-email@gmail.com>"
 
 # Twilio Configuration (optional, for SMS alerts)
 TWILIO_ACCOUNT_SID=
@@ -2024,24 +2024,25 @@ cleanup_failed_installation() {
     fi
 
     # Remove database and user (database must be dropped before user due to ownership)
-    if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw sensity_platform; then
-        print_status "Removing database (sensity_platform)..."
+    if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "${DB_NAME}"; then
+        print_status "Removing database (${DB_NAME})..."
         # Terminate any active connections to the database
-        sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'sensity_platform' AND pid <> pg_backend_pid();" 2>/dev/null || true
+        sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();" 2>/dev/null || true
         # Drop the database
-        sudo -u postgres dropdb sensity_platform 2>/dev/null || true
+        sudo -u postgres dropdb "${DB_NAME}" 2>/dev/null || true
         print_status "Database removed"
     fi
 
-    if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw sensityapp; then
-        print_status "Removing database user (sensityapp)..."
-        sudo -u postgres dropuser sensityapp 2>/dev/null || true
+    if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw "${APP_USER}"; then
+        print_status "Removing database user (${APP_USER})..."
+        sudo -u postgres dropuser "${APP_USER}" 2>/dev/null || true
         print_status "Database user removed"
     fi
 
     # Remove nginx configuration
     rm -f "/etc/nginx/sites-enabled/$DOMAIN" 2>/dev/null || true
     rm -f "/etc/nginx/sites-available/$DOMAIN" 2>/dev/null || true
+    # Also cleanup old esp8266-platform configs if they exist
     rm -f "/etc/nginx/sites-enabled/esp8266-platform" 2>/dev/null || true
     rm -f "/etc/nginx/sites-available/esp8266-platform" 2>/dev/null || true
 
@@ -2075,13 +2076,13 @@ detect_existing_installation() {
     fi
 
     # Check for database
-    if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw sensity_platform; then
-        found_components+=("Database (sensity_platform)")
+    if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "${DB_NAME}"; then
+        found_components+=("Database (${DB_NAME})")
     fi
 
     # Check for database user
-    if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw sensityapp; then
-        found_components+=("Database user (sensityapp)")
+    if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw "${APP_USER}"; then
+        found_components+=("Database user (${APP_USER})")
     fi
 
     # Check for nginx config
@@ -2090,7 +2091,7 @@ detect_existing_installation() {
     fi
 
     # Check for PM2 processes
-    if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "esp8266" 2>/dev/null; then
+    if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "${PM2_PROCESS_NAME}" 2>/dev/null; then
         found_components+=("PM2 processes")
     fi
 
@@ -2133,8 +2134,8 @@ detect_existing_installation() {
                         echo "  sudo -u $APP_USER pm2 delete all && sudo -u $APP_USER pm2 kill"
                         echo "  sudo rm -rf $APP_DIR"
                         echo "  sudo userdel -r $APP_USER"
-                        echo "  sudo -u postgres dropdb sensity_platform"
-                        echo "  sudo -u postgres dropuser sensityapp"
+                        echo "  sudo -u postgres dropdb ${DB_NAME}"
+                        echo "  sudo -u postgres dropuser ${APP_USER}"
                         echo "  sudo rm -f /etc/nginx/sites-*/*sensity* /etc/nginx/sites-*/*$DOMAIN*"
                         echo
                         exit 0

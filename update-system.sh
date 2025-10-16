@@ -205,10 +205,143 @@ update_system() {
     sudo -u "$APP_USER" pm2 restart all
     sudo -u "$APP_USER" pm2 save
 
+    # Wait for services to start
+    print_status "Waiting for services to stabilize..."
+    sleep 5
+
+    # Test if backend is responding
+    print_status "Testing backend health..."
+    local backend_port=$(grep "PORT=" "$APP_DIR/backend/.env" 2>/dev/null | cut -d'=' -f2 || echo "3000")
+    local max_retries=10
+    local retry_count=0
+    local backend_healthy=false
+
+    while [[ $retry_count -lt $max_retries ]]; do
+        if curl -s -f "http://localhost:${backend_port}/api/system/health" > /dev/null 2>&1; then
+            backend_healthy=true
+            break
+        fi
+        ((retry_count++))
+        sleep 2
+    done
+
+    # Check PM2 status
+    local pm2_status=$(sudo -u "$APP_USER" pm2 jlist 2>/dev/null)
+    local backend_online=$(echo "$pm2_status" | grep -o '"status":"online"' | wc -l)
+    local backend_errored=$(echo "$pm2_status" | grep -o '"status":"errored"' | wc -l)
+
+    # If backend is not healthy or errored, rollback
+    if [[ "$backend_healthy" == "false" ]] || [[ "$backend_errored" -gt 0 ]]; then
+        print_error "Backend health check failed!"
+        print_status "PM2 processes online: $backend_online, errored: $backend_errored"
+        
+        # Find the most recent backup
+        local latest_backup
+        cd /opt
+        if [[ "$INSTANCE_NAME" == "default" ]]; then
+            latest_backup=$(ls -dt sensity-platform.backup.* 2>/dev/null | head -n1)
+        else
+            latest_backup=$(ls -dt sensity-platform-${INSTANCE_NAME}.backup.* 2>/dev/null | head -n1)
+        fi
+
+        if [[ -n "$latest_backup" ]]; then
+            print_warning "🔄 Rolling back to previous version..."
+            
+            # Stop current broken version
+            sudo -u "$APP_USER" pm2 stop all 2>/dev/null || true
+            
+            # Restore backup
+            rm -rf "$APP_DIR"
+            mv "/opt/$latest_backup" "$APP_DIR"
+            
+            # Restart with old version
+            cd "$APP_DIR/backend"
+            sudo -u "$APP_USER" pm2 restart all
+            sudo -u "$APP_USER" pm2 save
+            
+            sleep 3
+            
+            print_error "❌ Update failed and was rolled back"
+            print_status "📝 Check logs: sudo -u $APP_USER pm2 logs backend --err --lines 50"
+            exit 1
+        else
+            print_error "No backup found for rollback!"
+            print_status "📝 Manual intervention required. Check logs: sudo -u $APP_USER pm2 logs"
+            exit 1
+        fi
+    fi
+
+    print_success "✅ Backend health check passed!"
     print_success "✅ System updated successfully!"
     echo
     print_status "📊 Check status: sudo -u $APP_USER pm2 status"
     print_status "📝 View logs: sudo -u $APP_USER pm2 logs"
+}
+
+rollback_system() {
+    print_status "🔄 Rolling back to previous version..."
+    print_warning "This will restore the last backup"
+
+    # Check instance exists
+    check_instance_exists
+
+    # Find the most recent backup
+    local latest_backup
+    cd /opt
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        latest_backup=$(ls -dt sensity-platform.backup.* 2>/dev/null | head -n1)
+    else
+        latest_backup=$(ls -dt sensity-platform-${INSTANCE_NAME}.backup.* 2>/dev/null | head -n1)
+    fi
+
+    if [[ -z "$latest_backup" ]]; then
+        print_error "No backup found!"
+        print_status "Available backups:"
+        ls -lth /opt/*.backup.* 2>/dev/null || echo "  (none)"
+        exit 1
+    fi
+
+    print_status "Found backup: $latest_backup"
+    local backup_date=$(echo "$latest_backup" | grep -oE '[0-9]{8}-[0-9]{6}')
+    print_status "Backup date: $(echo $backup_date | sed 's/\([0-9]\{8\}\)-\([0-9]\{6\}\)/\1 \2/')"
+
+    read -p "Restore this backup? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_status "Rollback cancelled"
+        return 0
+    fi
+
+    # Stop current version
+    print_status "Stopping current services..."
+    sudo -u "$APP_USER" pm2 stop all 2>/dev/null || true
+
+    # Create a backup of current (broken) version
+    print_status "Backing up current version..."
+    if [[ -d "$APP_DIR" ]]; then
+        mv "$APP_DIR" "$APP_DIR.broken.$(date +%Y%m%d-%H%M%S)" 2>/dev/null || true
+    fi
+
+    # Restore backup
+    print_status "Restoring backup..."
+    cp -r "/opt/$latest_backup" "$APP_DIR"
+    chown -R "$APP_USER:$APP_USER" "$APP_DIR"
+
+    # Restart services
+    print_status "Restarting services..."
+    cd "$APP_DIR/backend"
+    sudo -u "$APP_USER" pm2 restart all
+    sudo -u "$APP_USER" pm2 save
+
+    # Wait and verify
+    sleep 3
+    if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "online"; then
+        print_success "✅ Rollback completed successfully!"
+        print_status "📊 Check status: sudo -u $APP_USER pm2 status"
+    else
+        print_error "Services may not have started correctly"
+        print_status "📝 Check logs: sudo -u $APP_USER pm2 logs"
+    fi
 }
 
 reset_first_user() {
@@ -356,8 +489,10 @@ main() {
         echo
     fi
 
-    # Handle special commands (only for default instance)
-    if [[ "$2" == "reset-first-user" ]]; then
+    # Handle special commands
+    if [[ "$2" == "rollback" ]]; then
+        rollback_system
+    elif [[ "$2" == "reset-first-user" ]]; then
         if [[ "$INSTANCE_NAME" != "default" ]]; then
             print_error "reset-first-user is only supported for the default instance"
             exit 1
@@ -376,6 +511,7 @@ main() {
         echo "Usage:"
         echo "  sudo $0 [instance]                    # Update instance (default if not specified)"
         echo "  sudo $0 [instance] update             # Update instance"
+        echo "  sudo $0 [instance] rollback           # Rollback to previous version"
         echo "  sudo $0 default reset-first-user      # Reset database to allow first user registration"
         echo "  sudo $0 default create-test-admin     # Create test admin user"
         echo
@@ -383,6 +519,7 @@ main() {
         echo "  sudo $0                               # Update default instance"
         echo "  sudo $0 staging                       # Update staging instance"
         echo "  sudo $0 dev update                    # Update dev instance"
+        echo "  sudo $0 dev rollback                  # Rollback dev instance"
         echo
         echo "Available instances:"
         if [[ -d "/opt/sensity-platform" ]]; then

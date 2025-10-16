@@ -1184,12 +1184,6 @@ EOF
 
     print_success "Database permissions configured"
 }
-    END LOOP;
-END $$;
-EOF
-
-    print_success "Database permissions configured"
-}
 
 # Function to create environment files
 create_env_files() {

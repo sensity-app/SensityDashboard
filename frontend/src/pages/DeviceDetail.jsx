@@ -417,6 +417,27 @@ function DeviceDetail() {
                     </div>
                 </div>
 
+                {/* Invalid IP Address Warning */}
+                {device?.ip_address && ['127.0.0.1', '0.0.0.0', 'localhost', '::1'].includes(device.ip_address) && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                        <div className="flex items-start gap-3">
+                            <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" />
+                            <div className="flex-1">
+                                <h3 className="font-semibold text-amber-900">{t('deviceDetail.ipWarning.title', 'Invalid IP Address Detected')}</h3>
+                                <p className="mt-1 text-sm text-amber-800">
+                                    {t('deviceDetail.ipWarning.description', 'Your device is showing an invalid local IP address ({{ip}}). This usually means the device hasn\'t connected to your WiFi network yet.', { ip: device.ip_address })}
+                                </p>
+                                <ul className="mt-2 ml-4 list-disc space-y-1 text-sm text-amber-700">
+                                    <li>{t('deviceDetail.ipWarning.step1', 'Make sure your WiFi credentials are correct in the firmware')}</li>
+                                    <li>{t('deviceDetail.ipWarning.step2', 'Restart the device to attempt WiFi connection')}</li>
+                                    <li>{t('deviceDetail.ipWarning.step3', 'Check your router to see if the device is connected')}</li>
+                                    <li>{t('deviceDetail.ipWarning.step4', 'The IP will update automatically once the device connects and sends a heartbeat')}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
                     <div className="space-y-6">
                         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -483,7 +504,7 @@ function DeviceDetail() {
                                             <div
                                                 key={sensor.id}
                                                 className={`relative flex h-full flex-col gap-4 rounded-xl border bg-white p-5 transition-all ${isDisabled ? 'opacity-60 border-gray-200' :
-                                                        isActive ? 'border-indigo-400 shadow-lg ring-2 ring-indigo-100' : 'border-gray-100 shadow-sm hover:shadow-md'
+                                                    isActive ? 'border-indigo-400 shadow-lg ring-2 ring-indigo-100' : 'border-gray-100 shadow-sm hover:shadow-md'
                                                     }`}
                                             >
                                                 <div className="flex items-start justify-between gap-2">

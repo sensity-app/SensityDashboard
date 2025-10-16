@@ -487,24 +487,45 @@ router.post('/:id/heartbeat', [
             deviceIp = deviceIp.substring(7); // Remove ::ffff: prefix
         }
 
-        // If it's still IPv6 localhost (::1), try to use the request IP instead
-        if (deviceIp === '::1' || deviceIp === '::' || deviceIp === 'localhost') {
-            // Try to get actual IP from request
-            const requestIp = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
-            if (requestIp && requestIp !== '::1' && requestIp !== '::ffff:127.0.0.1') {
+        // Validate IP address - reject invalid/localhost IPs
+        const invalidIps = ['::1', '::', 'localhost', '127.0.0.1', '0.0.0.0', ''];
+        if (!deviceIp || invalidIps.includes(deviceIp)) {
+            // Try to get actual IP from request headers (useful when behind proxy)
+            const requestIp = req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+                req.headers['x-real-ip'] ||
+                req.ip ||
+                req.connection.remoteAddress ||
+                req.socket.remoteAddress;
+
+            if (requestIp && requestIp !== '::1' && requestIp !== '::ffff:127.0.0.1' && requestIp !== '127.0.0.1') {
                 deviceIp = requestIp.startsWith('::ffff:') ? requestIp.substring(7) : requestIp;
+            } else {
+                // If we can't determine a valid IP, don't update it
+                deviceIp = null;
             }
         }
 
-        await db.query(`
-            UPDATE devices
-            SET last_heartbeat = CURRENT_TIMESTAMP,
-                status = 'online',
-                firmware_version = COALESCE($1, firmware_version),
-                uptime_seconds = COALESCE($2, uptime_seconds),
-                ip_address = $3
-            WHERE id = $4
-        `, [firmware_version, uptime, deviceIp, id]);
+        // Only update IP if we have a valid one
+        const updateQuery = deviceIp
+            ? `UPDATE devices
+               SET last_heartbeat = CURRENT_TIMESTAMP,
+                   status = 'online',
+                   firmware_version = COALESCE($1, firmware_version),
+                   uptime_seconds = COALESCE($2, uptime_seconds),
+                   ip_address = $3
+               WHERE id = $4`
+            : `UPDATE devices
+               SET last_heartbeat = CURRENT_TIMESTAMP,
+                   status = 'online',
+                   firmware_version = COALESCE($1, firmware_version),
+                   uptime_seconds = COALESCE($2, uptime_seconds)
+               WHERE id = $3`;
+
+        const params = deviceIp
+            ? [firmware_version, uptime, deviceIp, id]
+            : [firmware_version, uptime, id];
+
+        await db.query(updateQuery, params);
 
         // Get sensor configuration for this device
         const sensorsResult = await db.query(`
@@ -1459,8 +1480,8 @@ router.get('/:id/stats', authenticateToken, async (req, res) => {
 
         // Convert range to proper interval
         const interval = range === '24h' ? '24 hours' :
-                        range === '7d' ? '7 days' :
-                        range === '30d' ? '30 days' : '24 hours';
+            range === '7d' ? '7 days' :
+                range === '30d' ? '30 days' : '24 hours';
 
         // Get alert counts
         const alertsResult = await db.query(`

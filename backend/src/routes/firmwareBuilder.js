@@ -141,6 +141,20 @@ async function registerDeviceInDatabase(config) {
 
                 const sensorTypeId = sensorTypeResult.rows[0].id;
 
+                // Normalize pin value based on sensor type and platform
+                let normalizedPin = sensor.pin;
+
+                // For analog sensors on ESP8266, always use A0 (matches firmware config)
+                if (platform === 'esp8266' && ['light', 'sound', 'gas'].includes(sensor.type)) {
+                    normalizedPin = 'A0';
+                    logger.info(`Normalized ${sensor.type} sensor pin to A0 for ESP8266`);
+                }
+
+                // Ensure pin is a string
+                if (typeof normalizedPin !== 'string') {
+                    normalizedPin = String(normalizedPin);
+                }
+
                 // Insert or update device sensor
                 await db.query(`
                     INSERT INTO device_sensors (device_id, sensor_type_id, pin, name, calibration_offset, calibration_multiplier, enabled)
@@ -154,13 +168,13 @@ async function registerDeviceInDatabase(config) {
                 `, [
                     device_id,
                     sensorTypeId,
-                    sensor.pin,
+                    normalizedPin,
                     sensor.name || sensor.type,
                     sensor.calibration_offset || sensor.light_calibration_offset || 0,
                     sensor.calibration_multiplier || sensor.light_calibration_multiplier || 1
                 ]);
 
-                logger.info(`Registered sensor: ${sensor.name || sensor.type} (${sensor.pin}) for device ${device_id}`);
+                logger.info(`Registered sensor: ${sensor.name || sensor.type} (${normalizedPin}) for device ${device_id}`);
             }
         }
 

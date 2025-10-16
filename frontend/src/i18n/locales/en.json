@@ -632,6 +632,14 @@
       "waitHeartbeat": "Wait for next heartbeat (~5 min)",
       "checkLogs": "Check device serial logs for errors"
     },
+    "ipWarning": {
+      "title": "Invalid IP Address Detected",
+      "description": "Your device is showing an invalid local IP address ({{ip}}). This usually means the device hasn't connected to your WiFi network yet.",
+      "step1": "Make sure your WiFi credentials are correct in the firmware",
+      "step2": "Restart the device to attempt WiFi connection",
+      "step3": "Check your router to see if the device is connected",
+      "step4": "The IP will update automatically once the device connects and sends a heartbeat"
+    },
     "toast": {
       "sensorUpdated": "Sensor updated successfully",
       "otaQueued": "Configuration will be applied on the device shortly.",

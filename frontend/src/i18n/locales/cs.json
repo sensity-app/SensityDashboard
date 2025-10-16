@@ -632,6 +632,14 @@
       "waitHeartbeat": "Počkejte na další heartbeat (~5 min)",
       "checkLogs": "Zkontrolujte sériové logy zařízení"
     },
+    "ipWarning": {
+      "title": "Detekována neplatná IP adresa",
+      "description": "Vaše zařízení zobrazuje neplatnou lokální IP adresu ({{ip}}). To obvykle znamená, že se zařízení ještě nepřipojilo k vaší WiFi síti.",
+      "step1": "Ujistěte se, že jsou ve firmwaru správné přihlašovací údaje k WiFi",
+      "step2": "Restartujte zařízení pro pokus o připojení k WiFi",
+      "step3": "Zkontrolujte váš router, zda je zařízení připojené",
+      "step4": "IP adresa se automaticky aktualizuje, jakmile se zařízení připojí a odešle heartbeat"
+    },
     "toast": {
       "sensorUpdated": "Senzor byl úspěšně aktualizován",
       "otaQueued": "Konfigurace bude na zařízení použita při nejbližší synchronizaci.",

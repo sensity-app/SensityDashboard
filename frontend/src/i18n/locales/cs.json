@@ -34,11 +34,11 @@
     "type": "Typ",
     "value": "Hodnota",
     "timestamp": "Časové razítko",
-  "actions": "Akce",
-  "enabled": "Povoleno",
-  "disabled": "Zakázáno",
-  "yes": "Ano",
-  "no": "Ne",
+    "actions": "Akce",
+    "enabled": "Povoleno",
+    "disabled": "Zakázáno",
+    "yes": "Ano",
+    "no": "Ne",
     "online": "Online",
     "offline": "Offline",
     "unknown": "Neznámý",
@@ -361,6 +361,9 @@
     "validation": {
       "pinConflict": "Konflikt na pinu {{pin}}: {{sensors}}"
     },
+    "errors": {
+      "analogExclusive": "ESP8266 má pouze jeden analogový pin (A0). Nejprve odstraňte {{existing}}."
+    },
     "finalStep": "Závěrečný krok – vytvořte firmware výše"
   },
   "auth": {
@@ -547,13 +550,14 @@
     "sensorLabel": "Senzor",
     "historyTitle": "Historie a trendy",
     "historySubtitle": "Zobrazuje se {{sensor}}",
-        "historyPrompt": "Vyberte výše senzor a prohlédněte si jeho historická data.",
-        "historySelectPlaceholder": "Vyberte senzor…",
-        "historyNoSensor": "Vyberte výše senzor a zobrazte jeho historická data",
-        "viewHistory": "Zobrazit historii",
-        "liveConnection": "Stav spojení",
-        "lastHeartbeat": "Poslední heartbeat",
-        "ipAddress": "IP adresa",
+    "historyPrompt": "Vyberte výše senzor a prohlédněte si jeho historická data.",
+    "historySelectPlaceholder": "Vyberte senzor…",
+    "historyNoSensor": "Vyberte výše senzor a zobrazte jeho historická data",
+    "viewHistory": "Zobrazit historii",
+    "liveConnection": "Stav spojení",
+    "deviceType": "Typ zařízení",
+    "lastHeartbeat": "Poslední heartbeat",
+    "ipAddress": "IP adresa",
     "wifiSignal": "Síla signálu Wi‑Fi",
     "targetFirmware": "Cílový firmware",
     "targetFirmwareNone": "Žádný",
@@ -614,7 +618,19 @@
     "sensorBadge": {
       "live": "Aktuální",
       "stale": "Neaktuální",
-      "awaiting": "Čeká na data"
+      "awaiting": "Čeká na data",
+      "disabled": "Zakázáno"
+    },
+    "notConfigured": "Nenakonfigurováno",
+    "sensorDisabledHint": "Klikněte na nastavení pro konfiguraci a aktivaci senzoru",
+    "configureSensor": "Konfigurovat senzor",
+    "manageSensors": "Správa senzorů",
+    "troubleshooting": {
+      "title": "Řešení problémů:",
+      "checkConnection": "Zkontrolujte, zda je zařízení online a připojené",
+      "checkWiring": "Ověřte, že je senzor připojen k pinu {{pin}}",
+      "waitHeartbeat": "Počkejte na další heartbeat (~5 min)",
+      "checkLogs": "Zkontrolujte sériové logy zařízení"
     },
     "toast": {
       "sensorUpdated": "Senzor byl úspěšně aktualizován",
@@ -632,6 +648,24 @@
       "cancel": "Zrušit",
       "save": "Uložit změny",
       "saving": "Ukládám…"
+    },
+    "sensorManager": {
+      "title": "Správa senzorů",
+      "subtitle": "Přidejte, odeberte nebo nakonfigurujte senzory. Změny budou na zařízení odeslány přes OTA.",
+      "pin": "Pin",
+      "type": "Typ",
+      "name": "Název",
+      "enabled": "Aktivní",
+      "remove": "Odebrat",
+      "addSensor": "Přidat senzor",
+      "noPinsAvailable": "Nejsou k dispozici žádné piny",
+      "fetchTypesError": "Nepodařilo se načíst typy senzorů",
+      "saveSuccess": "Konfigurace senzorů uložena! Zařízení se aktualizuje při dalším heartbeatu.",
+      "saveError": "Nepodařilo se uložit konfiguraci senzorů",
+      "configNote": "Konfigurace bude odeslána na zařízení při dalším heartbeatu (~5 min)",
+      "cancel": "Zrušit",
+      "save": "Uložit a odeslat konfiguraci",
+      "saving": "Ukládám..."
     }
   },
   "devices": {
@@ -692,8 +726,7 @@
       "sensorCreateFailed": "Vytvoření senzoru se nezdařilo: {{message}}",
       "otaStarted": "OTA aktualizace byla úspěšně zahájena",
       "otaFailed": "OTA aktualizaci se nepodařilo spustit"
-    }
-    ,
+    },
     "header": {
       "title": "Správa zařízení",
       "subtitle": "Spravujte a monitorujte svá IoT zařízení"
@@ -702,19 +735,19 @@
       "refresh": "Obnovit",
       "build": "Sestavit zařízení"
     },
-  "filters": {
-    "title": "Filtr a hledání",
-    "searchLabel": "Hledat",
-    "searchPlaceholder": "Název, ID, IP, skupiny, štítky…",
-    "typeOption": {
-      "esp8266": "ESP8266",
-      "esp32": "ESP32",
-      "arduino": "Arduino",
-      "raspberry_pi": "Raspberry Pi"
+    "filters": {
+      "title": "Filtr a hledání",
+      "searchLabel": "Hledat",
+      "searchPlaceholder": "Název, ID, IP, skupiny, štítky…",
+      "typeOption": {
+        "esp8266": "ESP8266",
+        "esp32": "ESP32",
+        "arduino": "Arduino",
+        "raspberry_pi": "Raspberry Pi"
+      },
+      "groupLabel": "Skupina",
+      "tagLabel": "Štítek"
     },
-    "groupLabel": "Skupina",
-    "tagLabel": "Štítek"
-  },
     "badge": {
       "deviceCount": "{{count}} z {{total}} zařízení",
       "filtered": "{{count}} zařízení"
@@ -1031,49 +1064,49 @@
       "adminEmail": "Administrátorský e-mail",
       "maintenanceMode": "Režim údržby"
     },
-  "branding": {
-    "title": "Přizpůsobení značky",
-    "companyInfo": "Informace o společnosti",
-    "companyName": "Název společnosti",
-    "logoManagement": "Správa loga",
-    "companyLogo": "Logo společnosti",
-    "favicon": "Favicon",
-    "colorScheme": "Barevné schéma",
-    "primaryColor": "Primární barva",
-    "accentColor": "Akcentová barva",
-    "preview": "Náhled",
-    "toast": {
-      "invalidImage": "Vyberte prosím platný obrázek",
-      "imageTooLarge": "Soubor obrázku musí být menší než 2 MB",
-      "logoUploaded": "Logo bylo úspěšně nahráno",
-      "logoUploadFailed": "Logo se nepodařilo nahrát",
-      "logoRemoved": "Logo bylo odstraněno",
-      "logoRemoveFailed": "Logo se nepodařilo odstranit"
-    }
-  },
-  "environment": {
-    "title": "Proměnné prostředí",
-    "errorCount": "{{count}} {{count, plural, one{chyba} few{chyby} other{chyb}}}",
-    "warningCount": "{{count}} {{count, plural, one{varování} few{varování} other{varování}}}",
-    "emptyTitle": "Nebyly nalezeny žádné proměnné prostředí",
-    "emptyDescription1": ".env soubor neexistuje nebo je prázdný. Proměnné prostředí se používají pro konfiguraci aplikace, například připojení k databázi, API klíče a další citlivé údaje.",
-    "emptyDescription2": "Proměnné prostředí můžete vytvořit níže a automaticky se uloží do souboru .env.",
-    "errorsTitle": "Chyby",
-    "warningsTitle": "Varování",
-    "addTitle": "Přidat proměnné prostředí",
-    "namePlaceholder": "Název proměnné (např. DB_HOST)",
-    "valuePlaceholder": "Hodnota",
-    "addButton": "Přidat",
-    "hint": "Stiskněte Tab pro formátování názvu nebo Enter pro přidání proměnné",
-    "sensitive": "Citlivé",
-    "maskPlaceholder": "***MASKED***",
-    "enterValue": "Zadejte {{name}}",
-    "otherVariables": "Ostatní proměnné",
-    "restartNotice": "Změny mohou vyžadovat restart serveru",
-    "save": "Uložit proměnné prostředí",
-    "saveSuccess": "{{restartRequired, select, true{Proměnné prostředí byly uloženy. Je vyžadován restart serveru.} false{Proměnné prostředí byly uloženy.}}}",
-    "saveError": "Nepodařilo se uložit proměnné prostředí"
-  },
+    "branding": {
+      "title": "Přizpůsobení značky",
+      "companyInfo": "Informace o společnosti",
+      "companyName": "Název společnosti",
+      "logoManagement": "Správa loga",
+      "companyLogo": "Logo společnosti",
+      "favicon": "Favicon",
+      "colorScheme": "Barevné schéma",
+      "primaryColor": "Primární barva",
+      "accentColor": "Akcentová barva",
+      "preview": "Náhled",
+      "toast": {
+        "invalidImage": "Vyberte prosím platný obrázek",
+        "imageTooLarge": "Soubor obrázku musí být menší než 2 MB",
+        "logoUploaded": "Logo bylo úspěšně nahráno",
+        "logoUploadFailed": "Logo se nepodařilo nahrát",
+        "logoRemoved": "Logo bylo odstraněno",
+        "logoRemoveFailed": "Logo se nepodařilo odstranit"
+      }
+    },
+    "environment": {
+      "title": "Proměnné prostředí",
+      "errorCount": "{{count}} {{count, plural, one{chyba} few{chyby} other{chyb}}}",
+      "warningCount": "{{count}} {{count, plural, one{varování} few{varování} other{varování}}}",
+      "emptyTitle": "Nebyly nalezeny žádné proměnné prostředí",
+      "emptyDescription1": ".env soubor neexistuje nebo je prázdný. Proměnné prostředí se používají pro konfiguraci aplikace, například připojení k databázi, API klíče a další citlivé údaje.",
+      "emptyDescription2": "Proměnné prostředí můžete vytvořit níže a automaticky se uloží do souboru .env.",
+      "errorsTitle": "Chyby",
+      "warningsTitle": "Varování",
+      "addTitle": "Přidat proměnné prostředí",
+      "namePlaceholder": "Název proměnné (např. DB_HOST)",
+      "valuePlaceholder": "Hodnota",
+      "addButton": "Přidat",
+      "hint": "Stiskněte Tab pro formátování názvu nebo Enter pro přidání proměnné",
+      "sensitive": "Citlivé",
+      "maskPlaceholder": "***MASKED***",
+      "enterValue": "Zadejte {{name}}",
+      "otherVariables": "Ostatní proměnné",
+      "restartNotice": "Změny mohou vyžadovat restart serveru",
+      "save": "Uložit proměnné prostředí",
+      "saveSuccess": "{{restartRequired, select, true{Proměnné prostředí byly uloženy. Je vyžadován restart serveru.} false{Proměnné prostředí byly uloženy.}}}",
+      "saveError": "Nepodařilo se uložit proměnné prostředí"
+    },
     "database": {
       "title": "Správa databáze",
       "info": "Informace o databázi",
@@ -1108,14 +1141,14 @@
         "title": "Aktuální verze",
         "commit": "Commit",
         "branch": "Větev",
-    "author": "Autor",
-    "date": "Datum",
-    "unknown": "neznámé",
-    "refresh": "Obnovit informace o verzi",
-    "branchLabel": "Větev",
-    "dateLabel": "Datum sestavení",
-    "commitLabel": "Commit"
-  },
+        "author": "Autor",
+        "date": "Datum",
+        "unknown": "neznámé",
+        "refresh": "Obnovit informace o verzi",
+        "branchLabel": "Větev",
+        "dateLabel": "Datum sestavení",
+        "commitLabel": "Commit"
+      },
       "availability": {
         "title": "Aktualizace platformy",
         "available": "Je dostupná aktualizace",

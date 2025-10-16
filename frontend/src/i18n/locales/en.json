@@ -34,11 +34,11 @@
     "type": "Type",
     "value": "Value",
     "timestamp": "Timestamp",
-  "actions": "Actions",
-  "enabled": "Enabled",
-  "disabled": "Disabled",
-  "yes": "Yes",
-  "no": "No",
+    "actions": "Actions",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "yes": "Yes",
+    "no": "No",
     "online": "Online",
     "offline": "Offline",
     "unknown": "Unknown",
@@ -361,6 +361,9 @@
     "validation": {
       "pinConflict": "Pin {{pin}} conflict: {{sensors}}"
     },
+    "errors": {
+      "analogExclusive": "ESP8266 has only one analog pin (A0). Please remove {{existing}} first."
+    },
     "finalStep": "Final step - Build your firmware above"
   },
   "auth": {
@@ -547,33 +550,34 @@
     "sensorLabel": "Sensor",
     "historyTitle": "History & trends",
     "historySubtitle": "Viewing {{sensor}}",
-        "historyPrompt": "Select a sensor above to explore its historical readings.",
-        "historySelectPlaceholder": "Select sensor…",
-        "historyNoSensor": "Select a sensor above to explore its historical readings.",
-        "viewHistory": "View history",
-        "liveConnection": "Live connection",
-        "lastHeartbeat": "Last heartbeat",
-        "ipAddress": "IP address",
+    "historyPrompt": "Select a sensor above to explore its historical readings.",
+    "historySelectPlaceholder": "Select sensor…",
+    "historyNoSensor": "Select a sensor above to explore its historical readings.",
+    "viewHistory": "View history",
+    "liveConnection": "Live connection",
+    "deviceType": "Device Type",
+    "lastHeartbeat": "Last heartbeat",
+    "ipAddress": "IP address",
     "wifiSignal": "Wi-Fi signal",
     "targetFirmware": "Target firmware",
     "targetFirmwareNone": "None",
-  "alertsHeading": "Recent alerts",
-  "alertsCount": "Last {{count}} events",
-  "alertsEmpty": "No alerts have been raised for this device in the last 24 hours.",
-  "alerts": {
-    "defaultType": "Alert",
-    "noContext": "No additional context",
-    "resolve": "Resolve",
-    "unresolved": "Unresolved alerts",
-    "unresolvedBadge": "unresolved"
-  },
-  "alertSeverity": {
-    "low": "Low",
-    "medium": "Medium",
-    "high": "High",
-    "critical": "Critical",
-    "info": "Info"
-  },
+    "alertsHeading": "Recent alerts",
+    "alertsCount": "Last {{count}} events",
+    "alertsEmpty": "No alerts have been raised for this device in the last 24 hours.",
+    "alerts": {
+      "defaultType": "Alert",
+      "noContext": "No additional context",
+      "resolve": "Resolve",
+      "unresolved": "Unresolved alerts",
+      "unresolvedBadge": "unresolved"
+    },
+    "alertSeverity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical",
+      "info": "Info"
+    },
     "viewAllAlerts": "View all alerts →",
     "triggeredAgo": "Triggered {{when}}",
     "valueUnknown": "Unknown",
@@ -604,17 +608,29 @@
       "weak": "Weak",
       "poor": "Poor"
     },
-  "relative": {
-    "never": "Never",
-    "justNow": "Just now",
-    "minutes": "{{count}} min ago",
-    "hours": "{{hours}}h {{minutes}}m ago",
-    "days": "{{count}} day{{count, plural, one{} other{s}}} ago"
-  },
+    "relative": {
+      "never": "Never",
+      "justNow": "Just now",
+      "minutes": "{{count}} min ago",
+      "hours": "{{hours}}h {{minutes}}m ago",
+      "days": "{{count}} day{{count, plural, one{} other{s}}} ago"
+    },
     "sensorBadge": {
       "live": "Live",
       "stale": "Stale",
-      "awaiting": "Awaiting data"
+      "awaiting": "Awaiting data",
+      "disabled": "Disabled"
+    },
+    "notConfigured": "Not Configured",
+    "sensorDisabledHint": "Click settings to configure and enable this sensor",
+    "configureSensor": "Configure Sensor",
+    "manageSensors": "Manage Sensors",
+    "troubleshooting": {
+      "title": "Troubleshooting:",
+      "checkConnection": "Check device is online and connected",
+      "checkWiring": "Verify sensor is connected to pin {{pin}}",
+      "waitHeartbeat": "Wait for next heartbeat (~5 min)",
+      "checkLogs": "Check device serial logs for errors"
     },
     "toast": {
       "sensorUpdated": "Sensor updated successfully",
@@ -631,9 +647,27 @@
       "triggerOtaHint": "Device receives the updated configuration on next sync.",
       "cancel": "Cancel",
       "save": "Save changes",
-        "saving": "Saving…"
-      }
+      "saving": "Saving…"
     },
+    "sensorManager": {
+      "title": "Manage Sensors",
+      "subtitle": "Add, remove, or configure sensors. Changes will be pushed to the device via OTA.",
+      "pin": "Pin",
+      "type": "Type",
+      "name": "Name",
+      "enabled": "Enabled",
+      "remove": "Remove",
+      "addSensor": "Add Sensor",
+      "noPinsAvailable": "No available pins",
+      "fetchTypesError": "Failed to load sensor types",
+      "saveSuccess": "Sensor configuration saved! Device will update on next heartbeat.",
+      "saveError": "Failed to save sensor configuration",
+      "configNote": "Configuration will be pushed to device on next heartbeat (~5 min)",
+      "cancel": "Cancel",
+      "save": "Save & Push Config",
+      "saving": "Saving..."
+    }
+  },
   "devices": {
     "title": "Devices",
     "deviceList": "Device List",
@@ -692,8 +726,7 @@
       "sensorCreateFailed": "Failed to create sensor: {{message}}",
       "otaStarted": "OTA update initiated successfully",
       "otaFailed": "Failed to initiate OTA update"
-    }
-    ,
+    },
     "header": {
       "title": "Device Management",
       "subtitle": "Manage and monitor your IoT devices"
@@ -702,19 +735,19 @@
       "refresh": "Refresh",
       "build": "Build & Add Device"
     },
-  "filters": {
-    "title": "Filter & Search",
-    "searchLabel": "Search",
-    "searchPlaceholder": "Name, ID, IP, groups, tags…",
-    "typeOption": {
-      "esp8266": "ESP8266",
-      "esp32": "ESP32",
-      "arduino": "Arduino",
-      "raspberry_pi": "Raspberry Pi"
+    "filters": {
+      "title": "Filter & Search",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Name, ID, IP, groups, tags…",
+      "typeOption": {
+        "esp8266": "ESP8266",
+        "esp32": "ESP32",
+        "arduino": "Arduino",
+        "raspberry_pi": "Raspberry Pi"
+      },
+      "groupLabel": "Group",
+      "tagLabel": "Tag"
     },
-    "groupLabel": "Group",
-    "tagLabel": "Tag"
-  },
     "badge": {
       "deviceCount": "{{count}} of {{total}} devices",
       "filtered": "{{count}} devices"
@@ -1232,22 +1265,22 @@
   },
   "settings": {
     "title": "System Settings",
-  "subtitle": "Configure your IoT platform settings and system preferences",
-  "save": "Save Settings",
-  "saveSuccess": "Settings saved successfully",
-  "saveError": "Failed to save settings",
-  "saving": "Saving...",
+    "subtitle": "Configure your IoT platform settings and system preferences",
+    "save": "Save Settings",
+    "saveSuccess": "Settings saved successfully",
+    "saveError": "Failed to save settings",
+    "saving": "Saving...",
     "backupSuccess": "Database backup downloaded successfully",
     "backupError": "Failed to create database backup",
-  "tabs": {
-    "system": "System",
-    "platform": "Platform Update",
-    "branding": "Branding",
-    "environment": "Environment",
-    "database": "Database",
-    "email": "Email",
-    "security": "Security"
-  },
+    "tabs": {
+      "system": "System",
+      "platform": "Platform Update",
+      "branding": "Branding",
+      "environment": "Environment",
+      "database": "Database",
+      "email": "Email",
+      "security": "Security"
+    },
     "system": {
       "title": "System Information",
       "status": "System Status",
@@ -1260,111 +1293,111 @@
       "adminEmail": "Admin Email",
       "maintenanceMode": "Maintenance Mode"
     },
-  "branding": {
-    "title": "Brand Customization",
-    "companyInfo": "Company Information",
-    "companyName": "Company Name",
-    "logoManagement": "Logo Management",
-    "companyLogo": "Company Logo",
-    "favicon": "Favicon",
-    "colorScheme": "Color Scheme",
-    "primaryColor": "Primary Color",
-    "accentColor": "Accent Color",
-    "preview": "Preview",
-    "toast": {
-      "invalidImage": "Please select a valid image file",
-      "imageTooLarge": "Image file size must be less than 2MB",
-      "logoUploaded": "Logo uploaded successfully",
-      "logoUploadFailed": "Failed to upload logo",
-      "logoRemoved": "Logo removed",
-      "logoRemoveFailed": "Failed to remove logo"
-    }
-  },
-  "environment": {
-    "title": "Environment Variables",
-    "errorCount": "{{count}} error{{count, plural, one{} other{s}}}",
-    "warningCount": "{{count}} warning{{count, plural, one{} other{s}}}",
-    "emptyTitle": "No Environment Variables Found",
-    "emptyDescription1": "The .env file doesn't exist or is empty. Environment variables are used to configure your application settings like database connections, API keys, and other sensitive configurations.",
-    "emptyDescription2": "You can create environment variables below, and they will be saved to your .env file automatically.",
-    "errorsTitle": "Errors",
-    "warningsTitle": "Warnings",
-    "addTitle": "Add Environment Variables",
-    "namePlaceholder": "Variable Name (e.g., DB_HOST)",
-    "valuePlaceholder": "Value",
-    "addButton": "Add",
-    "hint": "Press Tab to format variable names, or Enter to add the variable",
-    "sensitive": "Sensitive",
-    "maskPlaceholder": "***MASKED***",
-    "enterValue": "Enter {{name}}",
-    "otherVariables": "Other Variables",
-    "restartNotice": "Changes may require server restart to take effect",
-    "save": "Save Environment Variables",
-    "saveSuccess": "{{restartRequired, select, true{Environment variables updated successfully. Server restart required.} false{Environment variables updated successfully.}}}",
-    "saveError": "Failed to save environment variables"
-  },
-  "update": {
-    "title": "Platform Update",
-    "currentVersion": {
-      "title": "Current Version",
-      "commit": "Commit",
-      "branch": "Branch",
-      "author": "Author",
-      "date": "Date",
-      "unknown": "unknown",
-      "refresh": "Refresh Version Info",
-      "branchLabel": "Branch",
-      "dateLabel": "Build date",
-      "commitLabel": "Commit"
+    "branding": {
+      "title": "Brand Customization",
+      "companyInfo": "Company Information",
+      "companyName": "Company Name",
+      "logoManagement": "Logo Management",
+      "companyLogo": "Company Logo",
+      "favicon": "Favicon",
+      "colorScheme": "Color Scheme",
+      "primaryColor": "Primary Color",
+      "accentColor": "Accent Color",
+      "preview": "Preview",
+      "toast": {
+        "invalidImage": "Please select a valid image file",
+        "imageTooLarge": "Image file size must be less than 2MB",
+        "logoUploaded": "Logo uploaded successfully",
+        "logoUploadFailed": "Failed to upload logo",
+        "logoRemoved": "Logo removed",
+        "logoRemoveFailed": "Failed to remove logo"
+      }
     },
-    "availability": {
+    "environment": {
+      "title": "Environment Variables",
+      "errorCount": "{{count}} error{{count, plural, one{} other{s}}}",
+      "warningCount": "{{count}} warning{{count, plural, one{} other{s}}}",
+      "emptyTitle": "No Environment Variables Found",
+      "emptyDescription1": "The .env file doesn't exist or is empty. Environment variables are used to configure your application settings like database connections, API keys, and other sensitive configurations.",
+      "emptyDescription2": "You can create environment variables below, and they will be saved to your .env file automatically.",
+      "errorsTitle": "Errors",
+      "warningsTitle": "Warnings",
+      "addTitle": "Add Environment Variables",
+      "namePlaceholder": "Variable Name (e.g., DB_HOST)",
+      "valuePlaceholder": "Value",
+      "addButton": "Add",
+      "hint": "Press Tab to format variable names, or Enter to add the variable",
+      "sensitive": "Sensitive",
+      "maskPlaceholder": "***MASKED***",
+      "enterValue": "Enter {{name}}",
+      "otherVariables": "Other Variables",
+      "restartNotice": "Changes may require server restart to take effect",
+      "save": "Save Environment Variables",
+      "saveSuccess": "{{restartRequired, select, true{Environment variables updated successfully. Server restart required.} false{Environment variables updated successfully.}}}",
+      "saveError": "Failed to save environment variables"
+    },
+    "update": {
       "title": "Platform Update",
-      "available": "Update available",
-      "behindBy": "{{count}} new commit{{count, plural, one{} other{s}}} available",
-      "currentLabel": "Current",
-      "remoteLabel": "Remote",
-      "scriptLabel": "Script",
-      "important": "Important:",
-      "warning1": "The update process will restart the entire system",
-      "warning2": "All users will be disconnected temporarily",
-      "warning3": "The process may take several minutes to complete",
-      "warning4": "Make sure no critical operations are running",
-      "updating": "Updating...",
-      "updateButton": "Update Platform"
+      "currentVersion": {
+        "title": "Current Version",
+        "commit": "Commit",
+        "branch": "Branch",
+        "author": "Author",
+        "date": "Date",
+        "unknown": "unknown",
+        "refresh": "Refresh Version Info",
+        "branchLabel": "Branch",
+        "dateLabel": "Build date",
+        "commitLabel": "Commit"
+      },
+      "availability": {
+        "title": "Platform Update",
+        "available": "Update available",
+        "behindBy": "{{count}} new commit{{count, plural, one{} other{s}}} available",
+        "currentLabel": "Current",
+        "remoteLabel": "Remote",
+        "scriptLabel": "Script",
+        "important": "Important:",
+        "warning1": "The update process will restart the entire system",
+        "warning2": "All users will be disconnected temporarily",
+        "warning3": "The process may take several minutes to complete",
+        "warning4": "Make sure no critical operations are running",
+        "updating": "Updating...",
+        "updateButton": "Update Platform"
+      },
+      "upToDate": {
+        "title": "System is up to date",
+        "runningLatest": "Running the latest version",
+        "commitLabel": "Commit",
+        "synchronized": "Your platform is synchronized with the remote repository.",
+        "instructionsTitle": "To enable platform updates:",
+        "instruction1": "Create an",
+        "instruction1Suffix": "script",
+        "instruction2": "Make it executable and place it in your system PATH",
+        "instruction3Prefix": "Or create",
+        "instruction3Suffix": "in the project directory"
+      },
+      "progress": {
+        "title": "Update Progress",
+        "progressLabel": "Progress",
+        "currentStep": "Current step:",
+        "initializing": "Initializing...",
+        "duration": "Duration:",
+        "failed": "Update Failed",
+        "logsTitle": "Update Logs",
+        "hideLogs": "Hide Logs",
+        "showLogs": "Show Logs ({{count}})",
+        "logSummary": "... showing last 20 entries of {{total}} total"
+      },
+      "messages": {
+        "failed": "Update failed",
+        "complete": "Platform update completed successfully!",
+        "started": "Platform update started! Monitor progress below.",
+        "startError": "Failed to start platform update",
+        "scriptMissing": "Update script is not available on this system",
+        "confirm": "Are you sure you want to update the platform? This will restart the system and may take several minutes. Make sure no critical operations are running."
+      }
     },
-    "upToDate": {
-      "title": "System is up to date",
-      "runningLatest": "Running the latest version",
-      "commitLabel": "Commit",
-      "synchronized": "Your platform is synchronized with the remote repository.",
-      "instructionsTitle": "To enable platform updates:",
-      "instruction1": "Create an",
-      "instruction1Suffix": "script",
-      "instruction2": "Make it executable and place it in your system PATH",
-      "instruction3Prefix": "Or create",
-      "instruction3Suffix": "in the project directory"
-    },
-    "progress": {
-      "title": "Update Progress",
-      "progressLabel": "Progress",
-      "currentStep": "Current step:",
-      "initializing": "Initializing...",
-      "duration": "Duration:",
-      "failed": "Update Failed",
-      "logsTitle": "Update Logs",
-      "hideLogs": "Hide Logs",
-      "showLogs": "Show Logs ({{count}})",
-      "logSummary": "... showing last 20 entries of {{total}} total"
-    },
-    "messages": {
-      "failed": "Update failed",
-      "complete": "Platform update completed successfully!",
-      "started": "Platform update started! Monitor progress below.",
-      "startError": "Failed to start platform update",
-      "scriptMissing": "Update script is not available on this system",
-      "confirm": "Are you sure you want to update the platform? This will restart the system and may take several minutes. Make sure no critical operations are running."
-    }
-  },
     "database": {
       "title": "Database Management",
       "info": "Database Information",

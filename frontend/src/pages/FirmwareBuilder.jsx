@@ -148,6 +148,22 @@ const FirmwareBuilder = () => {
         const sensorInfo = sensorOptions[sensorType];
         const sensorId = `${sensorType}_${Date.now()}`;
 
+        // Check for analog exclusivity on ESP8266
+        if (config.platform === 'esp8266' &&
+            sensorInfo?.pin_type === 'analog' &&
+            sensorInfo?.exclusive_analog) {
+
+            const existingAnalogSensor = config.sensors.find(s => {
+                const existingInfo = sensorOptions[s.type];
+                return existingInfo?.pin_type === 'analog' && s.enabled;
+            });
+
+            if (existingAnalogSensor) {
+                alert(getCopy('errors.analogExclusive', 'ESP8266 has only one analog pin (A0). Please remove {{existing}} first.').replace('{{existing}}', existingAnalogSensor.name));
+                return;
+            }
+        }
+
         // Get available pins based on sensor type
         let availablePinsForSensor = [];
         if (sensorInfo.pin_type === 'analog') {
@@ -422,624 +438,389 @@ const FirmwareBuilder = () => {
         <>
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
                 <div className="max-w-6xl mx-auto px-6">
-                {/* Modern Header */}
-                <div className="card animate-fade-in mb-8">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                                <Cpu className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-900">{getCopy('header.title', 'Custom Firmware Builder')}</h1>
-                                <p className="text-gray-600 mt-1">
-                                    {getCopy('header.subtitle', 'Configure your device step by step and generate custom firmware')}
-                                </p>
+                    {/* Modern Header */}
+                    <div className="card animate-fade-in mb-8">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                                    <Cpu className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl font-bold text-gray-900">{getCopy('header.title', 'Custom Firmware Builder')}</h1>
+                                    <p className="text-gray-600 mt-1">
+                                        {getCopy('header.subtitle', 'Configure your device step by step and generate custom firmware')}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Progress Steps */}
-                <div className="card animate-slide-up mb-8">
-                    <div className="flex items-center justify-between">
-                        {steps.map((step, index) => {
-                            const StepIcon = step.icon;
-                            const isActive = index === currentStep;
-                            const isCompleted = index < currentStep;
-                            const canAccess = index <= currentStep;
+                    {/* Progress Steps */}
+                    <div className="card animate-slide-up mb-8">
+                        <div className="flex items-center justify-between">
+                            {steps.map((step, index) => {
+                                const StepIcon = step.icon;
+                                const isActive = index === currentStep;
+                                const isCompleted = index < currentStep;
+                                const canAccess = index <= currentStep;
 
-                            return (
-                                <div key={step.id} className="flex items-center flex-1">
-                                    <div className="flex flex-col items-center flex-1">
-                                        <button
-                                            onClick={() => canAccess && setCurrentStep(index)}
-                                            className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-                                                isActive
-                                                    ? 'border-primary bg-primary text-white shadow-lg'
-                                                    : isCompleted
-                                                    ? 'border-green-500 bg-green-500 text-white'
-                                                    : canAccess
-                                                    ? 'border-gray-300 bg-white text-gray-400 hover:border-gray-400'
-                                                    : 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed'
-                                            }`}
-                                        >
-                                            {isCompleted ? (
-                                                <CheckCircle className="w-6 h-6" />
-                                            ) : (
-                                                <StepIcon className="w-6 h-6" />
-                                            )}
-                                        </button>
-                                        <div className="text-center mt-2">
-                                            <p className={`text-sm font-medium ${
-                                                isActive || isCompleted ? 'text-gray-900' : 'text-gray-500'
-                                            }`}>
-                                                {step.title}
-                                            </p>
-                                            <p className="text-xs text-gray-500 mt-1">{step.description}</p>
-                                        </div>
-                                    </div>
-                                    {index < steps.length - 1 && (
-                                        <div className={`w-full h-0.5 mx-4 ${
-                                            index < currentStep ? 'bg-green-500' : 'bg-gray-200'
-                                        }`} />
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Step Content */}
-                <div className="card animate-scale-in">
-                    {/* Step 0: Device Configuration */}
-                    {currentStep === 0 && (
-                        <div>
-                            <div className="card-header">
-                                <h2 className="card-title">
-                                    <Smartphone className="w-6 h-6 text-primary" />
-                                    <span>{getCopy('sections.device.title', 'Device Setup')}</span>
-                                </h2>
-                            </div>
-                            <div className="space-y-6">
-                                {/* Platform Selection */}
-                                <div className="form-group">
-                                    <label className="form-label">
-                                        <Cpu className="w-4 h-4 inline mr-1" />
-                                        Platform *
-                                    </label>
-                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                        {[
-                                            { value: 'esp8266', label: 'ESP8266', icon: '📡', desc: 'WiFi microcontroller' },
-                                            { value: 'esp32', label: 'ESP32', icon: '🚀', desc: 'Dual-core with WiFi & Bluetooth' },
-                                            { value: 'arduino', label: 'Arduino', icon: '🔧', desc: 'Uno/Nano/Mega boards' },
-                                            { value: 'raspberry_pi', label: 'Raspberry Pi', icon: '🥧', desc: 'Single board computer' }
-                                        ].map(platform => (
+                                return (
+                                    <div key={step.id} className="flex items-center flex-1">
+                                        <div className="flex flex-col items-center flex-1">
                                             <button
-                                                key={platform.value}
-                                                type="button"
-                                                onClick={() => {
-                                                    handleConfigChange('platform', platform.value);
-                                                    setConfig(prev => ({
-                                                        ...prev,
-                                                        platform: platform.value,
-                                                        device_id: `${platform.label.toUpperCase().replace(' ', '_')}_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 5)}`,
-                                                        device_type: platform.value,
-                                                        sensors: [] // Reset sensors when platform changes
-                                                    }));
-                                                    fetchSensorOptions(); // Reload sensor options for new platform
-                                                }}
-                                                className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                                                    config.platform === platform.value
-                                                        ? 'border-primary bg-primary/10 shadow-lg'
-                                                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                                                }`}
+                                                onClick={() => canAccess && setCurrentStep(index)}
+                                                className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${isActive
+                                                        ? 'border-primary bg-primary text-white shadow-lg'
+                                                        : isCompleted
+                                                            ? 'border-green-500 bg-green-500 text-white'
+                                                            : canAccess
+                                                                ? 'border-gray-300 bg-white text-gray-400 hover:border-gray-400'
+                                                                : 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed'
+                                                    }`}
                                             >
-                                                <div className="text-2xl mb-2">{platform.icon}</div>
-                                                <div className="font-semibold text-gray-900">{platform.label}</div>
-                                                <div className="text-xs text-gray-500 mt-1">{platform.desc}</div>
+                                                {isCompleted ? (
+                                                    <CheckCircle className="w-6 h-6" />
+                                                ) : (
+                                                    <StepIcon className="w-6 h-6" />
+                                                )}
                                             </button>
-                                        ))}
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-2">{getCopy('sections.device.platformHelp', 'Select the hardware platform for your IoT device')}</p>
-                                </div>
-
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            {getCopy('sections.device.fields.name.label', 'Device Name *')}
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={config.device_name}
-                                            onChange={(e) => handleConfigChange('device_name', e.target.value)}
-                                            className="input-field"
-                                            placeholder={getCopy('sections.device.fields.name.placeholder', 'e.g., Kitchen Sensor Hub')}
-                                        />
-                                        <p className="text-xs text-gray-500 mt-1">{getCopy('sections.device.fields.name.helper', 'Choose a descriptive name for easy identification')}</p>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            <MapPin className="w-4 h-4 inline mr-1" />
-                                            {getCopy('sections.device.fields.location.label', 'Location')}
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                value={config.device_location}
-                                                onChange={(e) => handleConfigChange('device_location', e.target.value)}
-                                                className="input-field"
-                                                placeholder={getCopy('sections.device.fields.location.placeholder', 'Enter or select location...')}
-                                                list="locations-list"
-                                            />
-                                            <datalist id="locations-list">
-                                                {Array.isArray(locations) && locations.map(location => (
-                                                    <option key={location.id} value={location.name} />
-                                                ))}
-                                            </datalist>
-                                        </div>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            {getCopy('sections.device.fields.location.helper', 'Choose from existing locations or type a new one')}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="glass p-4 rounded-lg">
-                                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                                        <Key className="w-4 h-4 mr-2" />
-                                        {getCopy('sections.device.auto.title', 'Auto-generated identifiers')}
-                                    </h3>
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                        <div className="form-group">
-                                            <label className="form-label">{getCopy('sections.device.auto.deviceId.label', 'Device ID')}</label>
-                                            <div className="flex items-center space-x-2">
-                                                <input
-                                                    type="text"
-                                                    value={config.device_id}
-                                                    readOnly
-                                                    className="input-field bg-gray-50 font-mono text-sm flex-1"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={regenerateDeviceId}
-                                                    className="btn-secondary px-3 py-2 text-xs"
-                                                >
-                                                    {getCopy('sections.device.auto.deviceId.regenerate', 'Regenerate')}
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">{getCopy('sections.device.auto.apiKey.label', 'API Key')}</label>
-                                            <div className="flex items-center space-x-2">
-                                                <input
-                                                    type="text"
-                                                    value={config.api_key}
-                                                    readOnly
-                                                    className="input-field bg-gray-50 font-mono text-sm flex-1"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={regenerateApiKey}
-                                                    className="btn-secondary px-3 py-2 text-xs"
-                                                >
-                                                    {getCopy('sections.device.auto.apiKey.regenerate', 'Regenerate')}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Step Navigation */}
-                            <div className="flex justify-end pt-6 border-t border-gray-200">
-                                <button
-                                    onClick={nextStep}
-                                    disabled={!config.device_name || !config.device_location}
-                                    className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <span>{getCopy('navigation.nextNetwork', 'Next: Network Config')}</span>
-                                    <ArrowRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 1: Network Configuration */}
-                    {currentStep === 1 && (
-                        <div>
-                            <div className="card-header">
-                                <h2 className="card-title">
-                                    <Wifi className="w-6 h-6 text-primary" />
-                                    <span>{getCopy('deviceConfig.networkConfig', 'Network Configuration')}</span>
-                                </h2>
-                            </div>
-                            <div className="space-y-6">
-                                <div className="glass p-6 rounded-xl">
-                                    <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                                        <Wifi className="w-5 h-5 mr-2" />
-                                        {getCopy('sections.network.wifi.title', 'WiFi Connection')}
-                                    </h3>
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                        <div className="form-group">
-                                            <label className="form-label">
-                                                {getCopy('sections.network.wifi.fields.ssid.label', 'WiFi Network Name (SSID) *')}
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={config.wifi_ssid}
-                                                onChange={(e) => handleConfigChange('wifi_ssid', e.target.value)}
-                                                className="input-field"
-                                                placeholder={getCopy('sections.network.wifi.fields.ssid.placeholder', 'Your WiFi network name')}
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">
-                                                {getCopy('sections.network.wifi.fields.password.label', 'WiFi Password')} {!config.open_wifi && '*'}
-                                            </label>
-                                            <input
-                                                type="password"
-                                                value={config.wifi_password}
-                                                onChange={(e) => handleConfigChange('wifi_password', e.target.value)}
-                                                className="input-field"
-                                                placeholder={config.open_wifi
-                                                    ? getCopy('sections.network.wifi.fields.password.placeholderOpen', 'No password required')
-                                                    : getCopy('sections.network.wifi.fields.password.placeholder', 'Your WiFi password')}
-                                                disabled={config.open_wifi}
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="flex items-center space-x-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={config.open_wifi}
-                                                    onChange={(e) => {
-                                                        handleConfigChange('open_wifi', e.target.checked);
-                                                        if (e.target.checked) {
-                                                            handleConfigChange('wifi_password', '');
-                                                        }
-                                                    }}
-                                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                />
-                                                <span className="text-sm text-gray-700">{getCopy('sections.network.wifi.fields.open.label', 'Open WiFi (no password)')}</span>
-                                            </label>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                {getCopy('sections.network.wifi.fields.open.helper', 'Check this if connecting to an open WiFi network without password')}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="glass p-6 rounded-xl">
-                                    <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                                        <Globe className="w-5 h-5 mr-2" />
-                                        {getCopy('sections.network.server.title', 'Server Connection')}
-                                    </h3>
-                                    <div className="form-group">
-                                        <label className="form-label">
-                                            {getCopy('sections.network.server.fields.url.label', 'Server URL *')}
-                                        </label>
-                                        <input
-                                            type="url"
-                                            value={config.server_url}
-                                            onChange={(e) => handleConfigChange('server_url', e.target.value)}
-                                            className="input-field"
-                                            placeholder={getCopy('sections.network.server.fields.url.placeholder', 'https://your-server.com')}
-                                        />
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            {getCopy('sections.network.server.fields.url.helper', 'The device will connect to this server to send data')}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="glass p-6 rounded-xl">
-                                    <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                                        <Settings className="w-5 h-5 mr-2" />
-                                        {getCopy('deviceConfig.deviceBehavior', 'Device Behavior')}
-                                    </h3>
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                        <div className="form-group">
-                                            <label className="form-label">
-                                                {getCopy('sections.behavior.fields.heartbeat.label', 'Heartbeat Interval (seconds)')}
-                                            </label>
-                                            <input
-                                                type="number"
-                                                value={config.heartbeat_interval}
-                                                onChange={(e) => handleConfigChange('heartbeat_interval', parseInt(e.target.value))}
-                                                min="60"
-                                                max="3600"
-                                                className="input-field"
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">{getCopy('sections.behavior.fields.heartbeat.helper', "How often the device reports it's online (60-3600 seconds)")}</p>
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">
-                                                {getCopy('sections.behavior.fields.sensorRead.label', 'Sensor Read Interval (ms)')}
-                                            </label>
-                                            <input
-                                                type="number"
-                                                value={config.sensor_read_interval}
-                                                onChange={(e) => handleConfigChange('sensor_read_interval', parseInt(e.target.value))}
-                                                min="1000"
-                                                max="60000"
-                                                className="input-field"
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">{getCopy('sections.behavior.fields.sensorRead.helper', 'How often sensors are read (1000-60000 ms)')}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-6">
-                                        <h4 className="text-sm font-medium text-gray-700 mb-3">{getCopy('deviceConfig.deviceOptions', 'Device Options')}</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={config.debug_mode}
-                                                    onChange={(e) => handleConfigChange('debug_mode', e.target.checked)}
-                                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                                                />
-                                                <div>
-                                                    <span className="text-sm font-medium text-gray-700">{getCopy('sections.options.debug.label', 'Debug Mode')}</span>
-                                                    <p className="text-xs text-gray-500">{getCopy('sections.options.debug.helper', 'Enable detailed logging')}</p>
-                                                </div>
-                                            </label>
-                                            <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={config.ota_enabled}
-                                                    onChange={(e) => handleConfigChange('ota_enabled', e.target.checked)}
-                                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                                                />
-                                                <div>
-                                                    <span className="text-sm font-medium text-gray-700">{getCopy('sections.options.ota.label', 'OTA Updates')}</span>
-                                                    <p className="text-xs text-gray-500">{getCopy('sections.options.ota.helper', 'Allow over-the-air firmware updates')}</p>
-                                                </div>
-                                            </label>
-                                            <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={config.device_armed}
-                                                    onChange={(e) => handleConfigChange('device_armed', e.target.checked)}
-                                                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-                                                />
-                                                <div>
-                                                    <span className="text-sm font-medium text-gray-700">{getCopy('sections.options.armed.label', 'Device Armed')}</span>
-                                                    <p className="text-xs text-gray-500">{getCopy('sections.options.armed.helper', 'Start monitoring on boot')}</p>
-                                                </div>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Step Navigation */}
-                            <div className="flex justify-between pt-6 border-t border-gray-200">
-                                <button
-                                    onClick={prevStep}
-                                    className="btn-secondary flex items-center space-x-2"
-                                >
-                                    <ArrowLeft className="w-4 h-4" />
-                                    <span>{getCopy('deviceConfig.previousStep', 'Previous: Device Setup')}</span>
-                                </button>
-                                <button
-                                    onClick={nextStep}
-                                    disabled={!config.wifi_ssid || (!config.open_wifi && !config.wifi_password)}
-                                    className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <span>{getCopy('navigation.nextSensors', 'Next: Sensor Selection')}</span>
-                                    <ArrowRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Step 2: Sensor Selection */}
-                    {currentStep === 2 && (
-                        <div>
-                            <div className="card-header">
-                                <h2 className="card-title">
-                                    <Activity className="w-6 h-6 text-primary" />
-                                    <span>{steps[2].title}</span>
-                                </h2>
-                            </div>
-                            <div className="space-y-6">
-                                {/* Pin Conflicts Warning */}
-                        {pinConflicts.length > 0 && (
-                            <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                                <div className="flex items-start space-x-3">
-                                    <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
-                                    <div>
-                                        <h3 className="text-sm font-medium text-red-800">{getCopy('sections.sensors.conflict.title', 'Pin Conflict Warning')}</h3>
-                                        <div className="text-sm text-red-700 mt-1">
-                                            {pinConflicts.map(([pin, sensors]) => (
-                                                <p key={pin} className="mb-1">
-                                                    {t('firmwareBuilder.sections.sensors.conflict.item', { pin, sensors: sensors.join(', ') })}
+                                            <div className="text-center mt-2">
+                                                <p className={`text-sm font-medium ${isActive || isCompleted ? 'text-gray-900' : 'text-gray-500'
+                                                    }`}>
+                                                    {step.title}
                                                 </p>
+                                                <p className="text-xs text-gray-500 mt-1">{step.description}</p>
+                                            </div>
+                                        </div>
+                                        {index < steps.length - 1 && (
+                                            <div className={`w-full h-0.5 mx-4 ${index < currentStep ? 'bg-green-500' : 'bg-gray-200'
+                                                }`} />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Step Content */}
+                    <div className="card animate-scale-in">
+                        {/* Step 0: Device Configuration */}
+                        {currentStep === 0 && (
+                            <div>
+                                <div className="card-header">
+                                    <h2 className="card-title">
+                                        <Smartphone className="w-6 h-6 text-primary" />
+                                        <span>{getCopy('sections.device.title', 'Device Setup')}</span>
+                                    </h2>
+                                </div>
+                                <div className="space-y-6">
+                                    {/* Platform Selection */}
+                                    <div className="form-group">
+                                        <label className="form-label">
+                                            <Cpu className="w-4 h-4 inline mr-1" />
+                                            Platform *
+                                        </label>
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                            {[
+                                                { value: 'esp8266', label: 'ESP8266', icon: '📡', desc: 'WiFi microcontroller' },
+                                                { value: 'esp32', label: 'ESP32', icon: '🚀', desc: 'Dual-core with WiFi & Bluetooth' },
+                                                { value: 'arduino', label: 'Arduino', icon: '🔧', desc: 'Uno/Nano/Mega boards' },
+                                                { value: 'raspberry_pi', label: 'Raspberry Pi', icon: '🥧', desc: 'Single board computer' }
+                                            ].map(platform => (
+                                                <button
+                                                    key={platform.value}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        handleConfigChange('platform', platform.value);
+                                                        setConfig(prev => ({
+                                                            ...prev,
+                                                            platform: platform.value,
+                                                            device_id: `${platform.label.toUpperCase().replace(' ', '_')}_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 5)}`,
+                                                            device_type: platform.value,
+                                                            sensors: [] // Reset sensors when platform changes
+                                                        }));
+                                                        fetchSensorOptions(); // Reload sensor options for new platform
+                                                    }}
+                                                    className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${config.platform === platform.value
+                                                            ? 'border-primary bg-primary/10 shadow-lg'
+                                                            : 'border-gray-200 hover:border-gray-300 bg-white'
+                                                        }`}
+                                                >
+                                                    <div className="text-2xl mb-2">{platform.icon}</div>
+                                                    <div className="font-semibold text-gray-900">{platform.label}</div>
+                                                    <div className="text-xs text-gray-500 mt-1">{platform.desc}</div>
+                                                </button>
                                             ))}
                                         </div>
+                                        <p className="text-xs text-gray-500 mt-2">{getCopy('sections.device.platformHelp', 'Select the hardware platform for your IoT device')}</p>
                                     </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                {getCopy('sections.device.fields.name.label', 'Device Name *')}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={config.device_name}
+                                                onChange={(e) => handleConfigChange('device_name', e.target.value)}
+                                                className="input-field"
+                                                placeholder={getCopy('sections.device.fields.name.placeholder', 'e.g., Kitchen Sensor Hub')}
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">{getCopy('sections.device.fields.name.helper', 'Choose a descriptive name for easy identification')}</p>
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                <MapPin className="w-4 h-4 inline mr-1" />
+                                                {getCopy('sections.device.fields.location.label', 'Location')}
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={config.device_location}
+                                                    onChange={(e) => handleConfigChange('device_location', e.target.value)}
+                                                    className="input-field"
+                                                    placeholder={getCopy('sections.device.fields.location.placeholder', 'Enter or select location...')}
+                                                    list="locations-list"
+                                                />
+                                                <datalist id="locations-list">
+                                                    {Array.isArray(locations) && locations.map(location => (
+                                                        <option key={location.id} value={location.name} />
+                                                    ))}
+                                                </datalist>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {getCopy('sections.device.fields.location.helper', 'Choose from existing locations or type a new one')}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="glass p-4 rounded-lg">
+                                        <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                                            <Key className="w-4 h-4 mr-2" />
+                                            {getCopy('sections.device.auto.title', 'Auto-generated identifiers')}
+                                        </h3>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                            <div className="form-group">
+                                                <label className="form-label">{getCopy('sections.device.auto.deviceId.label', 'Device ID')}</label>
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="text"
+                                                        value={config.device_id}
+                                                        readOnly
+                                                        className="input-field bg-gray-50 font-mono text-sm flex-1"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={regenerateDeviceId}
+                                                        className="btn-secondary px-3 py-2 text-xs"
+                                                    >
+                                                        {getCopy('sections.device.auto.deviceId.regenerate', 'Regenerate')}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">{getCopy('sections.device.auto.apiKey.label', 'API Key')}</label>
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="text"
+                                                        value={config.api_key}
+                                                        readOnly
+                                                        className="input-field bg-gray-50 font-mono text-sm flex-1"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={regenerateApiKey}
+                                                        className="btn-secondary px-3 py-2 text-xs"
+                                                    >
+                                                        {getCopy('sections.device.auto.apiKey.regenerate', 'Regenerate')}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Step Navigation */}
+                                <div className="flex justify-end pt-6 border-t border-gray-200">
+                                    <button
+                                        onClick={nextStep}
+                                        disabled={!config.device_name || !config.device_location}
+                                        className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <span>{getCopy('navigation.nextNetwork', 'Next: Network Config')}</span>
+                                        <ArrowRight className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
                         )}
 
-                        {/* Available Sensor Types */}
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-gray-900">{getCopy('sections.sensors.availableTitle', 'Available Sensor Types')}</h3>
-                                <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                    <span>{t('firmwareBuilder.sections.sensors.configuredCount', { count: enabledSensorsCount })}</span>
-                                    {pinConflicts.length > 0 && (
-                                        <div className="flex items-center space-x-1 text-red-600">
-                                            <AlertTriangle className="w-4 h-4" />
-                                            <span>{t('firmwareBuilder.sections.sensors.conflictCount', { count: pinConflicts.length })}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                        {/* Step 1: Network Configuration */}
+                        {currentStep === 1 && (
                             <div>
-                                {Object.entries(sensorOptions).length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <p className="text-gray-500">{getCopy('sections.sensors.loading', 'Loading sensor options...')}</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {Object.entries(sensorOptions).map(([sensorKey, sensorInfo]) => {
-                                            const sensorCount = config.sensors.filter(s => s.type === sensorKey).length;
-
-                                            return (
-                                                <div key={sensorKey} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <h5 className="font-medium text-gray-900">{sensorInfo.name || sensorKey}</h5>
-                                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                            sensorInfo.pin_type === 'analog' ?
-                                                            'bg-green-100 text-green-800' :
-                                                            'bg-blue-100 text-blue-800'
-                                                        }`}>
-                                                            {sensorInfo.pin_type || 'digital'}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-500 mb-3">
-                                                        {sensorInfo.description || `${sensorInfo.pin_type || 'digital'} sensor`}
-                                                    </p>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs text-gray-400">
-                                                            {sensorCount} configured
-                                                        </span>
-                                                        <button
-                                                            onClick={() => addSensor(sensorKey)}
-                                                            className="btn-primary text-sm px-3 py-1"
-                                                        >
-                                                            <Plus className="w-3 h-3 mr-1" />
-                                                            {getCopy('sections.sensors.addButton', 'Add')}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Pin Reference - Collapsible */}
-                            {Object.keys(pinMapping).length > 0 && (
-                            <details className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <summary className="cursor-pointer font-medium text-blue-900 flex items-center">
-                                    <Info className="w-4 h-4 mr-2" />
-                                    {t('firmwareBuilder.sections.sensors.pinReference', { platform: config.platform.toUpperCase() })}
-                                </summary>
-                                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                        {Object.entries(pinMapping).map(([pin, description]) => (
-                                            <div key={pin} className="flex text-sm">
-                                                <span className="font-mono font-medium text-blue-700 min-w-[80px]">{pin}</span>
-                                                <span className="text-gray-700">{description}</span>
+                                <div className="card-header">
+                                    <h2 className="card-title">
+                                        <Wifi className="w-6 h-6 text-primary" />
+                                        <span>{getCopy('deviceConfig.networkConfig', 'Network Configuration')}</span>
+                                    </h2>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="glass p-6 rounded-xl">
+                                        <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                                            <Wifi className="w-5 h-5 mr-2" />
+                                            {getCopy('sections.network.wifi.title', 'WiFi Connection')}
+                                        </h3>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            <div className="form-group">
+                                                <label className="form-label">
+                                                    {getCopy('sections.network.wifi.fields.ssid.label', 'WiFi Network Name (SSID) *')}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={config.wifi_ssid}
+                                                    onChange={(e) => handleConfigChange('wifi_ssid', e.target.value)}
+                                                    className="input-field"
+                                                    placeholder={getCopy('sections.network.wifi.fields.ssid.placeholder', 'Your WiFi network name')}
+                                                />
                                             </div>
-                                        ))}
+                                            <div className="form-group">
+                                                <label className="form-label">
+                                                    {getCopy('sections.network.wifi.fields.password.label', 'WiFi Password')} {!config.open_wifi && '*'}
+                                                </label>
+                                                <input
+                                                    type="password"
+                                                    value={config.wifi_password}
+                                                    onChange={(e) => handleConfigChange('wifi_password', e.target.value)}
+                                                    className="input-field"
+                                                    placeholder={config.open_wifi
+                                                        ? getCopy('sections.network.wifi.fields.password.placeholderOpen', 'No password required')
+                                                        : getCopy('sections.network.wifi.fields.password.placeholder', 'Your WiFi password')}
+                                                    disabled={config.open_wifi}
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="flex items-center space-x-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={config.open_wifi}
+                                                        onChange={(e) => {
+                                                            handleConfigChange('open_wifi', e.target.checked);
+                                                            if (e.target.checked) {
+                                                                handleConfigChange('wifi_password', '');
+                                                            }
+                                                        }}
+                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span className="text-sm text-gray-700">{getCopy('sections.network.wifi.fields.open.label', 'Open WiFi (no password)')}</span>
+                                                </label>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    {getCopy('sections.network.wifi.fields.open.helper', 'Check this if connecting to an open WiFi network without password')}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
-                                </details>
-                            )}
 
-                            {/* Configured Sensors */}
-                            {config.sensors.length > 0 && (
-                                <div>
-                                    <h4 className="text-lg font-semibold text-gray-900 mb-4">{getCopy('sections.sensors.configuredTitle', 'Configured Sensors')}</h4>
-                                    <div className="space-y-4">
-                                        {config.sensors.map((sensor, index) => {
-                                            const sensorInfo = sensorOptions[sensor.type];
-                                            const availablePinsForSensor = sensorInfo?.pin_type === 'analog' ?
-                                                availablePins.analog || [] :
-                                                sensorInfo?.pin_type === 'digital' ?
-                                                availablePins.digital || [] :
-                                                [...(availablePins.digital || []), ...(availablePins.analog || [])];
-                                            const usedPins = getUsedPins();
-                                            const hasConflict = usedPins[sensor.pin]?.length > 1;
+                                    <div className="glass p-6 rounded-xl">
+                                        <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                                            <Globe className="w-5 h-5 mr-2" />
+                                            {getCopy('sections.network.server.title', 'Server Connection')}
+                                        </h3>
+                                        <div className="form-group">
+                                            <label className="form-label">
+                                                {getCopy('sections.network.server.fields.url.label', 'Server URL *')}
+                                            </label>
+                                            <input
+                                                type="url"
+                                                value={config.server_url}
+                                                onChange={(e) => handleConfigChange('server_url', e.target.value)}
+                                                className="input-field"
+                                                placeholder={getCopy('sections.network.server.fields.url.placeholder', 'https://your-server.com')}
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {getCopy('sections.network.server.fields.url.helper', 'The device will connect to this server to send data')}
+                                            </p>
+                                        </div>
+                                    </div>
 
-                                            return (
-                                                <div key={sensor.id} className={`border rounded-lg p-4 ${hasConflict ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <div className="flex items-center space-x-3">
-                                                            <span className="font-medium text-gray-900">
-                                                                {sensor.name}
-                                                            </span>
-                                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                                sensorInfo?.pin_type === 'analog' ?
-                                                                'bg-green-100 text-green-800' :
-                                                                'bg-blue-100 text-blue-800'
-                                                            }`}>
-                                                                {sensorInfo?.pin_type || 'digital'}
-                                                            </span>
-                                                            {hasConflict && (
-                                                                <div className="flex items-center text-red-600">
-                                                                    <AlertTriangle className="w-4 h-4 mr-1" />
-                                                                    <span className="text-xs">{getCopy('sections.sensors.conflictBadge', 'Conflict!')}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <button
-                                                            onClick={() => removeSensor(sensor.id)}
-                                                            className="text-red-600 hover:text-red-800 p-1"
-                                                            title="Remove sensor"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </button>
+                                    <div className="glass p-6 rounded-xl">
+                                        <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                                            <Settings className="w-5 h-5 mr-2" />
+                                            {getCopy('deviceConfig.deviceBehavior', 'Device Behavior')}
+                                        </h3>
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                            <div className="form-group">
+                                                <label className="form-label">
+                                                    {getCopy('sections.behavior.fields.heartbeat.label', 'Heartbeat Interval (seconds)')}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    value={config.heartbeat_interval}
+                                                    onChange={(e) => handleConfigChange('heartbeat_interval', parseInt(e.target.value))}
+                                                    min="60"
+                                                    max="3600"
+                                                    className="input-field"
+                                                />
+                                                <p className="text-xs text-gray-500 mt-1">{getCopy('sections.behavior.fields.heartbeat.helper', "How often the device reports it's online (60-3600 seconds)")}</p>
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">
+                                                    {getCopy('sections.behavior.fields.sensorRead.label', 'Sensor Read Interval (ms)')}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    value={config.sensor_read_interval}
+                                                    onChange={(e) => handleConfigChange('sensor_read_interval', parseInt(e.target.value))}
+                                                    min="1000"
+                                                    max="60000"
+                                                    className="input-field"
+                                                />
+                                                <p className="text-xs text-gray-500 mt-1">{getCopy('sections.behavior.fields.sensorRead.helper', 'How often sensors are read (1000-60000 ms)')}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6">
+                                            <h4 className="text-sm font-medium text-gray-700 mb-3">{getCopy('deviceConfig.deviceOptions', 'Device Options')}</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={config.debug_mode}
+                                                        onChange={(e) => handleConfigChange('debug_mode', e.target.checked)}
+                                                        className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                                    />
+                                                    <div>
+                                                        <span className="text-sm font-medium text-gray-700">{getCopy('sections.options.debug.label', 'Debug Mode')}</span>
+                                                        <p className="text-xs text-gray-500">{getCopy('sections.options.debug.helper', 'Enable detailed logging')}</p>
                                                     </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                                Pin Assignment
-                                                            </label>
-                                                            <select
-                                                                value={sensor.pin}
-                                                                onChange={(e) => updateSensor(sensor.id, 'pin', e.target.value)}
-                                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm ${
-                                                                    hasConflict ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                                                                }`}
-                                                            >
-                                                                <option value="">Select Pin</option>
-                                                                {availablePinsForSensor.map(pinOption => {
-                                                                    const pinValue = typeof pinOption === 'string' ? pinOption : pinOption.pin;
-                                                                    const pinDescription = pinMapping[pinValue] || 'Available';
-                                                                    const isUsed = usedPins[pinValue] && usedPins[pinValue].length > 0 && !usedPins[pinValue].includes(sensor.name);
-
-                                                                    return (
-                                                                        <option
-                                                                            key={pinValue}
-                                                                            value={pinValue}
-                                                                            disabled={isUsed}
-                                                                            style={{ color: isUsed ? '#9ca3af' : 'inherit' }}
-                                                                        >
-                                                                            {pinValue} - {pinDescription} {isUsed ? '(used)' : ''}
-                                                                        </option>
-                                                                    );
-                                                                })}
-                                                            </select>
-                                                            {hasConflict && (
-                                                                <p className="text-xs text-red-600 mt-1">
-                                                                    {t('firmwareBuilder.sections.sensors.pinConflictDetail', {
-                                                                        pin: sensor.pin,
-                                                                        conflicts: usedPins[sensor.pin].filter(name => name !== sensor.name).join(', ')
-                                                                    })}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                                {getCopy('sections.sensors.nameLabel', 'Sensor Name')}
-                                                            </label>
-                                                            <input
-                                                                type="text"
-                                                                value={sensor.name}
-                                                                onChange={(e) => updateSensor(sensor.id, 'name', e.target.value)}
-                                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                                                placeholder={t('firmwareBuilder.sections.sensors.namePlaceholder', { sensor: sensorInfo?.name || sensor.type })}
-                                                            />
-                                                        </div>
+                                                </label>
+                                                <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={config.ota_enabled}
+                                                        onChange={(e) => handleConfigChange('ota_enabled', e.target.checked)}
+                                                        className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                                    />
+                                                    <div>
+                                                        <span className="text-sm font-medium text-gray-700">{getCopy('sections.options.ota.label', 'OTA Updates')}</span>
+                                                        <p className="text-xs text-gray-500">{getCopy('sections.options.ota.helper', 'Allow over-the-air firmware updates')}</p>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
+                                                </label>
+                                                <label className="flex items-center space-x-3 p-3 glass rounded-lg cursor-pointer hover:bg-white/50">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={config.device_armed}
+                                                        onChange={(e) => handleConfigChange('device_armed', e.target.checked)}
+                                                        className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                                    />
+                                                    <div>
+                                                        <span className="text-sm font-medium text-gray-700">{getCopy('sections.options.armed.label', 'Device Armed')}</span>
+                                                        <p className="text-xs text-gray-500">{getCopy('sections.options.armed.helper', 'Start monitoring on boot')}</p>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
 
                                 {/* Step Navigation */}
                                 <div className="flex justify-between pt-6 border-t border-gray-200">
@@ -1048,262 +829,487 @@ const FirmwareBuilder = () => {
                                         className="btn-secondary flex items-center space-x-2"
                                     >
                                         <ArrowLeft className="w-4 h-4" />
-                                        <span>{getCopy('navigation.prevNetwork', 'Previous: Network Config')}</span>
+                                        <span>{getCopy('deviceConfig.previousStep', 'Previous: Device Setup')}</span>
                                     </button>
                                     <button
                                         onClick={nextStep}
-                                        disabled={pinConflicts.length > 0}
+                                        disabled={!config.wifi_ssid || (!config.open_wifi && !config.wifi_password)}
                                         className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <span>{getCopy('navigation.nextReview', 'Next: Review & Build')}</span>
+                                        <span>{getCopy('navigation.nextSensors', 'Next: Sensor Selection')}</span>
                                         <ArrowRight className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Step 3: Review & Build */}
-                    {currentStep === 3 && (
-                        <div>
-                            <div className="card-header">
-                                <h2 className="card-title">
-                                    <BarChart3 className="w-6 h-6 text-primary" />
-                                    <span>{steps[3].title}</span>
-                                </h2>
-                            </div>
-                            <div className="space-y-6">
-                                {/* Configuration Review */}
+                        {/* Step 2: Sensor Selection */}
+                        {currentStep === 2 && (
+                            <div>
+                                <div className="card-header">
+                                    <h2 className="card-title">
+                                        <Activity className="w-6 h-6 text-primary" />
+                                        <span>{steps[2].title}</span>
+                                    </h2>
+                                </div>
                                 <div className="space-y-6">
-                                    {/* Device Configuration */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                            <Smartphone className="w-5 h-5 text-blue-600 mr-2" />
-                                            {getCopy('deviceConfig.deviceConfig', 'Device Configuration')}
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <span className="font-medium text-gray-700">{getCopy('review.labels.deviceName', 'Device Name:')}</span>
-                                                <span className="ml-2 text-gray-900">{config.device_name}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">{getCopy('review.labels.location', 'Location:')}</span>
-                                                <span className="ml-2 text-gray-900">{config.device_location}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">{getCopy('review.labels.deviceId', 'Device ID:')}</span>
-                                                <span className="ml-2 font-mono text-xs text-gray-900">{config.device_id}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">{getCopy('review.labels.apiKey', 'API Key:')}</span>
-                                                <span className="ml-2 font-mono text-xs text-gray-900">{config.api_key.substring(0, 8)}...</span>
+                                    {/* Pin Conflicts Warning */}
+                                    {pinConflicts.length > 0 && (
+                                        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                                            <div className="flex items-start space-x-3">
+                                                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
+                                                <div>
+                                                    <h3 className="text-sm font-medium text-red-800">{getCopy('sections.sensors.conflict.title', 'Pin Conflict Warning')}</h3>
+                                                    <div className="text-sm text-red-700 mt-1">
+                                                        {pinConflicts.map(([pin, sensors]) => (
+                                                            <p key={pin} className="mb-1">
+                                                                {t('firmwareBuilder.sections.sensors.conflict.item', { pin, sensors: sensors.join(', ') })}
+                                                            </p>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
 
-                                    {/* Network Configuration */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                            <Wifi className="w-5 h-5 text-green-600 mr-2" />
-                                            {getCopy('deviceConfig.networkConfig', 'Network Configuration')}
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <span className="font-medium text-gray-700">{getCopy('review.labels.wifiSsid', 'WiFi SSID:')}</span>
-                                                <span className="ml-2 text-gray-900">{config.wifi_ssid}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">{getCopy('review.labels.wifiSecurity', 'WiFi Security:')}</span>
-                                                <span className="ml-2 text-gray-900">{config.open_wifi ? getCopy('review.values.wifiOpen', 'Open (no password)') : getCopy('review.values.wifiSecured', 'Secured')}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">{getCopy('review.labels.serverUrl', 'Server URL:')}</span>
-                                                <span className="ml-2 text-gray-900">{config.server_url}</span>
-                                            </div>
-                                            <div>
-                                                <span className="font-medium text-gray-700">{getCopy('review.labels.heartbeat', 'Heartbeat:')}</span>
-                                                <span className="ml-2 text-gray-900">{config.heartbeat_interval}s</span>
+                                    {/* Available Sensor Types */}
+                                    <div className="space-y-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-lg font-semibold text-gray-900">{getCopy('sections.sensors.availableTitle', 'Available Sensor Types')}</h3>
+                                            <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                                <span>{t('firmwareBuilder.sections.sensors.configuredCount', { count: enabledSensorsCount })}</span>
+                                                {pinConflicts.length > 0 && (
+                                                    <div className="flex items-center space-x-1 text-red-600">
+                                                        <AlertTriangle className="w-4 h-4" />
+                                                        <span>{t('firmwareBuilder.sections.sensors.conflictCount', { count: pinConflicts.length })}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
+                                        <div>
+                                            {Object.entries(sensorOptions).length === 0 ? (
+                                                <div className="text-center py-8">
+                                                    <p className="text-gray-500">{getCopy('sections.sensors.loading', 'Loading sensor options...')}</p>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {Object.entries(sensorOptions).map(([sensorKey, sensorInfo]) => {
+                                                        const sensorCount = config.sensors.filter(s => s.type === sensorKey).length;
+
+                                                        return (
+                                                            <div key={sensorKey} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <h5 className="font-medium text-gray-900">{sensorInfo.name || sensorKey}</h5>
+                                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${sensorInfo.pin_type === 'analog' ?
+                                                                            'bg-green-100 text-green-800' :
+                                                                            'bg-blue-100 text-blue-800'
+                                                                        }`}>
+                                                                        {sensorInfo.pin_type || 'digital'}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-sm text-gray-500 mb-3">
+                                                                    {sensorInfo.description || `${sensorInfo.pin_type || 'digital'} sensor`}
+                                                                </p>
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-xs text-gray-400">
+                                                                        {sensorCount} configured
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={() => addSensor(sensorKey)}
+                                                                        className="btn-primary text-sm px-3 py-1"
+                                                                    >
+                                                                        <Plus className="w-3 h-3 mr-1" />
+                                                                        {getCopy('sections.sensors.addButton', 'Add')}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Pin Reference - Collapsible */}
+                                        {Object.keys(pinMapping).length > 0 && (
+                                            <details className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                                <summary className="cursor-pointer font-medium text-blue-900 flex items-center">
+                                                    <Info className="w-4 h-4 mr-2" />
+                                                    {t('firmwareBuilder.sections.sensors.pinReference', { platform: config.platform.toUpperCase() })}
+                                                </summary>
+                                                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                    {Object.entries(pinMapping).map(([pin, description]) => (
+                                                        <div key={pin} className="flex text-sm">
+                                                            <span className="font-mono font-medium text-blue-700 min-w-[80px]">{pin}</span>
+                                                            <span className="text-gray-700">{description}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </details>
+                                        )}
+
+                                        {/* Configured Sensors */}
+                                        {config.sensors.length > 0 && (
+                                            <div>
+                                                <h4 className="text-lg font-semibold text-gray-900 mb-4">{getCopy('sections.sensors.configuredTitle', 'Configured Sensors')}</h4>
+                                                <div className="space-y-4">
+                                                    {config.sensors.map((sensor, index) => {
+                                                        const sensorInfo = sensorOptions[sensor.type];
+                                                        const availablePinsForSensor = sensorInfo?.pin_type === 'analog' ?
+                                                            availablePins.analog || [] :
+                                                            sensorInfo?.pin_type === 'digital' ?
+                                                                availablePins.digital || [] :
+                                                                [...(availablePins.digital || []), ...(availablePins.analog || [])];
+                                                        const usedPins = getUsedPins();
+                                                        const hasConflict = usedPins[sensor.pin]?.length > 1;
+
+                                                        return (
+                                                            <div key={sensor.id} className={`border rounded-lg p-4 ${hasConflict ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
+                                                                <div className="flex items-center justify-between mb-3">
+                                                                    <div className="flex items-center space-x-3">
+                                                                        <span className="font-medium text-gray-900">
+                                                                            {sensor.name}
+                                                                        </span>
+                                                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${sensorInfo?.pin_type === 'analog' ?
+                                                                                'bg-green-100 text-green-800' :
+                                                                                'bg-blue-100 text-blue-800'
+                                                                            }`}>
+                                                                            {sensorInfo?.pin_type || 'digital'}
+                                                                        </span>
+                                                                        {hasConflict && (
+                                                                            <div className="flex items-center text-red-600">
+                                                                                <AlertTriangle className="w-4 h-4 mr-1" />
+                                                                                <span className="text-xs">{getCopy('sections.sensors.conflictBadge', 'Conflict!')}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => removeSensor(sensor.id)}
+                                                                        className="text-red-600 hover:text-red-800 p-1"
+                                                                        title="Remove sensor"
+                                                                    >
+                                                                        <X className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                    <div>
+                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                            Pin Assignment
+                                                                        </label>
+                                                                        <select
+                                                                            value={sensor.pin}
+                                                                            onChange={(e) => updateSensor(sensor.id, 'pin', e.target.value)}
+                                                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm ${hasConflict ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                                                                                }`}
+                                                                        >
+                                                                            <option value="">Select Pin</option>
+                                                                            {availablePinsForSensor.map(pinOption => {
+                                                                                const pinValue = typeof pinOption === 'string' ? pinOption : pinOption.pin;
+                                                                                const pinDescription = pinMapping[pinValue] || 'Available';
+                                                                                const isUsed = usedPins[pinValue] && usedPins[pinValue].length > 0 && !usedPins[pinValue].includes(sensor.name);
+
+                                                                                return (
+                                                                                    <option
+                                                                                        key={pinValue}
+                                                                                        value={pinValue}
+                                                                                        disabled={isUsed}
+                                                                                        style={{ color: isUsed ? '#9ca3af' : 'inherit' }}
+                                                                                    >
+                                                                                        {pinValue} - {pinDescription} {isUsed ? '(used)' : ''}
+                                                                                    </option>
+                                                                                );
+                                                                            })}
+                                                                        </select>
+                                                                        {hasConflict && (
+                                                                            <p className="text-xs text-red-600 mt-1">
+                                                                                {t('firmwareBuilder.sections.sensors.pinConflictDetail', {
+                                                                                    pin: sensor.pin,
+                                                                                    conflicts: usedPins[sensor.pin].filter(name => name !== sensor.name).join(', ')
+                                                                                })}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                                            {getCopy('sections.sensors.nameLabel', 'Sensor Name')}
+                                                                        </label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={sensor.name}
+                                                                            onChange={(e) => updateSensor(sensor.id, 'name', e.target.value)}
+                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                                            placeholder={t('firmwareBuilder.sections.sensors.namePlaceholder', { sensor: sensorInfo?.name || sensor.type })}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {/* Sensor Configuration */}
-                                    {config.sensors.length > 0 && (
+                                    {/* Step Navigation */}
+                                    <div className="flex justify-between pt-6 border-t border-gray-200">
+                                        <button
+                                            onClick={prevStep}
+                                            className="btn-secondary flex items-center space-x-2"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" />
+                                            <span>{getCopy('navigation.prevNetwork', 'Previous: Network Config')}</span>
+                                        </button>
+                                        <button
+                                            onClick={nextStep}
+                                            disabled={pinConflicts.length > 0}
+                                            className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span>{getCopy('navigation.nextReview', 'Next: Review & Build')}</span>
+                                            <ArrowRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 3: Review & Build */}
+                        {currentStep === 3 && (
+                            <div>
+                                <div className="card-header">
+                                    <h2 className="card-title">
+                                        <BarChart3 className="w-6 h-6 text-primary" />
+                                        <span>{steps[3].title}</span>
+                                    </h2>
+                                </div>
+                                <div className="space-y-6">
+                                    {/* Configuration Review */}
+                                    <div className="space-y-6">
+                                        {/* Device Configuration */}
                                         <div className="bg-white border border-gray-200 rounded-lg p-6">
                                             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                                <Activity className="w-5 h-5 text-purple-600 mr-2" />
-                                                {t('firmwareBuilder.review.sensors.title', { count: config.sensors.length })}
+                                                <Smartphone className="w-5 h-5 text-blue-600 mr-2" />
+                                                {getCopy('deviceConfig.deviceConfig', 'Device Configuration')}
                                             </h3>
-                                            <div className="space-y-3">
-                                                {config.sensors.map((sensor) => {
-                                                    const sensorInfo = sensorOptions[sensor.type];
-                                                    const hasConflict = usedPins[sensor.pin]?.length > 1;
-
-                                                    return (
-                                                        <div key={sensor.id} className={`p-4 rounded-lg border ${hasConflict ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-gray-50'}`}>
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex items-center space-x-3">
-                                                                    <span className="font-medium text-gray-900">{sensor.name}</span>
-                                                                    <span className={`px-2 py-1 text-xs rounded-full ${
-                                                                        sensorInfo?.pin_type === 'analog' ?
-                                                                        'bg-green-100 text-green-800' :
-                                                                        'bg-blue-100 text-blue-800'
-                                                                    }`}>
-                                                                        {sensorInfo?.pin_type || 'digital'}
-                                                                    </span>
-                                                                    <span className="text-sm text-gray-600">{t('firmwareBuilder.sections.sensors.pinLabel', { pin: sensor.pin })}</span>
-                                                                    {hasConflict && (
-                                                                        <div className="flex items-center text-red-600">
-                                                                            <AlertTriangle className="w-4 h-4 mr-1" />
-                                                                            <span className="text-xs">{getCopy('sections.sensors.conflictBadge', 'Conflict!')}</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <span className="text-xs text-gray-500">{sensorInfo?.name}</span>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                    <span className="font-medium text-gray-700">{getCopy('review.labels.deviceName', 'Device Name:')}</span>
+                                                    <span className="ml-2 text-gray-900">{config.device_name}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-gray-700">{getCopy('review.labels.location', 'Location:')}</span>
+                                                    <span className="ml-2 text-gray-900">{config.device_location}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-gray-700">{getCopy('review.labels.deviceId', 'Device ID:')}</span>
+                                                    <span className="ml-2 font-mono text-xs text-gray-900">{config.device_id}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-gray-700">{getCopy('review.labels.apiKey', 'API Key:')}</span>
+                                                    <span className="ml-2 font-mono text-xs text-gray-900">{config.api_key.substring(0, 8)}...</span>
+                                                </div>
                                             </div>
                                         </div>
-                                    )}
 
-                                    {/* Device Options */}
-                                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                            <Settings className="w-5 h-5 text-gray-600 mr-2" />
-                                            {getCopy('deviceConfig.deviceOptions', 'Device Options')}
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div className="flex items-center space-x-2">
-                                                {config.debug_mode ? (
-                                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                                ) : (
-                                                    <div className="w-5 h-5 border border-gray-300 rounded" />
-                                                )}
-                                                <span className="text-sm text-gray-700">Debug Mode</span>
+                                        {/* Network Configuration */}
+                                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                                <Wifi className="w-5 h-5 text-green-600 mr-2" />
+                                                {getCopy('deviceConfig.networkConfig', 'Network Configuration')}
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                                <div>
+                                                    <span className="font-medium text-gray-700">{getCopy('review.labels.wifiSsid', 'WiFi SSID:')}</span>
+                                                    <span className="ml-2 text-gray-900">{config.wifi_ssid}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-gray-700">{getCopy('review.labels.wifiSecurity', 'WiFi Security:')}</span>
+                                                    <span className="ml-2 text-gray-900">{config.open_wifi ? getCopy('review.values.wifiOpen', 'Open (no password)') : getCopy('review.values.wifiSecured', 'Secured')}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-gray-700">{getCopy('review.labels.serverUrl', 'Server URL:')}</span>
+                                                    <span className="ml-2 text-gray-900">{config.server_url}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="font-medium text-gray-700">{getCopy('review.labels.heartbeat', 'Heartbeat:')}</span>
+                                                    <span className="ml-2 text-gray-900">{config.heartbeat_interval}s</span>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center space-x-2">
-                                                {config.ota_enabled ? (
-                                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                                ) : (
-                                                    <div className="w-5 h-5 border border-gray-300 rounded" />
-                                                )}
-                                                <span className="text-sm text-gray-700">OTA Updates</span>
+                                        </div>
+
+                                        {/* Sensor Configuration */}
+                                        {config.sensors.length > 0 && (
+                                            <div className="bg-white border border-gray-200 rounded-lg p-6">
+                                                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                                    <Activity className="w-5 h-5 text-purple-600 mr-2" />
+                                                    {t('firmwareBuilder.review.sensors.title', { count: config.sensors.length })}
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {config.sensors.map((sensor) => {
+                                                        const sensorInfo = sensorOptions[sensor.type];
+                                                        const hasConflict = usedPins[sensor.pin]?.length > 1;
+
+                                                        return (
+                                                            <div key={sensor.id} className={`p-4 rounded-lg border ${hasConflict ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-gray-50'}`}>
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center space-x-3">
+                                                                        <span className="font-medium text-gray-900">{sensor.name}</span>
+                                                                        <span className={`px-2 py-1 text-xs rounded-full ${sensorInfo?.pin_type === 'analog' ?
+                                                                                'bg-green-100 text-green-800' :
+                                                                                'bg-blue-100 text-blue-800'
+                                                                            }`}>
+                                                                            {sensorInfo?.pin_type || 'digital'}
+                                                                        </span>
+                                                                        <span className="text-sm text-gray-600">{t('firmwareBuilder.sections.sensors.pinLabel', { pin: sensor.pin })}</span>
+                                                                        {hasConflict && (
+                                                                            <div className="flex items-center text-red-600">
+                                                                                <AlertTriangle className="w-4 h-4 mr-1" />
+                                                                                <span className="text-xs">{getCopy('sections.sensors.conflictBadge', 'Conflict!')}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="text-xs text-gray-500">{sensorInfo?.name}</span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
-                                            <div className="flex items-center space-x-2">
-                                                {config.device_armed ? (
-                                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                                ) : (
-                                                    <div className="w-5 h-5 border border-gray-300 rounded" />
-                                                )}
-                                                <span className="text-sm text-gray-700">Device Armed</span>
+                                        )}
+
+                                        {/* Device Options */}
+                                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                                <Settings className="w-5 h-5 text-gray-600 mr-2" />
+                                                {getCopy('deviceConfig.deviceOptions', 'Device Options')}
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="flex items-center space-x-2">
+                                                    {config.debug_mode ? (
+                                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                                    ) : (
+                                                        <div className="w-5 h-5 border border-gray-300 rounded" />
+                                                    )}
+                                                    <span className="text-sm text-gray-700">Debug Mode</span>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    {config.ota_enabled ? (
+                                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                                    ) : (
+                                                        <div className="w-5 h-5 border border-gray-300 rounded" />
+                                                    )}
+                                                    <span className="text-sm text-gray-700">OTA Updates</span>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    {config.device_armed ? (
+                                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                                    ) : (
+                                                        <div className="w-5 h-5 border border-gray-300 rounded" />
+                                                    )}
+                                                    <span className="text-sm text-gray-700">Device Armed</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                {/* Build Actions */}
-                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Build Firmware</h3>
-                                            <p className="text-sm text-gray-600">
-                                    {enabledSensorsCount} sensor{enabledSensorsCount !== 1 ? 's' : ''} configured
-                                    {pinConflicts.length > 0 && (
-                                        <span className="text-red-600 ml-2">
-                                            • {pinConflicts.length} pin conflict{pinConflicts.length > 1 ? 's' : ''} detected
-                                        </span>
+                                    {/* Build Actions */}
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Build Firmware</h3>
+                                                <p className="text-sm text-gray-600">
+                                                    {enabledSensorsCount} sensor{enabledSensorsCount !== 1 ? 's' : ''} configured
+                                                    {pinConflicts.length > 0 && (
+                                                        <span className="text-red-600 ml-2">
+                                                            • {pinConflicts.length} pin conflict{pinConflicts.length > 1 ? 's' : ''} detected
+                                                        </span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center space-x-3">
+                                                <button
+                                                    onClick={() => setShowWebFlasher(true)}
+                                                    disabled={loading || pinConflicts.length > 0}
+                                                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium ${loading || pinConflicts.length > 0
+                                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                            : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
+                                                        }`}
+                                                    title="Flash firmware directly via Web Serial API"
+                                                >
+                                                    <Zap className="w-5 h-5" />
+                                                    <span>Flash to Device</span>
+                                                </button>
+                                                <button
+                                                    onClick={buildFirmware}
+                                                    disabled={loading || pinConflicts.length > 0}
+                                                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium ${loading || pinConflicts.length > 0
+                                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                            : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                                        }`}
+                                                >
+                                                    {loading ? (
+                                                        <>
+                                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                            <span>Building...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Download className="w-5 h-5" />
+                                                            <span>Download Firmware</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {downloadUrl && (
+                                        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                                            <div className="flex items-start space-x-3">
+                                                <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                                                <div>
+                                                    <h3 className="text-sm font-medium text-green-800">Firmware Generated Successfully!</h3>
+                                                    <p className="text-sm text-green-700 mt-1">
+                                                        Your custom firmware has been downloaded. The ZIP file contains:
+                                                    </p>
+                                                    <ul className="text-sm text-green-700 mt-2 ml-4 list-disc">
+                                                        <li>Arduino sketch file (.ino)</li>
+                                                        <li>Device configuration header</li>
+                                                        <li>Installation instructions</li>
+                                                        <li>Required libraries list</li>
+                                                        <li>Wiring diagram</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
-                                </p>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                                <button
-                                    onClick={() => setShowWebFlasher(true)}
-                                    disabled={loading || pinConflicts.length > 0}
-                                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium ${
-                                        loading || pinConflicts.length > 0
-                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                            : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
-                                    }`}
-                                    title="Flash firmware directly via Web Serial API"
-                                >
-                                    <Zap className="w-5 h-5" />
-                                    <span>Flash to Device</span>
-                                </button>
-                                <button
-                                    onClick={buildFirmware}
-                                    disabled={loading || pinConflicts.length > 0}
-                                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium ${
-                                        loading || pinConflicts.length > 0
-                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                    }`}
-                                >
-                                    {loading ? (
-                                        <>
-                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            <span>Building...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Download className="w-5 h-5" />
-                                            <span>Download Firmware</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
 
-                    {downloadUrl && (
-                        <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                            <div className="flex items-start space-x-3">
-                                <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
-                                <div>
-                                    <h3 className="text-sm font-medium text-green-800">Firmware Generated Successfully!</h3>
-                                    <p className="text-sm text-green-700 mt-1">
-                                        Your custom firmware has been downloaded. The ZIP file contains:
-                                    </p>
-                                    <ul className="text-sm text-green-700 mt-2 ml-4 list-disc">
-                                        <li>Arduino sketch file (.ino)</li>
-                                        <li>Device configuration header</li>
-                                        <li>Installation instructions</li>
-                                        <li>Required libraries list</li>
-                                        <li>Wiring diagram</li>
-                                    </ul>
+                                    {/* Step Navigation */}
+                                    <div className="flex justify-between pt-6 border-t border-gray-200">
+                                        <button
+                                            onClick={prevStep}
+                                            className="btn-secondary flex items-center space-x-2"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" />
+                                            <span>Previous: Sensor Selection</span>
+                                        </button>
+                                        <div className="text-sm text-gray-600">
+                                            Final step - Build your firmware above
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Step Navigation */}
-                    <div className="flex justify-between pt-6 border-t border-gray-200">
-                        <button
-                            onClick={prevStep}
-                            className="btn-secondary flex items-center space-x-2"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            <span>Previous: Sensor Selection</span>
-                        </button>
-                        <div className="text-sm text-gray-600">
-                            Final step - Build your firmware above
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
-        )}
-                </div>
-            </div>
-        </div>
 
-        {/* Web Flasher Modal */}
-        {showWebFlasher && (
-            <WebFlasher
-                config={config}
-                onClose={() => setShowWebFlasher(false)}
-            />
-        )}
+            {/* Web Flasher Modal */}
+            {showWebFlasher && (
+                <WebFlasher
+                    config={config}
+                    onClose={() => setShowWebFlasher(false)}
+                />
+            )}
         </>
     );
 };

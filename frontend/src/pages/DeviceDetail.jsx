@@ -439,9 +439,9 @@ function DeviceDetail() {
                                 <div>
                                     <h2 className="text-xl font-semibold text-gray-900">{t('deviceDetail.sensorSectionTitle')}</h2>
                                     <p className="text-sm text-gray-500">
-                                    {sortedSensors.length
-                                        ? t('deviceDetail.sensorSectionDescription')
-                                        : t('deviceDetail.sensorSectionEmptyHint')}
+                                        {sortedSensors.length
+                                            ? t('deviceDetail.sensorSectionDescription')
+                                            : t('deviceDetail.sensorSectionEmptyHint')}
                                     </p>
                                 </div>
                                 {sortedSensors.length > 0 && (
@@ -460,17 +460,17 @@ function DeviceDetail() {
                                 {sensorsLoading ? (
                                     <div className="col-span-full flex flex-col items-center justify-center rounded-xl border border-dashed border-indigo-200 bg-indigo-50/40 p-12 text-center">
                                         <div className="h-12 w-12 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent"></div>
-                                    <p className="mt-4 text-sm text-indigo-500">{t('deviceDetail.loadingSensors')}</p>
+                                        <p className="mt-4 text-sm text-indigo-500">{t('deviceDetail.loadingSensors')}</p>
                                     </div>
                                 ) : sensorsError ? (
                                     <div className="col-span-full rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-                                    <p className="font-medium text-red-600">{t('deviceDetail.loadSensorsError')}</p>
+                                        <p className="font-medium text-red-600">{t('deviceDetail.loadSensorsError')}</p>
                                         <p className="mt-1 text-sm text-red-500">{sensorsError.message}</p>
                                     </div>
                                 ) : !sortedSensors.length ? (
                                     <div className="col-span-full rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-                                    <p className="font-medium text-gray-700">{t('deviceDetail.sensorSectionEmpty')}</p>
-                                    <p className="mt-1 text-sm text-gray-500">{t('deviceDetail.sensorSectionEmptyHint')}</p>
+                                        <p className="font-medium text-gray-700">{t('deviceDetail.sensorSectionEmpty')}</p>
+                                        <p className="mt-1 text-sm text-gray-500">{t('deviceDetail.sensorSectionEmptyHint')}</p>
                                     </div>
                                 ) : (
                                     sortedSensors.map((sensor) => {
@@ -482,10 +482,9 @@ function DeviceDetail() {
                                         return (
                                             <div
                                                 key={sensor.id}
-                                                className={`relative flex h-full flex-col gap-4 rounded-xl border bg-white p-5 transition-all ${
-                                                    isDisabled ? 'opacity-60 border-gray-200' :
-                                                    isActive ? 'border-indigo-400 shadow-lg ring-2 ring-indigo-100' : 'border-gray-100 shadow-sm hover:shadow-md'
-                                                }`}
+                                                className={`relative flex h-full flex-col gap-4 rounded-xl border bg-white p-5 transition-all ${isDisabled ? 'opacity-60 border-gray-200' :
+                                                        isActive ? 'border-indigo-400 shadow-lg ring-2 ring-indigo-100' : 'border-gray-100 shadow-sm hover:shadow-md'
+                                                    }`}
                                             >
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div>
@@ -528,6 +527,18 @@ function DeviceDetail() {
                                                         ? t('deviceDetail.lastUpdated', { when: formatRelativeTime(display.timestamp) })
                                                         : t('deviceDetail.awaitingFirstReading')}
                                                 </p>
+
+                                                {!display.timestamp && sensor.enabled && (
+                                                    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs">
+                                                        <p className="font-medium text-amber-800">{t('deviceDetail.troubleshooting.title', 'Troubleshooting:')}</p>
+                                                        <ul className="mt-1 list-disc list-inside text-amber-700 space-y-1">
+                                                            <li>{t('deviceDetail.troubleshooting.checkConnection', 'Check device is online and connected')}</li>
+                                                            <li>{t('deviceDetail.troubleshooting.checkWiring', 'Verify sensor is connected to pin {{pin}}', { pin: sensor.pin })}</li>
+                                                            <li>{t('deviceDetail.troubleshooting.waitHeartbeat', 'Wait for next heartbeat (~5 min)')}</li>
+                                                            <li>{t('deviceDetail.troubleshooting.checkLogs', 'Check device serial logs for errors')}</li>
+                                                        </ul>
+                                                    </div>
+                                                )}
 
                                                 {display.stat && (
                                                     <div className="grid grid-cols-3 gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm">
@@ -573,12 +584,12 @@ function DeviceDetail() {
                         <section id="sensor-history" className="space-y-4">
                             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                                 <div>
-                                <h2 className="text-xl font-semibold text-gray-900">{t('deviceDetail.historyTitle')}</h2>
-                                <p className="text-sm text-gray-500">
-                                    {selectedSensor
-                                        ? t('deviceDetail.historySubtitle', { sensor: selectedSensor.name || t('deviceDetail.defaultSensorName', { pin: selectedSensor.pin }) })
-                                        : t('deviceDetail.historyPrompt')}
-                                </p>
+                                    <h2 className="text-xl font-semibold text-gray-900">{t('deviceDetail.historyTitle')}</h2>
+                                    <p className="text-sm text-gray-500">
+                                        {selectedSensor
+                                            ? t('deviceDetail.historySubtitle', { sensor: selectedSensor.name || t('deviceDetail.defaultSensorName', { pin: selectedSensor.pin }) })
+                                            : t('deviceDetail.historyPrompt')}
+                                    </p>
                                 </div>
                                 {sortedSensors.length > 0 && (
                                     <div className="flex items-center gap-2">
@@ -628,6 +639,10 @@ function DeviceDetail() {
                                 </span>
                             </div>
                             <dl className="mt-4 space-y-3 text-sm">
+                                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                                    <dt className="text-gray-500">{t('deviceDetail.deviceType')}</dt>
+                                    <dd className="font-medium text-gray-900 uppercase">{device.device_type || 'ESP8266'}</dd>
+                                </div>
                                 <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                                     <dt className="text-gray-500">{t('deviceDetail.lastHeartbeat')}</dt>
                                     <dd className="font-medium text-gray-900">{lastHeartbeatLabel}</dd>
@@ -752,9 +767,11 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
     const [sensorTypes, setSensorTypes] = useState([]);
 
     // Available pins based on device type
+    // ESP8266 has A0 (analog) and D0-D8 (digital GPIO)
+    // Note: D0=GPIO16, D1=GPIO5, D2=GPIO4, D3=GPIO0, D4=GPIO2, D5=GPIO14, D6=GPIO12, D7=GPIO13, D8=GPIO15
     const availablePins = device?.device_type === 'esp32'
         ? ['D0', 'D1', 'D2', 'D4', 'D5', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17', 'D18', 'D19', 'D21', 'D22', 'D23', 'D25', 'D26', 'D27', 'D32', 'D33', 'A0']
-        : ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'A0'];
+        : ['A0', 'D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8'];
 
     // Fetch available sensor types
     useEffect(() => {

@@ -250,7 +250,7 @@ router.post('/build', authenticateToken, async (req, res) => {
         let mainFirmware;
         let mainFilename;
 
-        switch(platform) {
+        switch (platform) {
             case 'esp32':
                 mainFirmware = await fs.readFile(path.join(firmwarePath, 'esp32_sensor_platform.ino'), 'utf8');
                 mainFilename = 'esp32_sensor_platform.ino';
@@ -473,7 +473,7 @@ const getPlatformConfig = (platform) => {
                     { pin: 'D8', label: 'D8', note: 'SS, pull-down required (GPIO15)' }
                 ],
                 analog: [
-                    { pin: 'A0', label: 'A0', note: 'Analog input, 0-1V range (ADC0)' }
+                    { pin: 'A0', label: 'A0', note: 'Analog input, reads 0-1024 ADC (max 1V direct, or 3.3V with divider)' }
                 ]
             }
         },
@@ -1080,9 +1080,9 @@ function generateInstallationInstructions(platform, deviceId, deviceName, sensor
 
 ## Enabled Sensors
 ${enabledSensors.length > 0
-    ? enabledSensors.map(sensor => `- ${sensor.toUpperCase()}`).join('\n')
-    : 'No sensors enabled'
-}
+                ? enabledSensors.map(sensor => `- ${sensor.toUpperCase()}`).join('\n')
+                : 'No sensors enabled'
+            }
 
 ## Troubleshooting
 

@@ -118,6 +118,9 @@ export const apiService = {
     createSensorRule: (sensorId, ruleData) => apiClient.post(`/sensors/${sensorId}/rules`, ruleData),
     updateSensorRule: (sensorId, ruleId, ruleData) => apiClient.put(`/sensors/${sensorId}/rules/${ruleId}`, ruleData),
     deleteSensorRule: (sensorId, ruleId) => apiClient.delete(`/sensors/${sensorId}/rules/${ruleId}`),
+    createOrUpdateSensorRule: (deviceId, sensorId, ruleData) => apiClient.post(`/devices/${deviceId}/sensors/${sensorId}/rules`, ruleData),
+    getThresholdSuggestions: (deviceId, sensorId, days = 7) =>
+        apiClient.get(`/devices/${deviceId}/sensors/${sensorId}/threshold-suggestions`, { params: { days } }),
 
     // Telemetry
     getLatestTelemetry: (deviceId) => apiClient.get(`/devices/${deviceId}/telemetry/latest`),
@@ -219,6 +222,17 @@ export const apiService = {
     evaluateAlertRule: (ruleId, testValue) =>
         apiClient.get(`/alert-rules/evaluate/${ruleId}`, { params: { testValue } }),
 
+    // Alert Management
+    acknowledgeAlert: (alertId, note) => apiClient.post(`/alerts/${alertId}/acknowledge`, { note }),
+    resolveAlert: (alertId, note) => apiClient.post(`/alerts/${alertId}/resolve`, { note }),
+
+    // Audit Logs
+    getAuditLogs: (filters = {}) => apiClient.get('/audit-logs', { params: filters }),
+    getAuditLog: (logId) => apiClient.get(`/audit-logs/${logId}`),
+
+    // Users (for filtering)
+    getUsers: () => apiClient.get('/users'),
+
     // System
     getSystemInfo: () => apiClient.get('/system/info'),
     getSystemHealth: () => apiClient.get('/system/health'),
@@ -268,6 +282,18 @@ export const apiService = {
 
     // OTA Updates
     triggerOTA: (deviceId) => apiClient.post(`/devices/${deviceId}/ota`),
+
+    // Sensor Rules Management
+    getAllSensorRules: (filters = {}) => apiClient.get('/sensor-rules', { params: filters }),
+    getSensorRulesForDevice: (deviceId) => apiClient.get(`/sensor-rules/device/${deviceId}`),
+    getSensorRulesForLocation: (locationId) => apiClient.get(`/sensor-rules/location/${locationId}`),
+    getSensorRulesForGroup: (groupId) => apiClient.get(`/sensor-rules/group/${groupId}`),
+    getSensorRule: (deviceId, sensorId, ruleId) => apiClient.get(`/devices/${deviceId}/sensors/${sensorId}/rules/${ruleId}`),
+    updateSensorRule: (deviceId, sensorId, ruleId, ruleData) => apiClient.put(`/devices/${deviceId}/sensors/${sensorId}/rules/${ruleId}`, ruleData),
+    deleteSensorRule: (deviceId, sensorId, ruleId) => apiClient.delete(`/devices/${deviceId}/sensors/${sensorId}/rules/${ruleId}`),
+    getSensorTypes: () => apiClient.get('/sensor-types'),
+    getDeviceSensors: (deviceId) => apiClient.get(`/devices/${deviceId}/sensors`),
+    getLocations: () => apiClient.get('/locations'),
 
     // License Management
     getLicenseStatus: () => apiClient.get('/license/status'),

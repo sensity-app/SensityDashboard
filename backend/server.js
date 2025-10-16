@@ -33,6 +33,7 @@ const thresholdCalibrationRoutes = require('./src/routes/thresholdCalibration');
 const securityRoutes = require('./src/routes/security');
 const webhookRoutes = require('./src/routes/webhooks');
 const licenseRoutes = require('./src/routes/license');
+const sensorRulesRoutes = require('./src/routes/sensorRules');
 
 const WebSocketService = require('./src/services/websocketService');
 const AlertEscalationService = require('./src/services/alertEscalationService');
@@ -121,6 +122,7 @@ app.use('/api/', userRateLimiter.middleware());
 // Routes that require a valid license
 const protectedRoutes = [
     ['/api/sensor-types', deviceRoutes, 'device_management'], // Sensor types endpoint (in devices router)
+    ['/api/sensor-rules', sensorRulesRoutes, 'analytics_basic'], // Sensor rules management
     ['/api/devices', deviceRoutes, 'device_management'],
     ['/api/alerts', alertRoutes, 'basic_monitoring'],
     ['/api/locations', locationRoutes, 'device_management'],

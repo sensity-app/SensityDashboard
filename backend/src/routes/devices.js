@@ -268,6 +268,59 @@ router.put('/:id', [
     }
 });
 
+// PUT /api/devices/:id/config - Update device configuration
+router.put('/:id/config', [
+    param('id').notEmpty(),
+    body('ota_enabled').optional().isBoolean(),
+    body('armed').optional().isBoolean(),
+    body('heartbeat_interval').optional().isInt({ min: 10, max: 3600 }),
+    body('debug_mode').optional().isBoolean()
+], authenticateToken, async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        if (req.user.role !== 'admin' && req.user.role !== 'operator') {
+            return res.status(403).json({ error: 'Insufficient permissions' });
+        }
+
+        const { id } = req.params;
+        const { ota_enabled, armed, heartbeat_interval, debug_mode } = req.body;
+
+        // Check if device exists
+        const deviceCheck = await db.query('SELECT id FROM devices WHERE id = $1', [id]);
+        if (deviceCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Device not found' });
+        }
+
+        // Update or insert device config
+        const result = await db.query(`
+            INSERT INTO device_configs (device_id, ota_enabled, armed, heartbeat_interval, debug_mode, config_version, updated_at)
+            VALUES ($1, $2, $3, $4, $5, 1, CURRENT_TIMESTAMP)
+            ON CONFLICT (device_id) 
+            DO UPDATE SET
+                ota_enabled = COALESCE($2, device_configs.ota_enabled),
+                armed = COALESCE($3, device_configs.armed),
+                heartbeat_interval = COALESCE($4, device_configs.heartbeat_interval),
+                debug_mode = COALESCE($5, device_configs.debug_mode),
+                config_version = device_configs.config_version + 1,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING *
+        `, [id, ota_enabled, armed, heartbeat_interval, debug_mode]);
+
+        logger.info(`Device config updated: ${id} by ${req.user.email}`);
+        res.json({
+            message: 'Device configuration updated successfully. Changes will apply on next heartbeat.',
+            config: result.rows[0]
+        });
+    } catch (error) {
+        logger.error('Update device config error:', error);
+        res.status(500).json({ error: 'Failed to update device configuration' });
+    }
+});
+
 // DELETE /api/devices/:id - Delete device
 router.delete('/:id', [
     param('id').notEmpty()

@@ -13,11 +13,14 @@ import {
     Clock,
     Users,
     AlertCircle,
-    CheckCircle
+    CheckCircle,
+    Eye,
+    Move
 } from 'lucide-react';
 
 import { apiService } from '../services/api';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { Link } from 'react-router-dom';
 
 function DeviceLocationsManager() {
     const { t } = useTranslation();
@@ -26,6 +29,9 @@ function DeviceLocationsManager() {
 
     const [showForm, setShowForm] = useState(false);
     const [editingLocation, setEditingLocation] = useState(null);
+    const [viewingDevices, setViewingDevices] = useState(null);
+    const [movingDevice, setMovingDevice] = useState(null);
+    const [targetLocationId, setTargetLocationId] = useState('');
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -40,6 +46,26 @@ function DeviceLocationsManager() {
         () => apiService.getLocations(),
         {
             onError: (error) => handleError(error, { customMessage: 'Failed to load locations' })
+        }
+    );
+
+    // Query all devices
+    const { data: allDevices = [] } = useQuery('devices', apiService.getDevices);
+
+    // Move device mutation
+    const moveDeviceMutation = useMutation(
+        ({ deviceId, locationId }) => apiService.updateDevice(deviceId, { location_id: locationId }),
+        {
+            onSuccess: () => {
+                toast.success(t('locations.deviceMoved', 'Device moved successfully'));
+                queryClient.invalidateQueries('devices');
+                queryClient.invalidateQueries('locations');
+                setMovingDevice(null);
+                setTargetLocationId('');
+            },
+            onError: (error) => {
+                toast.error(t('locations.deviceMoveError', 'Failed to move device'));
+            }
         }
     );
 
@@ -361,7 +387,7 @@ function DeviceLocationsManager() {
             )}
 
             {/* Modern Locations List */}
-            <div className="card animate-slide-up" style={{animationDelay: '200ms'}}>
+            <div className="card animate-slide-up" style={{ animationDelay: '200ms' }}>
                 <div className="card-header">
                     <h2 className="card-title">
                         <MapPin className="w-5 h-5 text-primary" />
@@ -404,7 +430,7 @@ function DeviceLocationsManager() {
                                 </thead>
                                 <tbody>
                                     {locations.map((location, index) => (
-                                        <tr key={location.id} className="animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
+                                        <tr key={location.id} className="animate-scale-in" style={{ animationDelay: `${index * 50}ms` }}>
                                             <td>
                                                 <div className="flex items-start space-x-3">
                                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center flex-shrink-0">
@@ -465,6 +491,13 @@ function DeviceLocationsManager() {
                                             <td>
                                                 <div className="flex items-center justify-end space-x-1">
                                                     <button
+                                                        onClick={() => setViewingDevices(location)}
+                                                        className="btn-ghost p-2 text-blue-600"
+                                                        title={t('locations.viewDevices', 'View Devices')}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </button>
+                                                    <button
                                                         onClick={() => handleEdit(location)}
                                                         className="btn-ghost p-2 text-primary"
                                                         title={t('common.edit', 'Edit')}
@@ -473,11 +506,10 @@ function DeviceLocationsManager() {
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(location)}
-                                                        className={`btn-ghost p-2 ${
-                                                            location.device_count > 0
+                                                        className={`btn-ghost p-2 ${location.device_count > 0
                                                                 ? 'text-gray-400 cursor-not-allowed'
                                                                 : 'text-red-600 hover:text-red-700'
-                                                        }`}
+                                                            }`}
                                                         title={location.device_count > 0 ? 'Cannot delete location with devices' : t('common.delete', 'Delete')}
                                                         disabled={location.device_count > 0}
                                                     >
@@ -493,6 +525,145 @@ function DeviceLocationsManager() {
                     </div>
                 )}
             </div>
+
+            {/* View Devices Modal */}
+            {viewingDevices && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-3xl bg-white rounded-lg shadow-xl max-h-[80vh] overflow-hidden">
+                        <div className="border-b border-gray-200 p-6 flex justify-between items-center">
+                            <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                                <MapPin className="h-5 w-5 text-indigo-600" />
+                                {viewingDevices.name} - {t('locations.devices', 'Devices')}
+                            </h3>
+                            <button
+                                onClick={() => setViewingDevices(null)}
+                                className="btn-ghost p-2"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto max-h-[60vh]">
+                            {allDevices.filter(d => d.location_id === viewingDevices.id).length === 0 ? (
+                                <div className="text-center py-8">
+                                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                                    <p className="text-gray-500">{t('locations.noDevicesInLocation', 'No devices in this location')}</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {allDevices
+                                        .filter(d => d.location_id === viewingDevices.id)
+                                        .map(device => (
+                                            <div
+                                                key={device.id}
+                                                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-3 h-3 rounded-full ${device.is_online ? 'bg-green-500' : 'bg-red-500'}`} />
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">{device.name}</div>
+                                                        <div className="text-xs text-gray-500">{device.device_type}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Link
+                                                        to={`/devices/${device.id}`}
+                                                        className="btn-ghost p-2 text-blue-600"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => {
+                                                            setMovingDevice(device);
+                                                            setViewingDevices(null);
+                                                        }}
+                                                        className="btn-ghost p-2 text-indigo-600"
+                                                        title={t('locations.moveDevice', 'Move Device')}
+                                                    >
+                                                        <Move className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Move Device Modal */}
+            {movingDevice && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-md bg-white rounded-lg shadow-xl">
+                        <div className="border-b border-gray-200 p-6">
+                            <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                                <Move className="h-5 w-5 text-indigo-600" />
+                                {t('locations.moveDevice', 'Move Device')}
+                            </h3>
+                        </div>
+
+                        <div className="p-6">
+                            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                                <div className="text-sm font-medium text-gray-900">{movingDevice.name}</div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                    {t('locations.currentLocation', 'Current')}: {
+                                        locations.find(l => l.id === movingDevice.location_id)?.name || t('common.none', 'None')
+                                    }
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    {t('locations.selectNewLocation', 'Select New Location')}
+                                </label>
+                                <select
+                                    value={targetLocationId}
+                                    onChange={(e) => setTargetLocationId(e.target.value)}
+                                    className="w-full rounded-md border-gray-300"
+                                >
+                                    <option value="">{t('common.select', 'Select...')}</option>
+                                    {locations
+                                        .filter(l => l.id !== movingDevice.location_id)
+                                        .map(location => (
+                                            <option key={location.id} value={location.id}>
+                                                {location.name}
+                                            </option>
+                                        ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-gray-200 p-6 flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setMovingDevice(null);
+                                    setTargetLocationId('');
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                            >
+                                {t('common.cancel', 'Cancel')}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (targetLocationId) {
+                                        moveDeviceMutation.mutate({
+                                            deviceId: movingDevice.id,
+                                            locationId: targetLocationId
+                                        });
+                                    } else {
+                                        toast.error(t('locations.selectLocationError', 'Please select a location'));
+                                    }
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                                disabled={!targetLocationId || moveDeviceMutation.isLoading}
+                            >
+                                {moveDeviceMutation.isLoading ? t('common.moving', 'Moving...') : t('common.move', 'Move')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -10,6 +10,7 @@ function OTAManager({ device, onClose }) {
     const { t } = useTranslation();
     const [selectedFirmware, setSelectedFirmware] = useState('');
     const [uploadingFirmware, setUploadingFirmware] = useState(false);
+    const [otaEnabled, setOtaEnabled] = useState(device.ota_enabled || false);
     const queryClient = useQueryClient();
 
     // Get available firmware versions
@@ -27,6 +28,21 @@ function OTAManager({ device, onClose }) {
         ['ota-status', device.id],
         () => apiService.getOTAStatus(device.id),
         { refetchInterval: 5000 }
+    );
+
+    // Toggle OTA enabled mutation
+    const toggleOTAMutation = useMutation(
+        (enabled) => apiService.updateDeviceConfig(device.id, { ota_enabled: enabled }),
+        {
+            onSuccess: (data) => {
+                setOtaEnabled(data.config.ota_enabled);
+                toast.success(t('otaManager.toast.otaToggleSuccess'));
+                queryClient.invalidateQueries(['device', device.id]);
+            },
+            onError: (error) => {
+                toast.error(t('otaManager.toast.otaToggleFailed', { message: error.message || t('common.error') }));
+            }
+        }
     );
 
     // Schedule OTA update mutation
@@ -93,7 +109,16 @@ function OTAManager({ device, onClose }) {
             return;
         }
 
-        const forced = !device.ota_enabled;
+        const forced = !otaEnabled;
+
+        if (forced) {
+            const confirmed = window.confirm(
+                t('otaManager.confirm.forcedUpdate',
+                    'OTA is currently disabled. This will force the update and may take longer. Continue?')
+            );
+            if (!confirmed) return;
+        }
+
         scheduleUpdateMutation.mutate({
             firmwareVersionId: parseInt(selectedFirmware),
             forced
@@ -192,11 +217,23 @@ function OTAManager({ device, onClose }) {
                                 <p className="text-sm text-gray-900">{device.firmware_version || t('common.unknown')}</p>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">{t('otaManager.status.otaEnabled')}</p>
-                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${device.ota_enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                    }`}>
-                                    {device.ota_enabled ? t('common.yes') : t('common.no')}
-                                </span>
+                                <p className="text-sm font-medium text-gray-500 mb-2">{t('otaManager.status.otaEnabled')}</p>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => toggleOTAMutation.mutate(!otaEnabled)}
+                                        disabled={toggleOTAMutation.isLoading}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${otaEnabled ? 'bg-green-600' : 'bg-gray-200'
+                                            } ${toggleOTAMutation.isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${otaEnabled ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                        />
+                                    </button>
+                                    <span className={`text-sm font-medium ${otaEnabled ? 'text-green-700' : 'text-gray-500'}`}>
+                                        {otaEnabled ? t('common.enabled') : t('common.disabled')}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -255,8 +292,8 @@ function OTAManager({ device, onClose }) {
                                     <div
                                         key={firmware.id}
                                         className={`border rounded-lg p-3 cursor-pointer transition-colors ${selectedFirmware === firmware.id.toString()
-                                                ? 'border-blue-500 bg-blue-50'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-blue-500 bg-blue-50'
+                                            : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                         onClick={() => setSelectedFirmware(firmware.id.toString())}
                                     >
@@ -332,16 +369,17 @@ function OTAManager({ device, onClose }) {
                         </button>
                     </div>
 
-                    {!device.ota_enabled && (
+                    {!otaEnabled && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                             <div className="flex">
-                                <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                                <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0" />
                                 <div className="ml-3">
                                     <h3 className="text-sm font-medium text-yellow-800">
-                                        {t('otaManager.disabledWarning.title')}
+                                        {t('otaManager.disabledWarning.title', 'OTA Updates Disabled')}
                                     </h3>
                                     <p className="text-sm text-yellow-700 mt-2">
-                                        {t('otaManager.disabledWarning.body')}
+                                        {t('otaManager.disabledWarning.body',
+                                            'This device has OTA updates disabled. Enable OTA updates above for automatic firmware updates, or force the update (which may take longer).')}
                                     </p>
                                 </div>
                             </div>

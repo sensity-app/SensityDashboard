@@ -20,6 +20,9 @@ import Settings from './pages/Settings';
 import FirmwareBuilder from './pages/FirmwareBuilder';
 import SerialMonitor from './pages/SerialMonitor';
 import AlertsPage from './pages/Alerts';
+import SensorRules from './pages/SensorRules';
+import AlertsEnhanced from './pages/AlertsEnhanced';
+import AuditLog from './pages/AuditLog';
 
 import LanguageSelector from './components/LanguageSelector';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
@@ -398,9 +401,10 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
             {
                 label: t('nav.monitoring', 'Monitoring'), icon: '📈', dropdown: true,
                 items: [
+                    { path: '/alerts', label: t('nav.alerts', 'Alerts'), icon: '🔔', feature: 'analytics_basic' },
                     { path: '/analytics', label: t('nav.analytics', 'Analytics'), icon: '🧠', feature: 'analytics_advanced' },
                     { path: '/device-health', label: t('nav.deviceHealth', 'Device Health'), icon: '🏥', feature: 'analytics_advanced' },
-                    { path: '/alert-rules', label: t('nav.alertRules', 'Alert Rules'), icon: '⚙️', feature: 'analytics_basic' },
+                    { path: '/alert-rules', label: t('nav.alertRules', 'Sensor Rules'), icon: '⚙️', feature: 'analytics_basic' },
                     { path: '/silent-mode', label: t('nav.silentMode', 'Silent Mode'), icon: '🔕', feature: 'analytics_basic' },
                 ]
             },
@@ -426,6 +430,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                 label: t('nav.administration', 'Administration'), icon: '⚙️', dropdown: true,
                 items: [
                     { path: '/users', label: t('nav.userManagement', 'Users'), icon: '👥' },
+                    { path: '/audit-log', label: t('nav.auditLog', 'Audit Log'), icon: '🔍', feature: 'audit_logging' },
                     { path: '/settings', label: t('nav.settings', 'Settings'), icon: '⚙️' },
                     { path: '/protocol-settings', label: t('nav.protocolSettings', 'Protocol Settings'), icon: '🔌', feature: 'custom_integrations' }
                 ]
@@ -617,8 +622,8 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                             ref={el => dropdownRefs.current[`button-${index}`] = el}
                                             onClick={() => handleDropdownToggle(index)}
                                             className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-t-lg whitespace-nowrap ${isPathActive(item.path, item.items)
-                                                    ? 'text-white bg-gray-600 shadow-lg'
-                                                    : 'text-white hover:text-gray-200 hover:bg-gray-700'
+                                                ? 'text-white bg-gray-600 shadow-lg'
+                                                : 'text-white hover:text-gray-200 hover:bg-gray-700'
                                                 }`}
                                         >
                                             <span className="text-sm sm:text-base">{item.icon}</span>
@@ -646,8 +651,8 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                                             setDropdownOpen(null);
                                                         }}
                                                         className={`w-full flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-left transition-all duration-200 first:rounded-t-lg last:rounded-b-lg hover:bg-gray-50 ${currentPath === subItem.path
-                                                                ? 'bg-blue-50 text-blue-600 font-semibold'
-                                                                : 'text-gray-700'
+                                                            ? 'bg-blue-50 text-blue-600 font-semibold'
+                                                            : 'text-gray-700'
                                                             }`}
                                                     >
                                                         <span className="text-sm sm:text-base">{subItem.icon}</span>
@@ -662,8 +667,8 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                     <button
                                         onClick={() => navigate(item.path)}
                                         className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 md:px-4 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-all duration-200 rounded-lg whitespace-nowrap ${currentPath === item.path
-                                                ? 'text-white bg-primary shadow-lg border-b-2 border-primary-hover'
-                                                : 'text-white hover:text-gray-200 hover:bg-gray-700'
+                                            ? 'text-white bg-primary shadow-lg border-b-2 border-primary-hover'
+                                            : 'text-white hover:text-gray-200 hover:bg-gray-700'
                                             }`}
                                     >
                                         <span className="text-sm sm:text-base">{item.icon}</span>
@@ -719,11 +724,10 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                                         navigate(subItem.path);
                                                         setMobileMenuOpen(false);
                                                     }}
-                                                    className={`w-full flex items-center space-x-3 px-4 py-2.5 text-sm rounded-lg transition-colors ${
-                                                        currentPath === subItem.path
-                                                            ? 'bg-blue-50 text-blue-600 font-medium'
-                                                            : 'text-gray-700 hover:bg-gray-100'
-                                                    }`}
+                                                    className={`w-full flex items-center space-x-3 px-4 py-2.5 text-sm rounded-lg transition-colors ${currentPath === subItem.path
+                                                        ? 'bg-blue-50 text-blue-600 font-medium'
+                                                        : 'text-gray-700 hover:bg-gray-100'
+                                                        }`}
                                                 >
                                                     <span>{subItem.icon}</span>
                                                     <span>{subItem.label}</span>
@@ -736,11 +740,10 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                                                 navigate(item.path);
                                                 setMobileMenuOpen(false);
                                             }}
-                                            className={`w-full flex items-center space-x-3 px-4 py-2.5 text-sm rounded-lg transition-colors ${
-                                                currentPath === item.path
-                                                    ? 'bg-blue-50 text-blue-600 font-medium'
-                                                    : 'text-gray-700 hover:bg-gray-100'
-                                            }`}
+                                            className={`w-full flex items-center space-x-3 px-4 py-2.5 text-sm rounded-lg transition-colors ${currentPath === item.path
+                                                ? 'bg-blue-50 text-blue-600 font-medium'
+                                                : 'text-gray-700 hover:bg-gray-100'
+                                                }`}
                                         >
                                             <span>{item.icon}</span>
                                             <span>{item.label}</span>
@@ -840,7 +843,15 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                         path="/alert-rules"
                         element={
                             <FeatureGate feature="analytics_basic">
-                                <AlertRulesManager />
+                                <SensorRules />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/sensor-rules"
+                        element={
+                            <FeatureGate feature="analytics_basic">
+                                <SensorRules />
                             </FeatureGate>
                         }
                     />
@@ -848,7 +859,15 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                         path="/alerts"
                         element={
                             <FeatureGate feature="analytics_basic">
-                                <AlertsPage />
+                                <AlertsEnhanced />
+                            </FeatureGate>
+                        }
+                    />
+                    <Route
+                        path="/audit-log"
+                        element={
+                            <FeatureGate feature="audit_logging">
+                                <AuditLog />
                             </FeatureGate>
                         }
                     />

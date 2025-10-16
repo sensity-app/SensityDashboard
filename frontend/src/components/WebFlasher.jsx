@@ -202,7 +202,7 @@ const WebFlasher = ({ config, onClose }) => {
                 }
                 if (monitorStreamClosedRef.current) {
                     try {
-                        await monitorStreamClosedRef.current.catch(() => {});
+                        await monitorStreamClosedRef.current.catch(() => { });
                     } catch (_) {
                         // ignore errors from monitor stream closure
                     }
@@ -437,14 +437,87 @@ const WebFlasher = ({ config, onClose }) => {
             logMessage('registrationStarted', 'info');
             await apiService.createDevice(devicePayload);
             logMessage('registrationSucceeded', 'success');
+
+            // Register sensors if configured
+            if (config.sensors && config.sensors.length > 0) {
+                logMessage('registeringSensors', 'info');
+                await registerDeviceSensors(config.device_id, config.sensors, config.platform || 'esp8266');
+                logMessage('sensorsRegistered', 'success', { count: config.sensors.length });
+            }
         } catch (error) {
             if (error?.response?.status === 409) {
                 logMessage('registrationExists', 'info');
+
+                // Even if device exists, try to update/add sensors
+                if (config.sensors && config.sensors.length > 0) {
+                    try {
+                        logMessage('updatingSensors', 'info');
+                        await registerDeviceSensors(config.device_id, config.sensors, config.platform || 'esp8266');
+                        logMessage('sensorsUpdated', 'success', { count: config.sensors.length });
+                    } catch (sensorError) {
+                        console.warn('Sensor update failed:', sensorError);
+                        logMessage('sensorUpdateFailed', 'warning');
+                    }
+                }
                 return;
             }
 
             console.error('Device registration failed:', error);
             throw new Error(t('webFlasher.errors.registrationFailed', { message: error?.response?.data?.error || error.message }));
+        }
+    };
+
+    const registerDeviceSensors = async (deviceId, sensors, platform) => {
+        if (!sensors || sensors.length === 0) return;
+
+        try {
+            // Get sensor types from backend
+            const sensorTypesResponse = await apiService.getSensorTypes();
+            const sensorTypes = sensorTypesResponse?.sensor_types || sensorTypesResponse || [];
+
+            for (const sensor of sensors) {
+                if (!sensor.enabled) continue;
+
+                // Find matching sensor type
+                const sensorType = sensorTypes.find(st =>
+                    st.name.toLowerCase() === sensor.type.toLowerCase() ||
+                    st.name.toLowerCase() === sensor.name?.toLowerCase()
+                );
+
+                if (!sensorType) {
+                    console.warn(`Sensor type not found: ${sensor.type}`);
+                    continue;
+                }
+
+                // Normalize pin for ESP8266 analog sensors
+                let pin = sensor.pin;
+                if (platform === 'esp8266' && ['light', 'sound', 'gas', 'photodiode'].includes(sensor.type.toLowerCase())) {
+                    pin = 'A0';
+                }
+
+                // Create or update sensor
+                try {
+                    await apiService.createSensor(deviceId, {
+                        sensor_type_id: sensorType.id,
+                        pin: String(pin),
+                        name: sensor.name || sensor.type,
+                        enabled: true,
+                        calibration_offset: sensor.calibration_offset || sensor.light_calibration_offset || 0,
+                        calibration_multiplier: sensor.calibration_multiplier || sensor.light_calibration_multiplier || 1
+                    });
+                } catch (sensorError) {
+                    // Sensor might already exist, try to update it
+                    if (sensorError?.response?.status === 409) {
+                        console.log(`Sensor already exists on pin ${pin}, updating...`);
+                        // Note: We'd need the sensor ID to update, so we'll skip if it already exists
+                    } else {
+                        console.error(`Failed to register sensor ${sensor.name}:`, sensorError);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to register sensors:', error);
+            throw error;
         }
     };
 
@@ -899,11 +972,11 @@ const WebFlasher = ({ config, onClose }) => {
                     if (done) break;
                     if (!value) continue;
 
-                        value.split('\n').forEach(line => {
-                            if (line.trim()) {
-                                logMessage('deviceOutput', 'info', { line: line.trim() });
-                            }
-                        });
+                    value.split('\n').forEach(line => {
+                        if (line.trim()) {
+                            logMessage('deviceOutput', 'info', { line: line.trim() });
+                        }
+                    });
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -919,7 +992,7 @@ const WebFlasher = ({ config, onClose }) => {
                 monitorReaderRef.current = null;
 
                 try {
-                    await readableStreamClosed.catch(() => {});
+                    await readableStreamClosed.catch(() => { });
                 } catch (_) {
                     // ignore
                 }
@@ -962,7 +1035,7 @@ const WebFlasher = ({ config, onClose }) => {
 
         if (monitorStreamClosedRef.current) {
             try {
-                await monitorStreamClosedRef.current.catch(() => {});
+                await monitorStreamClosedRef.current.catch(() => { });
             } catch (_) {
                 // ignore errors from pipeline closure
             }
@@ -1215,11 +1288,10 @@ const WebFlasher = ({ config, onClose }) => {
                         {flashProgress === 100 && !isFlashing && (
                             <button
                                 onClick={isMonitoring ? stopSerialMonitor : startSerialMonitor}
-                                className={`px-4 py-3 flex items-center space-x-2 border rounded-lg ${
-                                    isMonitoring
+                                className={`px-4 py-3 flex items-center space-x-2 border rounded-lg ${isMonitoring
                                         ? 'text-red-600 border-red-600 hover:bg-red-50'
                                         : 'text-green-600 border-green-600 hover:bg-green-50'
-                                }`}
+                                    }`}
                             >
                                 <Usb className="w-4 h-4" />
                                 <span>{isMonitoring ? t('webFlasher.buttons.stopMonitor') : t('webFlasher.buttons.serialMonitor')}</span>

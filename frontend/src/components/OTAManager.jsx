@@ -15,7 +15,11 @@ function OTAManager({ device, onClose }) {
     // Get available firmware versions
     const { data: firmwareVersions = [] } = useQuery(
         ['firmware-versions', device.device_type],
-        () => apiService.getFirmwareVersions(device.device_type || 'esp8266')
+        async () => {
+            const response = await apiService.getFirmwareVersions(device.device_type || 'esp8266');
+            // Handle both array and object responses
+            return Array.isArray(response) ? response : (response?.versions || response?.firmware_versions || []);
+        }
     );
 
     // Get current OTA status
@@ -189,9 +193,8 @@ function OTAManager({ device, onClose }) {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500">{t('otaManager.status.otaEnabled')}</p>
-                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                    device.ota_enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                }`}>
+                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${device.ota_enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                    }`}>
                                     {device.ota_enabled ? t('common.yes') : t('common.no')}
                                 </span>
                             </div>
@@ -251,11 +254,10 @@ function OTAManager({ device, onClose }) {
                                 {firmwareVersions.map((firmware) => (
                                     <div
                                         key={firmware.id}
-                                        className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                                            selectedFirmware === firmware.id.toString()
+                                        className={`border rounded-lg p-3 cursor-pointer transition-colors ${selectedFirmware === firmware.id.toString()
                                                 ? 'border-blue-500 bg-blue-50'
                                                 : 'border-gray-200 hover:border-gray-300'
-                                        }`}
+                                            }`}
                                         onClick={() => setSelectedFirmware(firmware.id.toString())}
                                     >
                                         <div className="flex items-center justify-between">

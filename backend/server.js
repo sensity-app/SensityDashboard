@@ -76,6 +76,9 @@ const rateLimitRoutes = require('./src/routes/rateLimit')(userRateLimiter);
 
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy - needed when behind nginx reverse proxy
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet());
 app.use(cors());

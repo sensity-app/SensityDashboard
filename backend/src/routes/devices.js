@@ -512,24 +512,27 @@ router.post('/:id/heartbeat', [
                    status = 'online',
                    firmware_version = COALESCE($1, firmware_version),
                    uptime_seconds = COALESCE($2, uptime_seconds),
-                   ip_address = $3
-               WHERE id = $4`
+                   ip_address = $3,
+                   wifi_signal_strength = $4
+               WHERE id = $5`
             : `UPDATE devices
                SET last_heartbeat = CURRENT_TIMESTAMP,
                    status = 'online',
                    firmware_version = COALESCE($1, firmware_version),
-                   uptime_seconds = COALESCE($2, uptime_seconds)
-               WHERE id = $3`;
+                   uptime_seconds = COALESCE($2, uptime_seconds),
+                   wifi_signal_strength = $3
+               WHERE id = $4`;
 
         const params = deviceIp
-            ? [firmware_version, uptime, deviceIp, id]
-            : [firmware_version, uptime, id];
+            ? [firmware_version, uptime, deviceIp, wifi_rssi, id]
+            : [firmware_version, uptime, wifi_rssi, id];
 
         await db.query(updateQuery, params);
 
         // Get sensor configuration for this device
         const sensorsResult = await db.query(`
             SELECT
+                ds.id as sensor_id,
                 ds.pin,
                 ds.name,
                 ds.enabled,
@@ -542,15 +545,42 @@ router.post('/:id/heartbeat', [
             ORDER BY ds.pin
         `, [id]);
 
-        // Build sensor configuration array
-        const sensorConfig = sensorsResult.rows.map(sensor => ({
-            pin: sensor.pin,
-            type: sensor.sensor_type,
-            name: sensor.name,
-            enabled: sensor.enabled,
-            calibration_offset: sensor.calibration_offset || 0,
-            calibration_multiplier: sensor.calibration_multiplier || 1
-        }));
+        // Get sensor rules (thresholds) for each sensor
+        const rulesResult = await db.query(`
+            SELECT
+                device_sensor_id,
+                threshold_min,
+                threshold_max,
+                enabled
+            FROM sensor_rules
+            WHERE device_sensor_id = ANY(SELECT id FROM device_sensors WHERE device_id = $1)
+            AND rule_type = 'threshold'
+            AND enabled = true
+            ORDER BY device_sensor_id
+        `, [id]);
+
+        // Create a map of sensor rules by sensor ID
+        const rulesMap = {};
+        rulesResult.rows.forEach(rule => {
+            if (!rulesMap[rule.device_sensor_id]) {
+                rulesMap[rule.device_sensor_id] = rule;
+            }
+        });
+
+        // Build sensor configuration array with thresholds
+        const sensorConfig = sensorsResult.rows.map(sensor => {
+            const rules = rulesMap[sensor.sensor_id];
+            return {
+                pin: sensor.pin,
+                type: sensor.sensor_type,
+                name: sensor.name,
+                enabled: sensor.enabled,
+                calibration_offset: sensor.calibration_offset || 0,
+                calibration_multiplier: sensor.calibration_multiplier || 1,
+                threshold_min: rules?.threshold_min || 0,
+                threshold_max: rules?.threshold_max || 0
+            };
+        });
 
         res.json({
             message: 'Heartbeat received',
@@ -591,6 +621,122 @@ router.post('/:id/alarm', [
     } catch (error) {
         logger.error('Alarm error:', error);
         res.status(500).json({ error: 'Failed to process alarm' });
+    }
+});
+
+// POST /api/devices/:id/threshold-alert - Immediate threshold crossing alert
+router.post('/:id/threshold-alert', [
+    param('id').notEmpty(),
+    body('sensor_pin').notEmpty(),
+    body('sensor_name').notEmpty(),
+    body('value').isNumeric(),
+    body('alert_type').isIn(['above_max', 'below_min']),
+    body('threshold_min').optional().isNumeric(),
+    body('threshold_max').optional().isNumeric()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { id } = req.params;
+        const { sensor_pin, sensor_name, sensor_type, value, alert_type, threshold_min, threshold_max } = req.body;
+
+        // Check cooldown - don't send alert if one was sent recently (default 5 minutes)
+        const ALERT_COOLDOWN_MINUTES = parseInt(process.env.THRESHOLD_ALERT_COOLDOWN_MIN || '5');
+
+        const recentAlertCheck = await db.query(`
+            SELECT id, triggered_at
+            FROM alerts
+            WHERE device_id = $1 
+            AND alert_type = 'threshold_crossing'
+            AND message LIKE $2
+            AND triggered_at > CURRENT_TIMESTAMP - INTERVAL '${ALERT_COOLDOWN_MINUTES} minutes'
+            ORDER BY triggered_at DESC
+            LIMIT 1
+        `, [id, `%${sensor_name}%${alert_type}%`]);
+
+        if (recentAlertCheck.rows.length > 0) {
+            const lastAlert = recentAlertCheck.rows[0];
+            const minutesSinceAlert = Math.floor((Date.now() - new Date(lastAlert.triggered_at)) / 60000);
+            logger.info(`Threshold alert for ${id}/${sensor_name} suppressed - last alert ${minutesSinceAlert}min ago (cooldown: ${ALERT_COOLDOWN_MINUTES}min)`);
+
+            return res.json({
+                message: 'Alert received but suppressed due to cooldown',
+                cooldown_remaining_minutes: ALERT_COOLDOWN_MINUTES - minutesSinceAlert
+            });
+        }
+
+        // Create alert
+        const alertMessage = `${sensor_name} ${alert_type === 'above_max' ? 'exceeded maximum' : 'fell below minimum'} threshold (value: ${value.toFixed(2)})`;
+
+        const alertResult = await db.query(`
+            INSERT INTO alerts (device_id, alert_type, severity, message, triggered_at)
+            VALUES ($1, 'threshold_crossing', 'medium', $2, CURRENT_TIMESTAMP)
+            RETURNING id
+        `, [id, alertMessage]);
+
+        const alertId = alertResult.rows[0].id;
+
+        logger.warn(`Threshold alert from device ${id}: ${alertMessage}`);
+
+        // Send email notification (async, don't wait)
+        setImmediate(async () => {
+            try {
+                const emailService = require('../services/emailService');
+
+                // Get device info
+                const deviceResult = await db.query(`
+                    SELECT d.name, d.id, l.name as location_name
+                    FROM devices d
+                    LEFT JOIN locations l ON d.location_id = l.id
+                    WHERE d.id = $1
+                `, [id]);
+
+                if (deviceResult.rows.length === 0) return;
+
+                const device = deviceResult.rows[0];
+
+                // Get notification recipients for this device/location
+                const recipientsResult = await db.query(`
+                    SELECT DISTINCT u.email, u.name
+                    FROM users u
+                    WHERE u.role IN ('admin', 'operator')
+                    AND u.email IS NOT NULL
+                `);
+
+                if (recipientsResult.rows.length === 0) {
+                    logger.info('No recipients configured for threshold alerts');
+                    return;
+                }
+
+                const recipients = recipientsResult.rows.map(r => r.email);
+
+                await emailService.sendThresholdAlert(device, {
+                    sensor_name,
+                    sensor_type: sensor_type || 'Unknown',
+                    sensor_pin,
+                    value,
+                    alert_type,
+                    threshold_min,
+                    threshold_max,
+                    alert_id: alertId
+                }, recipients);
+
+                logger.info(`Threshold alert email sent to ${recipients.length} recipient(s)`);
+            } catch (emailError) {
+                logger.error('Failed to send threshold alert email:', emailError);
+            }
+        });
+
+        res.json({
+            message: 'Threshold alert received and processed',
+            alert_id: alertId
+        });
+    } catch (error) {
+        logger.error('Threshold alert error:', error);
+        res.status(500).json({ error: 'Failed to process threshold alert' });
     }
 });
 
@@ -1510,6 +1656,265 @@ router.get('/:id/stats', authenticateToken, async (req, res) => {
     } catch (error) {
         logger.error('Get device stats error:', error);
         res.status(500).json({ error: 'Failed to fetch device statistics', details: error.message });
+    }
+});
+
+// GET /api/devices/:id/sensors/:sensorId/threshold-suggestions - Get AI-suggested thresholds based on historical data
+router.get('/:id/sensors/:sensorId/threshold-suggestions', authenticateToken, [
+    param('id').notEmpty(),
+    param('sensorId').isInt()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { id, sensorId } = req.params;
+        const { days = 7 } = req.query; // Default to last 7 days
+
+        // Get sensor info
+        const sensorResult = await db.query(`
+            SELECT ds.id, ds.name, ds.pin, st.name as sensor_type, st.unit
+            FROM device_sensors ds
+            JOIN sensor_types st ON ds.sensor_type_id = st.id
+            WHERE ds.id = $1 AND ds.device_id = $2
+        `, [sensorId, id]);
+
+        if (sensorResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Sensor not found' });
+        }
+
+        const sensor = sensorResult.rows[0];
+
+        // Get historical telemetry data
+        const telemetryResult = await db.query(`
+            SELECT processed_value
+            FROM telemetry
+            WHERE device_sensor_id = $1
+            AND timestamp > NOW() - INTERVAL '${parseInt(days)} days'
+            ORDER BY timestamp DESC
+        `, [sensorId]);
+
+        if (telemetryResult.rows.length < 10) {
+            return res.status(200).json({
+                sensor_id: parseInt(sensorId),
+                sensor_name: sensor.name,
+                sensor_type: sensor.sensor_type,
+                unit: sensor.unit,
+                message: 'Insufficient data for threshold recommendations',
+                data_points: telemetryResult.rows.length,
+                minimum_required: 10,
+                suggestions: null
+            });
+        }
+
+        const values = telemetryResult.rows.map(row => parseFloat(row.processed_value));
+
+        // Calculate statistics
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const sortedValues = [...values].sort((a, b) => a - b);
+        const min = sortedValues[0];
+        const max = sortedValues[sortedValues.length - 1];
+        const median = sortedValues[Math.floor(sortedValues.length / 2)];
+
+        // Calculate standard deviation
+        const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+        const stdDev = Math.sqrt(variance);
+
+        // Calculate percentiles
+        const p5 = sortedValues[Math.floor(sortedValues.length * 0.05)];
+        const p95 = sortedValues[Math.floor(sortedValues.length * 0.95)];
+        const p10 = sortedValues[Math.floor(sortedValues.length * 0.10)];
+        const p90 = sortedValues[Math.floor(sortedValues.length * 0.90)];
+
+        // Generate suggestions based on distribution
+        const suggestions = {
+            // Conservative: Mean ± 2 std dev (covers ~95% of normal distribution)
+            conservative: {
+                min: parseFloat((mean - 2 * stdDev).toFixed(2)),
+                max: parseFloat((mean + 2 * stdDev).toFixed(2)),
+                description: 'Conservative thresholds covering 95% of normal values (±2σ)',
+                alert_frequency: 'Rare alerts, only extreme outliers'
+            },
+            // Moderate: Mean ± 1.5 std dev
+            moderate: {
+                min: parseFloat((mean - 1.5 * stdDev).toFixed(2)),
+                max: parseFloat((mean + 1.5 * stdDev).toFixed(2)),
+                description: 'Balanced thresholds for typical variations (±1.5σ)',
+                alert_frequency: 'Occasional alerts for significant deviations'
+            },
+            // Sensitive: Mean ± 1 std dev (covers ~68% of normal distribution)
+            sensitive: {
+                min: parseFloat((mean - stdDev).toFixed(2)),
+                max: parseFloat((mean + stdDev).toFixed(2)),
+                description: 'Sensitive thresholds for quick detection (±1σ)',
+                alert_frequency: 'More frequent alerts, catches smaller anomalies'
+            },
+            // Percentile-based: Use 5th and 95th percentiles
+            percentile_based: {
+                min: parseFloat(p10.toFixed(2)),
+                max: parseFloat(p90.toFixed(2)),
+                description: 'Percentile-based (10th-90th percentile)',
+                alert_frequency: 'Balanced approach based on actual distribution'
+            }
+        };
+
+        // Add warning if data suggests sensor might be faulty
+        let warnings = [];
+        if (stdDev / mean > 0.5 && mean > 0) {
+            warnings.push('High variability detected - consider checking sensor calibration');
+        }
+        if (max - min > mean * 3 && mean > 0) {
+            warnings.push('Wide data range detected - possible outliers or sensor issues');
+        }
+
+        res.json({
+            sensor_id: parseInt(sensorId),
+            sensor_name: sensor.name,
+            sensor_type: sensor.sensor_type,
+            unit: sensor.unit,
+            analysis: {
+                data_points: values.length,
+                time_range_days: parseInt(days),
+                min: parseFloat(min.toFixed(2)),
+                max: parseFloat(max.toFixed(2)),
+                mean: parseFloat(mean.toFixed(2)),
+                median: parseFloat(median.toFixed(2)),
+                std_deviation: parseFloat(stdDev.toFixed(2)),
+                coefficient_of_variation: mean > 0 ? parseFloat((stdDev / mean * 100).toFixed(2)) : null,
+                percentiles: {
+                    p5: parseFloat(p5.toFixed(2)),
+                    p10: parseFloat(p10.toFixed(2)),
+                    p90: parseFloat(p90.toFixed(2)),
+                    p95: parseFloat(p95.toFixed(2))
+                }
+            },
+            suggestions,
+            warnings: warnings.length > 0 ? warnings : null,
+            recommendation: 'Start with moderate or percentile_based thresholds and adjust based on alert frequency'
+        });
+    } catch (error) {
+        logger.error('Threshold suggestions error:', error);
+        res.status(500).json({ error: 'Failed to calculate threshold suggestions' });
+    }
+});
+
+// POST /api/devices/:id/sensors/:sensorId/rules - Create or update sensor rule
+router.post('/:id/sensors/:sensorId/rules', authenticateToken, [
+    param('id').notEmpty(),
+    param('sensorId').isInt(),
+    body('threshold_min').optional().isNumeric(),
+    body('threshold_max').optional().isNumeric(),
+    body('rule_name').optional().isString(),
+    body('severity').optional().isIn(['low', 'medium', 'high', 'critical'])
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { id, sensorId } = req.params;
+        const {
+            threshold_min,
+            threshold_max,
+            rule_name = 'Threshold Alert',
+            severity = 'medium',
+            enabled = true
+        } = req.body;
+
+        // Verify sensor exists and belongs to device
+        const sensorCheck = await db.query(`
+            SELECT id FROM device_sensors WHERE id = $1 AND device_id = $2
+        `, [sensorId, id]);
+
+        if (sensorCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Sensor not found' });
+        }
+
+        // Check if rule already exists
+        const existingRule = await db.query(`
+            SELECT id FROM sensor_rules
+            WHERE device_sensor_id = $1 AND rule_type = 'threshold'
+        `, [sensorId]);
+
+        let result;
+        if (existingRule.rows.length > 0) {
+            // Update existing rule
+            result = await db.query(`
+                UPDATE sensor_rules
+                SET threshold_min = $1,
+                    threshold_max = $2,
+                    rule_name = $3,
+                    severity = $4,
+                    enabled = $5
+                WHERE id = $6
+                RETURNING *
+            `, [threshold_min, threshold_max, rule_name, severity, enabled, existingRule.rows[0].id]);
+        } else {
+            // Create new rule
+            result = await db.query(`
+                INSERT INTO sensor_rules (
+                    device_sensor_id,
+                    rule_name,
+                    rule_type,
+                    condition,
+                    threshold_min,
+                    threshold_max,
+                    severity,
+                    enabled
+                ) VALUES ($1, $2, 'threshold', 'between', $3, $4, $5, $6)
+                RETURNING *
+            `, [sensorId, rule_name, threshold_min, threshold_max, severity, enabled]);
+        }
+
+        logger.info(`Sensor rule ${existingRule.rows.length > 0 ? 'updated' : 'created'} for sensor ${sensorId}`);
+
+        res.json({
+            message: existingRule.rows.length > 0 ? 'Rule updated successfully' : 'Rule created successfully',
+            rule: result.rows[0]
+        });
+    } catch (error) {
+        logger.error('Create/update sensor rule error:', error);
+        res.status(500).json({ error: 'Failed to save sensor rule' });
+    }
+});
+
+// DELETE /api/devices/:id/sensors/:sensorId/rules/:ruleId - Delete sensor rule
+router.delete('/:id/sensors/:sensorId/rules/:ruleId', authenticateToken, [
+    param('id').notEmpty(),
+    param('sensorId').isInt(),
+    param('ruleId').isInt()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { id, sensorId, ruleId } = req.params;
+
+        // Verify rule exists and belongs to the correct sensor/device
+        const ruleCheck = await db.query(`
+            SELECT sr.id
+            FROM sensor_rules sr
+            JOIN device_sensors ds ON sr.device_sensor_id = ds.id
+            WHERE sr.id = $1 AND ds.id = $2 AND ds.device_id = $3
+        `, [ruleId, sensorId, id]);
+
+        if (ruleCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Rule not found' });
+        }
+
+        await db.query('DELETE FROM sensor_rules WHERE id = $1', [ruleId]);
+
+        logger.info(`Sensor rule ${ruleId} deleted`);
+
+        res.json({ message: 'Rule deleted successfully' });
+    } catch (error) {
+        logger.error('Delete sensor rule error:', error);
+        res.status(500).json({ error: 'Failed to delete sensor rule' });
     }
 });
 

@@ -24,14 +24,14 @@ async function runMigrations() {
         await db.query(`
             CREATE TABLE IF NOT EXISTS migrations (
                 id SERIAL PRIMARY KEY,
-                name VARCHAR(255) UNIQUE NOT NULL,
+                migration_name VARCHAR(255) UNIQUE NOT NULL,
                 applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
         // Check if ESP8266 fix migration has already been applied
         const migrationCheck = await db.query(`
-            SELECT * FROM migrations WHERE name = 'fix_esp8266_sensors_and_ips'
+            SELECT * FROM migrations WHERE migration_name = 'fix_esp8266_sensors_and_ips'
         `);
 
         if (migrationCheck.rows.length === 0) {

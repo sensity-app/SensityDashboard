@@ -799,7 +799,9 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
         const fetchSensorTypes = async () => {
             try {
                 const response = await apiService.getSensorTypes();
-                setSensorTypes(response.sensor_types || response || []);
+                // Handle both array and object responses
+                const types = Array.isArray(response) ? response : (response?.sensor_types || []);
+                setSensorTypes(types);
             } catch (error) {
                 console.error('Failed to fetch sensor types:', error);
                 toast.error(t('deviceDetail.sensorManager.fetchTypesError', 'Failed to load sensor types'));

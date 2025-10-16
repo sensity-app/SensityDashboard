@@ -299,6 +299,89 @@ class EmailService {
         return await this.sendEmail(email, subject, html);
     }
 
+    async sendThresholdAlert(device, sensorAlert, recipients) {
+        const { sensor_name, sensor_type, sensor_pin, value, alert_type, threshold_min, threshold_max, alert_id } = sensorAlert;
+
+        const isAboveMax = alert_type === 'above_max';
+        const thresholdValue = isAboveMax ? threshold_max : threshold_min;
+        const thresholdText = isAboveMax ? 'exceeded maximum' : 'fell below minimum';
+
+        const subject = `[THRESHOLD] ${device.name || `Device ${device.id}`}: ${sensor_name} ${thresholdText}`;
+
+        const html = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: ${isAboveMax ? '#fd7e14' : '#0dcaf0'}; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0; font-size: 24px;">⚠️ Threshold Alert</h1>
+                    <p style="margin: 5px 0 0; opacity: 0.9;">${isAboveMax ? 'Value Exceeded Maximum' : 'Value Below Minimum'}</p>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 20px; border: 1px solid #dee2e6;">
+                    <h2 style="color: #495057; margin-top: 0;">Sensor Threshold Crossed</h2>
+                    <p style="color: #6c757d; line-height: 1.6;">
+                        The sensor <strong>${sensor_name}</strong> on device <strong>${device.name || device.id}</strong>
+                        has ${thresholdText} threshold value.
+                    </p>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #6c757d; width: 45%;">Device:</td>
+                            <td style="padding: 8px 0;">${device.name || device.id}</td>
+                        </tr>
+                        ${device.location_name ? `
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #6c757d;">Location:</td>
+                            <td style="padding: 8px 0;">${device.location_name}</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #6c757d;">Sensor:</td>
+                            <td style="padding: 8px 0;">${sensor_name} (${sensor_type || 'Unknown'})</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #6c757d;">Pin:</td>
+                            <td style="padding: 8px 0;">${sensor_pin}</td>
+                        </tr>
+                        <tr style="background: ${isAboveMax ? '#fff3cd' : '#cff4fc'};">
+                            <td style="padding: 8px; font-weight: bold; color: #495057;">Current Value:</td>
+                            <td style="padding: 8px; font-weight: bold; color: #495057;">${value.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #6c757d;">Threshold ${isAboveMax ? 'Max' : 'Min'}:</td>
+                            <td style="padding: 8px 0;">${thresholdValue !== undefined ? thresholdValue.toFixed(2) : 'Not set'}</td>
+                        </tr>
+                        ${threshold_min !== undefined && threshold_max !== undefined ? `
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #6c757d;">Valid Range:</td>
+                            <td style="padding: 8px 0;">${threshold_min.toFixed(2)} - ${threshold_max.toFixed(2)}</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #6c757d;">Triggered At:</td>
+                            <td style="padding: 8px 0;">${new Date().toLocaleString()}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div style="background: white; padding: 20px; border: 1px solid #dee2e6; border-top: none; text-align: center;">
+                    <div style="margin-bottom: 20px;">
+                        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/devices/${device.id}"
+                           style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">
+                            View Device Details
+                        </a>
+                    </div>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 8px 8px;">
+                    <p style="color: #6c757d; margin: 0; font-size: 12px; text-align: center;">
+                        This is an automated threshold alert from your IoT monitoring system.
+                        ${alert_id ? `Alert ID: ${alert_id}` : ''}
+                    </p>
+                </div>
+            </div>
+        `;
+
+        return await this.sendEmail(recipients, subject, html);
+    }
+
     // Health check method
     async healthCheck() {
         if (!this.transporter) {

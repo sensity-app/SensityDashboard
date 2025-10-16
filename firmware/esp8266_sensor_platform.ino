@@ -14,8 +14,7 @@
 #define OTA_CONFIG_BLOCK32 OTA_CONFIG_BLOCK16 OTA_CONFIG_BLOCK16
 
 const char OTA_CONFIG_PLACEHOLDER[] =
-    "__CONFIG_START__"
-    OTA_CONFIG_BLOCK32
+    "__CONFIG_START__" OTA_CONFIG_BLOCK32
     "__CONFIG_END__";
 
 #undef OTA_CONFIG_BLOCK32
@@ -34,7 +33,8 @@ const char OTA_CONFIG_PLACEHOLDER[] =
 #endif
 
 // Configuration structure
-struct DeviceConfig {
+struct DeviceConfig
+{
     char wifi_ssid[64];
     char wifi_password[64];
     char server_url[128];
@@ -48,9 +48,10 @@ struct DeviceConfig {
 
 // Sensor definitions
 #define MAX_SENSORS 8
-#define FILTER_WINDOW_SIZE 10  // Moving average window size
+#define FILTER_WINDOW_SIZE 10 // Moving average window size
 
-struct SensorConfig {
+struct SensorConfig
+{
     int pin;
     String type;
     String name;
@@ -62,7 +63,8 @@ struct SensorConfig {
 };
 
 // Sensor filtering data structures
-struct SensorFilter {
+struct SensorFilter
+{
     float readings[FILTER_WINDOW_SIZE];
     int readIndex;
     float total;
@@ -79,6 +81,7 @@ SensorConfig sensors[MAX_SENSORS];
 int sensorCount = 0;
 unsigned long lastHeartbeat = 0;
 unsigned long lastSensorRead = 0;
+unsigned long lastTelemetrySend = 0;
 unsigned long lastWiFiCheck = 0;
 const unsigned long WIFI_RECONNECT_INTERVAL = 15000; // 15 seconds
 WiFiClient wifiClient;
@@ -86,19 +89,29 @@ WiFiClient wifiClient;
 WiFiClientSecure secureClient;
 #endif
 
+// Sensor threshold tracking
+struct ThresholdState
+{
+    bool wasAboveMax;
+    bool wasBelowMin;
+    unsigned long lastAlertTime;
+};
+ThresholdState thresholdStates[MAX_SENSORS];
+
 // Hardware instances (initialize based on configuration)
 #if SENSOR_DHT_ENABLED
-DHT* dht = nullptr;
+DHT *dht = nullptr;
 #endif
 
 #if SENSOR_DISTANCE_ENABLED
-Ultrasonic* ultrasonic = nullptr;
+Ultrasonic *ultrasonic = nullptr;
 #endif
 
 // Forward declarations
-void notifyOTAStatus(const String& status, int progress, const String& errorMessage = "");
+void notifyOTAStatus(const String &status, int progress, const String &errorMessage = "");
 
-void setup() {
+void setup()
+{
     Serial.begin(115200);
     delay(1000);
 
@@ -117,7 +130,8 @@ void setup() {
     connectToWiFi();
 
     // Check for firmware updates if enabled
-    if (config.ota_enabled) {
+    if (config.ota_enabled)
+    {
         checkForFirmwareUpdate();
     }
 
@@ -125,16 +139,22 @@ void setup() {
     sendHeartbeat();
 }
 
-void loop() {
+void loop()
+{
     // Check WiFi connection every 15 seconds
-    if (millis() - lastWiFiCheck >= WIFI_RECONNECT_INTERVAL) {
-        if (WiFi.status() != WL_CONNECTED) {
+    if (millis() - lastWiFiCheck >= WIFI_RECONNECT_INTERVAL)
+    {
+        if (WiFi.status() != WL_CONNECTED)
+        {
             Serial.println("========================================");
             Serial.println("WiFi disconnected! Attempting reconnection...");
             Serial.println("========================================");
             connectToWiFi();
-        } else {
-            if (config.debug_mode) {
+        }
+        else
+        {
+            if (config.debug_mode)
+            {
                 Serial.println("WiFi status check: Connected");
                 Serial.print("Signal strength: ");
                 Serial.print(WiFi.RSSI());
@@ -145,31 +165,45 @@ void loop() {
     }
 
     // Only perform network operations if WiFi is connected
-    if (WiFi.status() == WL_CONNECTED) {
-        // Read sensors at regular intervals (every 5 seconds)
-        if (millis() - lastSensorRead >= 5000) {
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        // Read sensors at fast interval (1 second for real-time monitoring)
+        if (millis() - lastSensorRead >= SENSOR_READ_INTERVAL_MS)
+        {
             readAndProcessSensors();
             lastSensorRead = millis();
         }
 
+        // Send batched telemetry data every 5 seconds
+        if (millis() - lastTelemetrySend >= TELEMETRY_SEND_INTERVAL_MS)
+        {
+            // Telemetry is sent automatically by readAndProcessSensors when batch is ready
+            lastTelemetrySend = millis();
+        }
+
         // Send heartbeat at configured interval
-        if (millis() - lastHeartbeat >= (config.heartbeat_interval * 1000)) {
+        if (millis() - lastHeartbeat >= (config.heartbeat_interval * 1000))
+        {
             sendHeartbeat();
         }
 
         // Handle any pending OTA updates
         handleOTAUpdates();
-    } else {
+    }
+    else
+    {
         // Log warning if disconnected for too long
-        if (config.debug_mode && (millis() - lastWiFiCheck) % 30000 < 1000) {
+        if (config.debug_mode && (millis() - lastWiFiCheck) % 30000 < 1000)
+        {
             Serial.println("WARNING: WiFi still disconnected, waiting for reconnection...");
         }
     }
 
-    delay(1000);
+    delay(100); // Reduced delay for faster response
 }
 
-void loadConfiguration() {
+void loadConfiguration()
+{
     // Use predefined configuration from device_config.h
     strcpy(config.wifi_ssid, WIFI_SSID);
     strcpy(config.wifi_password, WIFI_PASSWORD);
@@ -179,12 +213,13 @@ void loadConfiguration() {
     config.armed = DEVICE_ARMED;
     config.ota_enabled = OTA_ENABLED;
     config.debug_mode = DEBUG_MODE;
-    config.config_version = 2;  // Version 2 uses predefined config
+    config.config_version = 2; // Version 2 uses predefined config
 
     // Save to EEPROM for runtime updates if needed
     saveConfiguration();
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("=== DEVICE CONFIGURATION ===");
         Serial.println("Device ID: " + String(config.device_id));
         Serial.println("Location: " + String(DEVICE_LOCATION));
@@ -197,21 +232,23 @@ void loadConfiguration() {
     }
 }
 
-void saveConfiguration() {
+void saveConfiguration()
+{
     EEPROM.put(0, config);
     EEPROM.commit();
     Serial.println("Configuration saved to EEPROM");
 }
 
-void initializeSensors() {
+void initializeSensors()
+{
     sensorCount = 0;
 
     Serial.println("========================================");
     Serial.println("INITIALIZING SENSORS");
     Serial.println("========================================");
 
-    // Temperature & Humidity Sensor (DHT)
-    #if SENSOR_DHT_ENABLED
+// Temperature & Humidity Sensor (DHT)
+#if SENSOR_DHT_ENABLED
     dht = new DHT(SENSOR_DHT_PIN, SENSOR_DHT_TYPE);
     dht->begin();
     pinMode(SENSOR_DHT_PIN, INPUT_PULLUP);
@@ -222,84 +259,92 @@ void initializeSensors() {
     sensors[sensorCount] = {SENSOR_DHT_PIN, "humidity", "Humidity", 0, 1, true, HUMIDITY_THRESHOLD_MIN, HUMIDITY_THRESHOLD_MAX};
     sensorCount++;
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("DHT sensor initialized on pin " + String(SENSOR_DHT_PIN));
     }
-    #endif
+#endif
 
-    // Light Sensor (Photodiode/LDR)
-    #if SENSOR_LIGHT_ENABLED
+// Light Sensor (Photodiode/LDR)
+#if SENSOR_LIGHT_ENABLED
     sensors[sensorCount] = {SENSOR_LIGHT_PIN, "light", "Light Sensor", LIGHT_CALIBRATION_OFFSET, LIGHT_CALIBRATION_MULTIPLIER, true, LIGHT_THRESHOLD_MIN, LIGHT_THRESHOLD_MAX};
     sensorCount++;
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("Light sensor initialized on pin A0");
     }
-    #endif
+#endif
 
-    // Motion Sensor (PIR)
-    #if SENSOR_MOTION_ENABLED
+// Motion Sensor (PIR)
+#if SENSOR_MOTION_ENABLED
     pinMode(SENSOR_MOTION_PIN, INPUT);
     sensors[sensorCount] = {SENSOR_MOTION_PIN, "motion", "Motion Detector", 0, 1, true, MOTION_THRESHOLD_MIN, MOTION_THRESHOLD_MAX};
     sensorCount++;
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("Motion sensor initialized on pin " + String(SENSOR_MOTION_PIN));
     }
-    #endif
+#endif
 
-    // Distance Sensor (Ultrasonic)
-    #if SENSOR_DISTANCE_ENABLED
+// Distance Sensor (Ultrasonic)
+#if SENSOR_DISTANCE_ENABLED
     ultrasonic = new Ultrasonic(SENSOR_DISTANCE_TRIGGER_PIN, SENSOR_DISTANCE_ECHO_PIN);
     sensors[sensorCount] = {SENSOR_DISTANCE_TRIGGER_PIN, "distance", "Distance Sensor", 0, 1, true, DISTANCE_THRESHOLD_MIN, DISTANCE_THRESHOLD_MAX};
     sensorCount++;
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("Ultrasonic sensor initialized - Trigger: " + String(SENSOR_DISTANCE_TRIGGER_PIN) + ", Echo: " + String(SENSOR_DISTANCE_ECHO_PIN));
     }
-    #endif
+#endif
 
-    // Sound Sensor
-    #if SENSOR_SOUND_ENABLED
+// Sound Sensor
+#if SENSOR_SOUND_ENABLED
     sensors[sensorCount] = {SENSOR_SOUND_PIN, "sound", "Sound Level", 0, 1, true, SOUND_THRESHOLD_MIN, SOUND_THRESHOLD_MAX};
     sensorCount++;
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("Sound sensor initialized on pin A0");
     }
-    #endif
+#endif
 
-    // Magnetic Door/Window Sensor
-    #if SENSOR_MAGNETIC_ENABLED
+// Magnetic Door/Window Sensor
+#if SENSOR_MAGNETIC_ENABLED
     pinMode(SENSOR_MAGNETIC_PIN, INPUT_PULLUP);
     sensors[sensorCount] = {SENSOR_MAGNETIC_PIN, "magnetic", "Door/Window Sensor", 0, 1, true, MAGNETIC_THRESHOLD_MIN, MAGNETIC_THRESHOLD_MAX};
     sensorCount++;
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("Magnetic sensor initialized on pin " + String(SENSOR_MAGNETIC_PIN));
     }
-    #endif
+#endif
 
-    // Vibration Sensor
-    #if SENSOR_VIBRATION_ENABLED
+// Vibration Sensor
+#if SENSOR_VIBRATION_ENABLED
     pinMode(SENSOR_VIBRATION_PIN, INPUT);
     sensors[sensorCount] = {SENSOR_VIBRATION_PIN, "vibration", "Vibration Sensor", 0, 1, true, VIBRATION_THRESHOLD_MIN, VIBRATION_THRESHOLD_MAX};
     sensorCount++;
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("Vibration sensor initialized on pin " + String(SENSOR_VIBRATION_PIN));
     }
-    #endif
+#endif
 
-    // Gas Sensor
-    #if SENSOR_GAS_ENABLED
+// Gas Sensor
+#if SENSOR_GAS_ENABLED
     sensors[sensorCount] = {SENSOR_GAS_PIN, "gas", "Gas Sensor", 0, 1, true, GAS_THRESHOLD_MIN, GAS_THRESHOLD_MAX};
     sensorCount++;
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("Gas sensor initialized on pin A0");
     }
-    #endif
+#endif
 
     Serial.print("✅ Total sensors initialized: ");
     Serial.println(sensorCount);
@@ -309,15 +354,17 @@ void initializeSensors() {
 /**
  * Initialize sensor filter for moving average
  */
-void initializeSensorFilter(int sensorIndex) {
-    SensorFilter* filter = &sensorFilters[sensorIndex];
+void initializeSensorFilter(int sensorIndex)
+{
+    SensorFilter *filter = &sensorFilters[sensorIndex];
     filter->readIndex = 0;
     filter->total = 0;
     filter->count = 0;
     filter->lastFiltered = 0;
     filter->initialized = true;
 
-    for (int i = 0; i < FILTER_WINDOW_SIZE; i++) {
+    for (int i = 0; i < FILTER_WINDOW_SIZE; i++)
+    {
         filter->readings[i] = 0;
     }
 }
@@ -326,10 +373,12 @@ void initializeSensorFilter(int sensorIndex) {
  * Apply moving average filter to sensor reading
  * This smooths out short-term spikes and noise
  */
-float applyMovingAverageFilter(int sensorIndex, float newValue) {
-    SensorFilter* filter = &sensorFilters[sensorIndex];
+float applyMovingAverageFilter(int sensorIndex, float newValue)
+{
+    SensorFilter *filter = &sensorFilters[sensorIndex];
 
-    if (!filter->initialized) {
+    if (!filter->initialized)
+    {
         initializeSensorFilter(sensorIndex);
     }
 
@@ -344,7 +393,8 @@ float applyMovingAverageFilter(int sensorIndex, float newValue) {
     filter->readIndex = (filter->readIndex + 1) % FILTER_WINDOW_SIZE;
 
     // Increment count until window is full
-    if (filter->count < FILTER_WINDOW_SIZE) {
+    if (filter->count < FILTER_WINDOW_SIZE)
+    {
         filter->count++;
     }
 
@@ -357,22 +407,30 @@ float applyMovingAverageFilter(int sensorIndex, float newValue) {
  * Apply median filter for spike rejection
  * Takes 5 quick readings and returns the median
  */
-float applyMedianFilter(int pin, bool isAnalog) {
+float applyMedianFilter(int pin, bool isAnalog)
+{
     float readings[5];
 
-    for (int i = 0; i < 5; i++) {
-        if (isAnalog) {
+    for (int i = 0; i < 5; i++)
+    {
+        if (isAnalog)
+        {
             readings[i] = analogRead(pin);
-        } else {
+        }
+        else
+        {
             readings[i] = digitalRead(pin);
         }
         delay(10); // Small delay between readings
     }
 
     // Simple bubble sort
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4 - i; j++) {
-            if (readings[j] > readings[j + 1]) {
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4 - i; j++)
+        {
+            if (readings[j] > readings[j + 1])
+            {
                 float temp = readings[j];
                 readings[j] = readings[j + 1];
                 readings[j + 1] = temp;
@@ -384,8 +442,10 @@ float applyMedianFilter(int pin, bool isAnalog) {
     return readings[2];
 }
 
-void readAndProcessSensors() {
-    if (config.debug_mode) {
+void readAndProcessSensors()
+{
+    if (config.debug_mode)
+    {
         Serial.println("========================================");
         Serial.println("Reading sensors...");
     }
@@ -393,9 +453,12 @@ void readAndProcessSensors() {
     StaticJsonDocument<1024> telemetryDoc;
     JsonArray sensorData = telemetryDoc.createNestedArray("sensors");
 
-    for (int i = 0; i < sensorCount; i++) {
-        if (!sensors[i].enabled) {
-            if (config.debug_mode) {
+    for (int i = 0; i < sensorCount; i++)
+    {
+        if (!sensors[i].enabled)
+        {
+            if (config.debug_mode)
+            {
                 Serial.print("Skipping disabled sensor on pin ");
                 Serial.println(sensors[i].pin);
             }
@@ -408,81 +471,97 @@ void readAndProcessSensors() {
         bool hasReading = false;
 
         // Read sensor based on type with median filtering for analog sensors
-        if (sensors[i].type == "light") {
+        if (sensors[i].type == "light")
+        {
             rawValue = applyMedianFilter(sensors[i].pin, true);
             filteredValue = applyMovingAverageFilter(i, rawValue);
             processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
-
-        } else if (sensors[i].type == "photodiode") {
+        }
+        else if (sensors[i].type == "photodiode")
+        {
             rawValue = applyMedianFilter(sensors[i].pin, true);
             filteredValue = applyMovingAverageFilter(i, rawValue);
             processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
-
-        } else if (sensors[i].type == "temperature") {
+        }
+        else if (sensors[i].type == "temperature")
+        {
 #if SENSOR_DHT_ENABLED
-            if (dht != nullptr) {
+            if (dht != nullptr)
+            {
                 rawValue = dht->readTemperature();
-                if (!isnan(rawValue)) {
+                if (!isnan(rawValue))
+                {
                     filteredValue = applyMovingAverageFilter(i, rawValue);
                     processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
                     hasReading = true;
                 }
             }
 #endif
-
-        } else if (sensors[i].type == "humidity") {
+        }
+        else if (sensors[i].type == "humidity")
+        {
 #if SENSOR_DHT_ENABLED
-            if (dht != nullptr) {
+            if (dht != nullptr)
+            {
                 rawValue = dht->readHumidity();
-                if (!isnan(rawValue)) {
+                if (!isnan(rawValue))
+                {
                     filteredValue = applyMovingAverageFilter(i, rawValue);
                     processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
                     hasReading = true;
                 }
             }
 #endif
-
-        } else if (sensors[i].type == "motion") {
+        }
+        else if (sensors[i].type == "motion")
+        {
             rawValue = digitalRead(sensors[i].pin);
-            processedValue = rawValue;  // No filtering for binary sensors
+            processedValue = rawValue; // No filtering for binary sensors
             hasReading = true;
-
-        } else if (sensors[i].type == "distance") {
+        }
+        else if (sensors[i].type == "distance")
+        {
 #if SENSOR_DISTANCE_ENABLED
-            if (ultrasonic != nullptr) {
+            if (ultrasonic != nullptr)
+            {
                 rawValue = ultrasonic->read();
                 filteredValue = applyMovingAverageFilter(i, rawValue);
                 processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
                 hasReading = true;
             }
 #endif
-
-        } else if (sensors[i].type == "sound") {
+        }
+        else if (sensors[i].type == "sound")
+        {
             rawValue = applyMedianFilter(sensors[i].pin, true);
             filteredValue = applyMovingAverageFilter(i, rawValue);
             processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
-
-        } else if (sensors[i].type == "magnetic") {
+        }
+        else if (sensors[i].type == "magnetic")
+        {
             rawValue = digitalRead(sensors[i].pin);
-            processedValue = rawValue;  // No filtering for binary sensors
+            processedValue = rawValue; // No filtering for binary sensors
             hasReading = true;
-
-        } else if (sensors[i].type == "vibration") {
+        }
+        else if (sensors[i].type == "vibration")
+        {
             rawValue = digitalRead(sensors[i].pin);
-            processedValue = rawValue;  // No filtering for binary sensors
+            processedValue = rawValue; // No filtering for binary sensors
             hasReading = true;
-
-        } else if (sensors[i].type == "gas") {
+        }
+        else if (sensors[i].type == "gas")
+        {
             rawValue = applyMedianFilter(sensors[i].pin, true);
             filteredValue = applyMovingAverageFilter(i, rawValue);
             processedValue = (filteredValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
             hasReading = true;
         }
 
-        if (hasReading) {
+        if (hasReading)
+        {
             JsonObject sensor = sensorData.createNestedObject();
             sensor["pin"] = sensors[i].pin;
             sensor["type"] = sensors[i].type;
@@ -492,16 +571,61 @@ void readAndProcessSensors() {
             sensor["processed_value"] = processedValue;
             sensor["timestamp"] = millis() / 1000; // Use uptime in seconds
 
-            // Check for alarm conditions using filtered/processed value
+// Check for threshold crossings with immediate alert
+#if THRESHOLD_ALERT_ENABLED
+            bool thresholdCrossed = false;
+            String alertType = "";
+
+            // Check if crossed above maximum threshold
+            if (processedValue > sensors[i].threshold_max && !thresholdStates[i].wasAboveMax)
+            {
+                thresholdCrossed = true;
+                thresholdStates[i].wasAboveMax = true;
+                alertType = "above_max";
+            }
+            // Check if returned below maximum threshold
+            else if (processedValue <= sensors[i].threshold_max && thresholdStates[i].wasAboveMax)
+            {
+                thresholdStates[i].wasAboveMax = false;
+            }
+
+            // Check if crossed below minimum threshold
+            if (processedValue < sensors[i].threshold_min && !thresholdStates[i].wasBelowMin)
+            {
+                thresholdCrossed = true;
+                thresholdStates[i].wasBelowMin = true;
+                alertType = "below_min";
+            }
+            // Check if returned above minimum threshold
+            else if (processedValue >= sensors[i].threshold_min && thresholdStates[i].wasBelowMin)
+            {
+                thresholdStates[i].wasBelowMin = false;
+            }
+
+            // Send immediate alert if threshold crossed
+            if (thresholdCrossed && config.armed)
+            {
+                if (config.debug_mode)
+                {
+                    Serial.println("!!! THRESHOLD CROSSED: " + sensors[i].name + " " + alertType + " !!!");
+                }
+                sendImmediateThresholdAlert(i, processedValue, alertType);
+            }
+#endif
+
+            // Standard alarm check (for compatibility)
             if (config.armed &&
                 (processedValue < sensors[i].threshold_min ||
-                 processedValue > sensors[i].threshold_max)) {
+                 processedValue > sensors[i].threshold_max))
+            {
                 sendAlarmEvent(i, processedValue);
             }
 
-            if (config.debug_mode) {
+            if (config.debug_mode)
+            {
                 Serial.print("Sensor " + sensors[i].name + " - Raw: " + String(rawValue));
-                if (filteredValue > 0) {
+                if (filteredValue > 0)
+                {
                     Serial.print(" | Filtered: " + String(filteredValue));
                 }
                 Serial.println(" | Processed: " + String(processedValue));
@@ -510,37 +634,48 @@ void readAndProcessSensors() {
     }
 
     // Send telemetry data
-    if (sensorData.size() > 0) {
-        if (config.debug_mode) {
+    if (sensorData.size() > 0)
+    {
+        if (config.debug_mode)
+        {
             Serial.print("Sending telemetry for ");
             Serial.print(sensorData.size());
             Serial.println(" sensors");
         }
         sendTelemetryData(telemetryDoc);
-    } else {
-        if (config.debug_mode) {
+    }
+    else
+    {
+        if (config.debug_mode)
+        {
             Serial.println("No sensor data to send");
         }
     }
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("========================================");
     }
 }
 
-void sendTelemetryData(const JsonDocument& telemetryDoc) {
+void sendTelemetryData(const JsonDocument &telemetryDoc)
+{
     HTTPClient http;
     String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/telemetry";
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.print("Sending telemetry to: ");
         Serial.println(endpoint);
     }
 
 #if USE_HTTPS
-    if (strlen(SERVER_FINGERPRINT) > 0) {
+    if (strlen(SERVER_FINGERPRINT) > 0)
+    {
         secureClient.setFingerprint(SERVER_FINGERPRINT);
-    } else {
+    }
+    else
+    {
         secureClient.setInsecure();
     }
     http.begin(secureClient, endpoint);
@@ -552,7 +687,8 @@ void sendTelemetryData(const JsonDocument& telemetryDoc) {
     String payload;
     serializeJson(telemetryDoc, payload);
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.print("Payload size: ");
         Serial.print(payload.length());
         Serial.println(" bytes");
@@ -560,27 +696,34 @@ void sendTelemetryData(const JsonDocument& telemetryDoc) {
 
     int httpCode = http.POST(payload);
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.print("HTTP Response Code: ");
         Serial.println(httpCode);
     }
 
-    if (httpCode != 200) {
+    if (httpCode != 200)
+    {
         Serial.print("⚠️  Telemetry send failed with code: ");
         Serial.println(httpCode);
-        if (config.debug_mode && http.getString().length() > 0) {
+        if (config.debug_mode && http.getString().length() > 0)
+        {
             Serial.print("Response: ");
             Serial.println(http.getString());
         }
-    } else if (config.debug_mode) {
+    }
+    else if (config.debug_mode)
+    {
         Serial.println("✅ Telemetry sent successfully");
     }
 
     http.end();
 }
 
-void sendHeartbeat() {
-    if (config.debug_mode) {
+void sendHeartbeat()
+{
+    if (config.debug_mode)
+    {
         Serial.println("========================================");
         Serial.println("Sending heartbeat...");
     }
@@ -588,9 +731,12 @@ void sendHeartbeat() {
     HTTPClient http;
     String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/heartbeat";
 #if USE_HTTPS
-    if (strlen(SERVER_FINGERPRINT) > 0) {
+    if (strlen(SERVER_FINGERPRINT) > 0)
+    {
         secureClient.setFingerprint(SERVER_FINGERPRINT);
-    } else {
+    }
+    else
+    {
         secureClient.setInsecure();
     }
     http.begin(secureClient, endpoint);
@@ -615,15 +761,18 @@ void sendHeartbeat() {
     String payload;
     serializeJson(doc, payload);
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("Sending heartbeat: " + payload);
     }
 
     int httpCode = http.POST(payload);
 
-    if (httpCode > 0) {
+    if (httpCode > 0)
+    {
         String response = http.getString();
-        if (config.debug_mode) {
+        if (config.debug_mode)
+        {
             Serial.print("HTTP Response Code: ");
             Serial.println(httpCode);
             Serial.print("Heartbeat response: ");
@@ -632,7 +781,9 @@ void sendHeartbeat() {
 
         // Parse response for configuration updates
         parseServerResponse(response);
-    } else {
+    }
+    else
+    {
         Serial.print("⚠️  Heartbeat failed with code: ");
         Serial.println(httpCode);
     }
@@ -640,28 +791,34 @@ void sendHeartbeat() {
     http.end();
     lastHeartbeat = millis();
 
-    if (config.debug_mode) {
+    if (config.debug_mode)
+    {
         Serial.println("========================================");
     }
 }
 
-void parseServerResponse(const String& response) {
-    StaticJsonDocument<2048> doc;  // Increased size for sensor config
+void parseServerResponse(const String &response)
+{
+    StaticJsonDocument<2048> doc; // Increased size for sensor config
     DeserializationError error = deserializeJson(doc, response);
 
-    if (error) {
+    if (error)
+    {
         Serial.println("Failed to parse server response");
         return;
     }
 
     // Check for configuration updates in "config" object (new format)
-    if (doc.containsKey("config")) {
+    if (doc.containsKey("config"))
+    {
         JsonObject configObj = doc["config"];
 
         // Update sensor configuration from heartbeat response
-        if (configObj.containsKey("sensors")) {
+        if (configObj.containsKey("sensors"))
+        {
             JsonArray sensorConfigs = configObj["sensors"];
-            if (sensorConfigs.size() > 0) {
+            if (sensorConfigs.size() > 0)
+            {
                 Serial.println("========================================");
                 Serial.print("Received sensor configuration update with ");
                 Serial.print(sensorConfigs.size());
@@ -672,13 +829,15 @@ void parseServerResponse(const String& response) {
         }
 
         // Update other device configs if present
-        if (configObj.containsKey("heartbeat_interval")) {
+        if (configObj.containsKey("heartbeat_interval"))
+        {
             config.heartbeat_interval = configObj["heartbeat_interval"];
             Serial.print("Updated heartbeat interval: ");
             Serial.println(config.heartbeat_interval);
         }
 
-        if (configObj.containsKey("armed")) {
+        if (configObj.containsKey("armed"))
+        {
             config.armed = configObj["armed"];
             Serial.print("Armed status: ");
             Serial.println(config.armed ? "true" : "false");
@@ -686,27 +845,32 @@ void parseServerResponse(const String& response) {
     }
 
     // Legacy format support
-    if (doc.containsKey("config_update")) {
+    if (doc.containsKey("config_update"))
+    {
         JsonObject configUpdate = doc["config_update"];
 
         bool configChanged = false;
 
-        if (configUpdate.containsKey("heartbeat_interval")) {
+        if (configUpdate.containsKey("heartbeat_interval"))
+        {
             config.heartbeat_interval = configUpdate["heartbeat_interval"];
             configChanged = true;
         }
 
-        if (configUpdate.containsKey("armed")) {
+        if (configUpdate.containsKey("armed"))
+        {
             config.armed = configUpdate["armed"];
             configChanged = true;
         }
 
-        if (configUpdate.containsKey("debug_mode")) {
+        if (configUpdate.containsKey("debug_mode"))
+        {
             config.debug_mode = configUpdate["debug_mode"];
             configChanged = true;
         }
 
-        if (configChanged) {
+        if (configChanged)
+        {
             config.config_version++;
             saveConfiguration();
             Serial.println("Configuration updated from server (legacy format)");
@@ -714,47 +878,61 @@ void parseServerResponse(const String& response) {
     }
 
     // Legacy sensor config format
-    if (doc.containsKey("sensor_config")) {
+    if (doc.containsKey("sensor_config"))
+    {
         JsonArray sensorConfigs = doc["sensor_config"];
         updateSensorConfiguration(sensorConfigs);
     }
 
     // Check for OTA update request
-    if (doc.containsKey("ota_update")) {
+    if (doc.containsKey("ota_update"))
+    {
         JsonObject otaInfo = doc["ota_update"];
-        if (config.ota_enabled && otaInfo["version"] != FIRMWARE_VERSION) {
+        if (config.ota_enabled && otaInfo["version"] != FIRMWARE_VERSION)
+        {
             performOTAUpdate(otaInfo["url"].as<String>(), otaInfo["checksum"].as<String>());
         }
     }
 }
 
-void updateSensorConfiguration(JsonArray sensorConfigs) {
+void updateSensorConfiguration(JsonArray sensorConfigs)
+{
     int updatedCount = 0;
 
-    for (int i = 0; i < sensorConfigs.size() && i < MAX_SENSORS; i++) {
+    for (int i = 0; i < sensorConfigs.size() && i < MAX_SENSORS; i++)
+    {
         JsonObject sensorConfig = sensorConfigs[i];
 
-        if (sensorConfig.containsKey("pin")) {
+        if (sensorConfig.containsKey("pin"))
+        {
             // Handle both string pins (like "D1") and numeric pins
             String pinStr = sensorConfig["pin"].as<String>();
             int pinNum = -1;
 
             // Convert pin string to number if needed
-            if (pinStr.startsWith("D")) {
+            if (pinStr.startsWith("D"))
+            {
                 pinNum = pinStr.substring(1).toInt();
-            } else if (pinStr.startsWith("A")) {
+            }
+            else if (pinStr.startsWith("A"))
+            {
                 pinNum = A0; // Analog pin
-            } else {
+            }
+            else
+            {
                 pinNum = pinStr.toInt();
             }
 
             // Find matching sensor by pin
             bool found = false;
-            for (int j = 0; j < sensorCount; j++) {
-                if (sensors[j].pin == pinNum) {
+            for (int j = 0; j < sensorCount; j++)
+            {
+                if (sensors[j].pin == pinNum)
+                {
                     found = true;
 
-                    if (config.debug_mode) {
+                    if (config.debug_mode)
+                    {
                         Serial.print("Updating sensor on pin ");
                         Serial.print(pinStr);
                         Serial.print(" (");
@@ -762,32 +940,40 @@ void updateSensorConfiguration(JsonArray sensorConfigs) {
                         Serial.println(")");
                     }
 
-                    if (sensorConfig.containsKey("name")) {
-                        const char* nameStr = sensorConfig["name"];
-                        if (nameStr != nullptr) {
+                    if (sensorConfig.containsKey("name"))
+                    {
+                        const char *nameStr = sensorConfig["name"];
+                        if (nameStr != nullptr)
+                        {
                             sensors[j].name = nameStr;
                         }
                     }
 
-                    if (sensorConfig.containsKey("threshold_min")) {
+                    if (sensorConfig.containsKey("threshold_min"))
+                    {
                         sensors[j].threshold_min = sensorConfig["threshold_min"];
                     }
-                    if (sensorConfig.containsKey("threshold_max")) {
+                    if (sensorConfig.containsKey("threshold_max"))
+                    {
                         sensors[j].threshold_max = sensorConfig["threshold_max"];
                     }
-                    if (sensorConfig.containsKey("enabled")) {
+                    if (sensorConfig.containsKey("enabled"))
+                    {
                         bool wasEnabled = sensors[j].enabled;
                         sensors[j].enabled = sensorConfig["enabled"];
-                        if (wasEnabled != sensors[j].enabled) {
+                        if (wasEnabled != sensors[j].enabled)
+                        {
                             Serial.print("  Sensor ");
                             Serial.print(sensors[j].enabled ? "ENABLED" : "DISABLED");
                             Serial.println();
                         }
                     }
-                    if (sensorConfig.containsKey("calibration_offset")) {
+                    if (sensorConfig.containsKey("calibration_offset"))
+                    {
                         sensors[j].calibration_offset = sensorConfig["calibration_offset"];
                     }
-                    if (sensorConfig.containsKey("calibration_multiplier")) {
+                    if (sensorConfig.containsKey("calibration_multiplier"))
+                    {
                         sensors[j].calibration_multiplier = sensorConfig["calibration_multiplier"];
                     }
 
@@ -796,7 +982,8 @@ void updateSensorConfiguration(JsonArray sensorConfigs) {
                 }
             }
 
-            if (!found && config.debug_mode) {
+            if (!found && config.debug_mode)
+            {
                 Serial.print("Warning: Sensor config received for pin ");
                 Serial.print(pinStr);
                 Serial.println(" but no matching sensor found in firmware");
@@ -809,7 +996,8 @@ void updateSensorConfiguration(JsonArray sensorConfigs) {
     Serial.println(" sensor(s) from server configuration");
 }
 
-void performOTAUpdate(const String& firmwareUrl, const String& expectedChecksum) {
+void performOTAUpdate(const String &firmwareUrl, const String &expectedChecksum)
+{
     Serial.println("Starting OTA update from: " + firmwareUrl);
 
     // Notify server that OTA is starting
@@ -819,7 +1007,8 @@ void performOTAUpdate(const String& firmwareUrl, const String& expectedChecksum)
     ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
 
     // Set progress callback
-    ESPhttpUpdate.onProgress([&](int cur, int total) {
+    ESPhttpUpdate.onProgress([&](int cur, int total)
+                             {
         int progress = (cur * 100) / total;
         Serial.printf("OTA Progress: %d%%\n", progress);
 
@@ -828,37 +1017,41 @@ void performOTAUpdate(const String& firmwareUrl, const String& expectedChecksum)
         if (progress - lastReported >= 10) {
             notifyOTAStatus("downloading", progress);
             lastReported = progress;
-        }
-    });
+        } });
 
     t_httpUpdate_return ret = ESPhttpUpdate.update(otaClient, firmwareUrl);
 
-    switch (ret) {
-        case HTTP_UPDATE_FAILED:
-            Serial.println("OTA Update failed: " + ESPhttpUpdate.getLastErrorString());
-            notifyOTAStatus("failed", 0, ESPhttpUpdate.getLastErrorString());
-            break;
+    switch (ret)
+    {
+    case HTTP_UPDATE_FAILED:
+        Serial.println("OTA Update failed: " + ESPhttpUpdate.getLastErrorString());
+        notifyOTAStatus("failed", 0, ESPhttpUpdate.getLastErrorString());
+        break;
 
-        case HTTP_UPDATE_NO_UPDATES:
-            Serial.println("No OTA updates available");
-            notifyOTAStatus("completed", 100);
-            break;
+    case HTTP_UPDATE_NO_UPDATES:
+        Serial.println("No OTA updates available");
+        notifyOTAStatus("completed", 100);
+        break;
 
-        case HTTP_UPDATE_OK:
-            Serial.println("OTA Update completed successfully");
-            notifyOTAStatus("completed", 100);
-            ESP.restart();
-            break;
+    case HTTP_UPDATE_OK:
+        Serial.println("OTA Update completed successfully");
+        notifyOTAStatus("completed", 100);
+        ESP.restart();
+        break;
     }
 }
 
-void notifyOTAStatus(const String& status, int progress, const String& errorMessage) {
+void notifyOTAStatus(const String &status, int progress, const String &errorMessage)
+{
     HTTPClient http;
     String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/ota-status";
 #if USE_HTTPS
-    if (strlen(SERVER_FINGERPRINT) > 0) {
+    if (strlen(SERVER_FINGERPRINT) > 0)
+    {
         secureClient.setFingerprint(SERVER_FINGERPRINT);
-    } else {
+    }
+    else
+    {
         secureClient.setInsecure();
     }
     http.begin(secureClient, endpoint);
@@ -870,7 +1063,8 @@ void notifyOTAStatus(const String& status, int progress, const String& errorMess
     StaticJsonDocument<256> doc;
     doc["status"] = status;
     doc["progress"] = progress;
-    if (errorMessage.length() > 0) {
+    if (errorMessage.length() > 0)
+    {
         doc["error_message"] = errorMessage;
     }
 
@@ -881,13 +1075,17 @@ void notifyOTAStatus(const String& status, int progress, const String& errorMess
     http.end();
 }
 
-void sendAlarmEvent(int sensorIndex, float value) {
+void sendAlarmEvent(int sensorIndex, float value)
+{
     HTTPClient http;
     String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/alarm";
 #if USE_HTTPS
-    if (strlen(SERVER_FINGERPRINT) > 0) {
+    if (strlen(SERVER_FINGERPRINT) > 0)
+    {
         secureClient.setFingerprint(SERVER_FINGERPRINT);
-    } else {
+    }
+    else
+    {
         secureClient.setInsecure();
     }
     http.begin(secureClient, endpoint);
@@ -897,48 +1095,116 @@ void sendAlarmEvent(int sensorIndex, float value) {
     http.addHeader("Content-Type", "application/json");
 
     StaticJsonDocument<384> doc;
-    doc["device_id"] = config.device_id;
+}
+
+void sendImmediateThresholdAlert(int sensorIndex, float value, const String &alertType)
+{
+    HTTPClient http;
+    String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/threshold-alert";
+
+#if USE_HTTPS
+    if (strlen(SERVER_FINGERPRINT) > 0)
+    {
+        secureClient.setFingerprint(SERVER_FINGERPRINT);
+    }
+    else
+    {
+        secureClient.setInsecure();
+    }
+    http.begin(secureClient, endpoint);
+#else
+    http.begin(wifiClient, endpoint);
+#endif
+    http.addHeader("Content-Type", "application/json");
+
+    StaticJsonDocument<512> doc;
     doc["sensor_pin"] = sensors[sensorIndex].pin;
     doc["sensor_type"] = sensors[sensorIndex].type;
     doc["sensor_name"] = sensors[sensorIndex].name;
     doc["value"] = value;
     doc["threshold_min"] = sensors[sensorIndex].threshold_min;
     doc["threshold_max"] = sensors[sensorIndex].threshold_max;
-    doc["alert_type"] = "THRESHOLD_BREACH";
-    doc["severity"] = (value > sensors[sensorIndex].threshold_max * 1.5) ? "high" : "medium";
-
-    String message = sensors[sensorIndex].name + " value " + String(value) +
-                    " exceeds threshold (" + String(sensors[sensorIndex].threshold_min) +
-                    " - " + String(sensors[sensorIndex].threshold_max) + ")";
-    doc["message"] = message;
+    doc["alert_type"] = alertType; // "above_max" or "below_min"
+    doc["timestamp"] = millis() / 1000;
 
     String payload;
     serializeJson(doc, payload);
 
-    Serial.println("ALARM: " + message);
+    if (config.debug_mode)
+    {
+        Serial.println("Sending immediate threshold alert:");
+        Serial.println(payload);
+    }
 
     int httpCode = http.POST(payload);
-    if (httpCode > 0) {
-        Serial.println("Alarm sent successfully");
-    } else {
-        Serial.println("Failed to send alarm");
+
+    if (httpCode > 0)
+    {
+        if (config.debug_mode)
+        {
+            Serial.print("Threshold alert sent - Response code: ");
+            Serial.println(httpCode);
+        }
+    }
+    else
+    {
+        if (config.debug_mode)
+        {
+            Serial.print("Threshold alert failed - Error: ");
+            Serial.println(http.errorToString(httpCode));
+        }
     }
 
     http.end();
 }
+doc["device_id"] = config.device_id;
+doc["sensor_pin"] = sensors[sensorIndex].pin;
+doc["sensor_type"] = sensors[sensorIndex].type;
+doc["sensor_name"] = sensors[sensorIndex].name;
+doc["value"] = value;
+doc["threshold_min"] = sensors[sensorIndex].threshold_min;
+doc["threshold_max"] = sensors[sensorIndex].threshold_max;
+doc["alert_type"] = "THRESHOLD_BREACH";
+doc["severity"] = (value > sensors[sensorIndex].threshold_max * 1.5) ? "high" : "medium";
 
-void connectToWiFi() {
+String message = sensors[sensorIndex].name + " value " + String(value) +
+                 " exceeds threshold (" + String(sensors[sensorIndex].threshold_min) +
+                 " - " + String(sensors[sensorIndex].threshold_max) + ")";
+doc["message"] = message;
+
+String payload;
+serializeJson(doc, payload);
+
+Serial.println("ALARM: " + message);
+
+int httpCode = http.POST(payload);
+if (httpCode > 0)
+{
+    Serial.println("Alarm sent successfully");
+}
+else
+{
+    Serial.println("Failed to send alarm");
+}
+
+http.end();
+}
+
+void connectToWiFi()
+{
     WiFi.begin(config.wifi_ssid, config.wifi_password);
     Serial.print("Connecting to WiFi");
 
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+    while (WiFi.status() != WL_CONNECTED && attempts < 30)
+    {
         delay(1000);
         Serial.print(".");
         attempts++;
     }
 
-    if (WiFi.status() == WL_CONNECTED) {
+    if (WiFi.status() == WL_CONNECTED)
+    {
         Serial.println();
         Serial.println("========================================");
         Serial.println("     WiFi Connection Established");
@@ -950,7 +1216,9 @@ void connectToWiFi() {
         Serial.println("Device ID:    " + String(DEVICE_ID));
         Serial.println("Server URL:   " + String(config.server_url));
         Serial.println("========================================");
-    } else {
+    }
+    else
+    {
         Serial.println();
         Serial.println("Failed to connect to WiFi - restarting");
         delay(5000);
@@ -958,13 +1226,17 @@ void connectToWiFi() {
     }
 }
 
-void checkForFirmwareUpdate() {
+void checkForFirmwareUpdate()
+{
     HTTPClient http;
     String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/ota-check";
 #if USE_HTTPS
-    if (strlen(SERVER_FINGERPRINT) > 0) {
+    if (strlen(SERVER_FINGERPRINT) > 0)
+    {
         secureClient.setFingerprint(SERVER_FINGERPRINT);
-    } else {
+    }
+    else
+    {
         secureClient.setInsecure();
     }
     http.begin(secureClient, endpoint);
@@ -982,21 +1254,27 @@ void checkForFirmwareUpdate() {
 
     int httpCode = http.POST(payload);
 
-    if (httpCode == 200) {
+    if (httpCode == 200)
+    {
         String response = http.getString();
         StaticJsonDocument<512> responseDoc;
 
-        if (deserializeJson(responseDoc, response) == DeserializationError::Ok) {
-            if (responseDoc["update_available"].as<bool>()) {
+        if (deserializeJson(responseDoc, response) == DeserializationError::Ok)
+        {
+            if (responseDoc["update_available"].as<bool>())
+            {
                 String firmwareUrl = responseDoc["firmware_url"].as<String>();
                 String checksum = responseDoc["checksum"].as<String>();
 
-                if (config.debug_mode) {
+                if (config.debug_mode)
+                {
                     Serial.println("Firmware update available: " + firmwareUrl);
                 }
 
                 performOTAUpdate(firmwareUrl, checksum);
-            } else if (config.debug_mode) {
+            }
+            else if (config.debug_mode)
+            {
                 Serial.println("Firmware is up to date");
             }
         }
@@ -1005,14 +1283,18 @@ void checkForFirmwareUpdate() {
     http.end();
 }
 
-void handleOTAUpdates() {
+void handleOTAUpdates()
+{
     // Check for pending OTA updates in Redis cache
     HTTPClient http;
     String endpoint = String(config.server_url) + "/api/devices/" + config.device_id + "/ota-pending";
 #if USE_HTTPS
-    if (strlen(SERVER_FINGERPRINT) > 0) {
+    if (strlen(SERVER_FINGERPRINT) > 0)
+    {
         secureClient.setFingerprint(SERVER_FINGERPRINT);
-    } else {
+    }
+    else
+    {
         secureClient.setInsecure();
     }
     http.begin(secureClient, endpoint);
@@ -1023,12 +1305,15 @@ void handleOTAUpdates() {
 
     int httpCode = http.GET();
 
-    if (httpCode == 200) {
+    if (httpCode == 200)
+    {
         String response = http.getString();
         StaticJsonDocument<512> doc;
 
-        if (deserializeJson(doc, response) == DeserializationError::Ok) {
-            if (doc["pending_update"].as<bool>()) {
+        if (deserializeJson(doc, response) == DeserializationError::Ok)
+        {
+            if (doc["pending_update"].as<bool>())
+            {
                 String firmwareUrl = doc["firmware_url"].as<String>();
                 String checksum = doc["checksum"].as<String>();
 

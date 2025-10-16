@@ -139,6 +139,11 @@ update_system() {
     cd "$APP_DIR/backend"
     sudo -u "$APP_USER" npm install --production
 
+    # Run database migrations
+    print_status "Running database migrations..."
+    cd "$APP_DIR/backend"
+    sudo -u "$APP_USER" node migrations/migrate.js
+
     print_status "Updating and building frontend..."
     cd "$APP_DIR/frontend"
     sudo -u "$APP_USER" npm install --include=dev

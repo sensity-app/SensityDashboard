@@ -11,6 +11,29 @@ async function runMigrations() {
         // Initialize database (create tables if they don't exist)
         await db.initialize();
 
+        // Create migrations tracking table if it doesn't exist
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS migrations (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) UNIQUE NOT NULL,
+                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Check if ESP8266 fix migration has already been applied
+        const migrationCheck = await db.query(`
+            SELECT * FROM migrations WHERE name = 'fix_esp8266_sensors_and_ips'
+        `);
+
+        if (migrationCheck.rows.length === 0) {
+            // Run ESP8266 sensor and IP fixes migration
+            logger.info('Running ESP8266 sensor and IP fixes migration...');
+            const fixESP8266SensorsAndIPs = require('./fix_esp8266_sensors_and_ips');
+            await fixESP8266SensorsAndIPs();
+        } else {
+            logger.info('ESP8266 sensor and IP fixes migration already applied, skipping...');
+        }
+
         // Note: No default user is created - use the first-user registration flow instead
 
         logger.info('Database migrations completed successfully');

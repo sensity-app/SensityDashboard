@@ -1077,7 +1077,7 @@ setup_database() {
     print_status "Setting up database schema..."
 
     if [[ -f "$APP_DIR/database/schema.sql" ]]; then
-        sudo -u postgres psql -d sensity_platform -f "$APP_DIR/database/schema.sql"
+        sudo -u postgres psql -d ${DB_NAME} -f "$APP_DIR/database/schema.sql"
         print_success "Database schema created"
     else
         print_warning "Database schema file not found - you'll need to run migrations manually"
@@ -1144,40 +1144,46 @@ run_database_migrations() {
 fix_database_permissions() {
     print_status "Configuring database permissions..."
 
-    sudo -u postgres psql -d sensity_platform << 'EOF'
+    sudo -u postgres psql -d ${DB_NAME} << EOF
 -- Grant all privileges on schema
-GRANT ALL PRIVILEGES ON SCHEMA public TO sensityapp;
+GRANT ALL PRIVILEGES ON SCHEMA public TO ${APP_USER};
 
 -- Grant all privileges on all existing tables
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO sensityapp;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO ${APP_USER};
 
 -- Grant all privileges on all sequences (for auto-increment)
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO sensityapp;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO ${APP_USER};
 
 -- Set default privileges for future objects
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO sensityapp;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO sensityapp;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO sensityapp;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO ${APP_USER};
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO ${APP_USER};
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO ${APP_USER};
 
 -- Ensure ownership of all existing tables
-DO $$
+DO \$\$
 DECLARE
     r RECORD;
 BEGIN
     FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
     LOOP
-        EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' OWNER TO sensityapp';
+        EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' OWNER TO ${APP_USER}';
     END LOOP;
-END $$;
+END \$\$;
 
 -- Ensure ownership of all existing sequences
-DO $$
+DO \$\$
 DECLARE
     r RECORD;
 BEGIN
     FOR r IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public'
     LOOP
-        EXECUTE 'ALTER SEQUENCE ' || quote_ident(r.sequencename) || ' OWNER TO sensityapp';
+        EXECUTE 'ALTER SEQUENCE ' || quote_ident(r.sequencename) || ' OWNER TO ${APP_USER}';
+    END LOOP;
+END \$\$;
+EOF
+
+    print_success "Database permissions configured"
+}
     END LOOP;
 END $$;
 EOF

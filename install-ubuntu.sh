@@ -479,11 +479,19 @@ gather_input() {
 
     # Database password
     while [[ -z "$DB_PASSWORD" ]]; do
-        read -s -p "Enter database password (will be created): " DB_PASSWORD < /dev/tty
+        read -s -p "Enter database password (or press Enter for auto-generated): " DB_PASSWORD_INPUT < /dev/tty
         echo
-        if [[ ${#DB_PASSWORD} -lt 8 ]]; then
-            print_error "Password must be at least 8 characters long"
-            DB_PASSWORD=""
+
+        if [[ -z "$DB_PASSWORD_INPUT" ]]; then
+            # Auto-generate secure password
+            DB_PASSWORD=$(openssl rand -base64 24 | tr -d '\n')
+            print_success "Auto-generated database password: $DB_PASSWORD"
+        else
+            if [[ ${#DB_PASSWORD_INPUT} -lt 8 ]]; then
+                print_error "Password must be at least 8 characters long"
+            else
+                DB_PASSWORD="$DB_PASSWORD_INPUT"
+            fi
         fi
     done
 

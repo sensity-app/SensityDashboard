@@ -49,10 +49,19 @@ async function fixESP8266SensorsAndIPs() {
         // Step 1: Clear invalid IP addresses from all devices
         logger.info('Clearing invalid IP addresses...');
 
+        // Handle inet type - only match valid inet values, skip invalid ones
         const invalidIPsResult = await client.query(`
             UPDATE devices
             SET ip_address = NULL
-            WHERE ip_address IN ('127.0.0.1', '0.0.0.0', 'localhost', '::1', '::')
+            WHERE ip_address IS NOT NULL 
+            AND (
+                ip_address = '127.0.0.1'::inet 
+                OR ip_address = '0.0.0.0'::inet 
+                OR ip_address = '::1'::inet 
+                OR ip_address = '::'::inet
+                OR host(ip_address) = '127.0.0.1'
+                OR host(ip_address) = '0.0.0.0'
+            )
             RETURNING id, name
         `);
 

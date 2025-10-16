@@ -26,6 +26,26 @@ async function fixESP8266SensorsAndIPs() {
 
         logger.info('Starting ESP8266 sensor pin and IP address fixes...');
 
+        // Step 0: Ensure migration tracking table exists (in case this is run standalone)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS migrations (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) UNIQUE NOT NULL,
+                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Check if already applied (for standalone runs)
+        const alreadyApplied = await client.query(`
+            SELECT 1 FROM migrations WHERE name = 'fix_esp8266_sensors_and_ips'
+        `);
+
+        if (alreadyApplied.rows.length > 0) {
+            logger.info('Migration already applied, skipping...');
+            await client.query('COMMIT');
+            return;
+        }
+
         // Step 1: Clear invalid IP addresses from all devices
         logger.info('Clearing invalid IP addresses...');
 
@@ -33,7 +53,7 @@ async function fixESP8266SensorsAndIPs() {
             UPDATE devices
             SET ip_address = NULL
             WHERE ip_address IN ('127.0.0.1', '0.0.0.0', 'localhost', '::1', '::')
-            RETURNING id, name, ip_address
+            RETURNING id, name
         `);
 
         if (invalidIPsResult.rowCount > 0) {
@@ -99,16 +119,7 @@ async function fixESP8266SensorsAndIPs() {
             logger.info('No sensors with incorrect pins found');
         }
 
-        // Step 3: Create migration tracking table if it doesn't exist
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS migrations (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) UNIQUE NOT NULL,
-                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Step 4: Record this migration
+        // Step 3: Record this migration
         await client.query(`
             INSERT INTO migrations (name)
             VALUES ('fix_esp8266_sensors_and_ips')

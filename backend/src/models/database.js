@@ -3,9 +3,9 @@ const logger = require('../utils/logger');
 
 // Database configuration
 const config = {
-    user: process.env.DB_USER || 'postgres',
+    user: process.env.DB_USER || 'sensityapp',
     host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'esp8266_platform',
+    database: process.env.DB_NAME || 'sensity_platform',
     password: process.env.DB_PASSWORD || 'password',
     port: process.env.DB_PORT || 5432,
 

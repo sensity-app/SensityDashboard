@@ -41,8 +41,12 @@ JWT_SECRET=""
 DEVELOPMENT_MODE=""
 MQTT_USERNAME=""
 MQTT_PASSWORD=""
-APP_USER="esp8266app"
-APP_DIR="/opt/esp8266-platform"
+INSTALL_MQTT=""
+INSTANCE_NAME="default"
+BACKEND_PORT="3000"
+APP_USER="sensityapp"
+APP_DIR="/opt/sensity-platform"
+DB_NAME="sensity_platform"
 NODE_VERSION="18"
 
 # Function to print colored output
@@ -428,8 +432,104 @@ gather_input() {
         exit 1
     fi
 
-    echo "Please choose your installation type:"
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║              SENSITY PLATFORM INSTALLATION                  ║"
+    echo "║         All Configuration Questions (No Interruptions)      ║"
+    echo "╔══════════════════════════════════════════════════════════════╗"
     echo
+
+    # Question 1: Check for existing installation
+    print_status "Checking for existing Sensity installations..."
+    EXISTING_INSTANCES=()
+    if [[ -d "/opt/sensity-platform" ]]; then
+        EXISTING_INSTANCES+=("default:/opt/sensity-platform:3000")
+    fi
+    # Check for numbered instances
+    for dir in /opt/sensity-platform-*; do
+        if [[ -d "$dir" ]]; then
+            instance_name=$(basename "$dir" | sed 's/sensity-platform-//')
+            # Try to detect port from PM2 or ecosystem config
+            port=$(grep -r "PORT.*:" "$dir/ecosystem.config.js" 2>/dev/null | grep -oP '\d{4,5}' | head -1 || echo "unknown")
+            EXISTING_INSTANCES+=("$instance_name:$dir:$port")
+        fi
+    done
+
+    if [[ ${#EXISTING_INSTANCES[@]} -gt 0 ]]; then
+        print_warning "Found existing Sensity installation(s):"
+        for instance in "${EXISTING_INSTANCES[@]}"; do
+            IFS=':' read -r name dir port <<< "$instance"
+            echo "  • Instance: $name (Directory: $dir, Port: $port)"
+        done
+        echo
+        echo "You can install multiple instances on this server."
+        echo "Each instance needs a unique:"
+        echo "  • Instance name"
+        echo "  • Port number"
+        echo "  • Database name"
+        echo "  • Directory"
+        echo
+    fi
+
+    # Question 2: Instance name (for multiple installations)
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    print_status "QUESTION 1/8: Instance Configuration"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    if [[ ${#EXISTING_INSTANCES[@]} -gt 0 ]]; then
+        echo "For multiple installations, give each a unique name (e.g., 'production', 'staging', 'dev1')"
+        echo "Leave empty for 'default' (will use /opt/sensity-platform, port 3000)"
+    fi
+    read -p "Instance name [default]: " INSTANCE_NAME_INPUT < /dev/tty
+    if [[ -z "$INSTANCE_NAME_INPUT" ]]; then
+        INSTANCE_NAME="default"
+    else
+        # Sanitize instance name
+        INSTANCE_NAME=$(echo "$INSTANCE_NAME_INPUT" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g')
+    fi
+
+    # Set directory and database name based on instance
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        APP_DIR="/opt/sensity-platform"
+        DB_NAME="sensity_platform"
+        APP_USER="sensityapp"
+        BACKEND_PORT="3000"
+    else
+        APP_DIR="/opt/sensity-platform-${INSTANCE_NAME}"
+        DB_NAME="sensity_${INSTANCE_NAME}"
+        APP_USER="sensity_${INSTANCE_NAME}"
+        BACKEND_PORT=""  # Will be set later
+    fi
+
+    print_success "Instance: $INSTANCE_NAME"
+    print_status "  • Directory: $APP_DIR"
+    print_status "  • Database: $DB_NAME"
+    print_status "  • User: $APP_USER"
+    echo
+
+    # Question 3: Backend port (for multiple installations)
+    if [[ "$INSTANCE_NAME" != "default" ]]; then
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        print_status "QUESTION 2/8: Backend Port"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Choose a unique port for this instance's backend (default: 3000)"
+        echo "Used ports: 3000 (if default exists)"
+        while [[ -z "$BACKEND_PORT" ]]; do
+            read -p "Backend port [3001]: " PORT_INPUT < /dev/tty
+            if [[ -z "$PORT_INPUT" ]]; then
+                BACKEND_PORT="3001"
+            elif [[ "$PORT_INPUT" =~ ^[0-9]{4,5}$ ]] && [[ "$PORT_INPUT" -ge 3000 ]] && [[ "$PORT_INPUT" -le 65535 ]]; then
+                BACKEND_PORT="$PORT_INPUT"
+            else
+                print_error "Port must be between 3000 and 65535"
+            fi
+        done
+        print_success "Backend port: $BACKEND_PORT"
+        echo
+    fi
+
+    # Question 4: Installation type
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    print_status "QUESTION 3/8: Installation Type"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "1) Production (with domain name and SSL certificates)"
     echo "2) Development (no SSL, access via IP address only)"
     echo
@@ -439,11 +539,11 @@ gather_input() {
         case $INSTALL_TYPE in
             1)
                 DEVELOPMENT_MODE="false"
-                print_status "Selected: Production installation with SSL"
+                print_success "Selected: Production installation with SSL"
                 ;;
             2)
                 DEVELOPMENT_MODE="true"
-                print_status "Selected: Development installation without SSL"
+                print_success "Selected: Development installation without SSL"
                 ;;
             *)
                 print_error "Please enter 1 or 2"
@@ -453,8 +553,11 @@ gather_input() {
 
     echo
 
+    # Question 5: Domain and email (production only)
     if [[ "$DEVELOPMENT_MODE" == "false" ]]; then
-        # Domain name
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        print_status "QUESTION 4/8: Domain Configuration"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         while [[ -z "$DOMAIN" ]]; do
             read -p "Enter your domain name (e.g., iot.example.com): " DOMAIN < /dev/tty
             if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
@@ -462,24 +565,34 @@ gather_input() {
                 DOMAIN=""
             fi
         done
+        print_success "Domain: $DOMAIN"
+        echo
 
-        # Email for SSL certificates
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        print_status "QUESTION 5/8: Email for SSL Certificates"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         while [[ -z "$EMAIL" ]]; do
-            read -p "Enter your email for SSL certificates: " EMAIL < /dev/tty
+            read -p "Enter your email for Let's Encrypt SSL: " EMAIL < /dev/tty
             if [[ ! "$EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
                 print_error "Invalid email format"
                 EMAIL=""
             fi
         done
+        print_success "Email: $EMAIL"
+        echo
     else
         print_status "Development mode: Skipping domain and email configuration"
         DOMAIN="localhost"
         EMAIL="dev@localhost"
     fi
 
-    # Database password
+    # Question 6: Database password
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    print_status "QUESTION 6/8: Database Password"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Press Enter for auto-generated secure password, or type your own (min 8 chars)"
     while [[ -z "$DB_PASSWORD" ]]; do
-        read -s -p "Enter database password (or press Enter for auto-generated): " DB_PASSWORD_INPUT < /dev/tty
+        read -s -p "Database password: " DB_PASSWORD_INPUT < /dev/tty
         echo
 
         if [[ -z "$DB_PASSWORD_INPUT" ]]; then
@@ -491,45 +604,88 @@ gather_input() {
                 print_error "Password must be at least 8 characters long"
             else
                 DB_PASSWORD="$DB_PASSWORD_INPUT"
+                print_success "Database password set"
             fi
         fi
     done
-
     echo
 
-    # MQTT credentials
-    print_status "MQTT Broker Configuration"
+    # Question 7: MQTT installation
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    print_status "QUESTION 7/8: MQTT Broker"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "MQTT is optional. Benefits:"
+    echo "  • 95% less bandwidth than HTTP"
+    echo "  • Better for battery-powered devices"
+    echo "  • Real-time bidirectional communication"
     echo
-
-    # MQTT username
-    read -p "Enter MQTT username [default: iot]: " MQTT_USERNAME < /dev/tty
-    if [[ -z "$MQTT_USERNAME" ]]; then
-        MQTT_USERNAME="iot"
-    fi
-
-    # MQTT password
-    while [[ -z "$MQTT_PASSWORD" ]]; do
-        read -s -p "Enter MQTT password (or press Enter for auto-generated): " MQTT_PASSWORD_INPUT < /dev/tty
+    echo "Devices can use HTTP if you skip MQTT."
+    read -p "Install Mosquitto MQTT broker? (y/N): " -n 1 -r < /dev/tty
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        INSTALL_MQTT="true"
+        print_success "MQTT will be installed"
         echo
 
-        if [[ -z "$MQTT_PASSWORD_INPUT" ]]; then
-            # Auto-generate secure password
-            MQTT_PASSWORD=$(openssl rand -base64 16 | tr -d '\n')
-            print_success "Auto-generated MQTT password: $MQTT_PASSWORD"
-        else
-            if [[ ${#MQTT_PASSWORD_INPUT} -lt 8 ]]; then
-                print_error "Password must be at least 8 characters long"
-            else
-                MQTT_PASSWORD="$MQTT_PASSWORD_INPUT"
-            fi
+        # Question 8: MQTT credentials
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        print_status "QUESTION 8/8: MQTT Credentials"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        read -p "MQTT username [iot]: " MQTT_USERNAME < /dev/tty
+        if [[ -z "$MQTT_USERNAME" ]]; then
+            MQTT_USERNAME="iot"
         fi
-    done
+        print_success "MQTT username: $MQTT_USERNAME"
+
+        while [[ -z "$MQTT_PASSWORD" ]]; do
+            read -s -p "MQTT password (or press Enter for auto-generated): " MQTT_PASSWORD_INPUT < /dev/tty
+            echo
+
+            if [[ -z "$MQTT_PASSWORD_INPUT" ]]; then
+                # Auto-generate secure password
+                MQTT_PASSWORD=$(openssl rand -base64 16 | tr -d '\n')
+                print_success "Auto-generated MQTT password: $MQTT_PASSWORD"
+            else
+                if [[ ${#MQTT_PASSWORD_INPUT} -lt 8 ]]; then
+                    print_error "Password must be at least 8 characters long"
+                else
+                    MQTT_PASSWORD="$MQTT_PASSWORD_INPUT"
+                    print_success "MQTT password set"
+                fi
+            fi
+        done
+    else
+        INSTALL_MQTT="false"
+        print_status "MQTT broker will NOT be installed (devices will use HTTP)"
+        MQTT_USERNAME="iot"
+        MQTT_PASSWORD=""
+    fi
 
     # Generate JWT secret
     JWT_SECRET=$(openssl rand -base64 64 | tr -d '\n')
 
     echo
-    print_success "Configuration collected successfully"
+    echo "╔══════════════════════════════════════════════════════════════╗"
+    echo "║           CONFIGURATION SUMMARY                             ║"
+    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo
+    print_status "Instance: $INSTANCE_NAME"
+    print_status "  • Directory: $APP_DIR"
+    print_status "  • Database: $DB_NAME"
+    print_status "  • User: $APP_USER"
+    print_status "  • Backend Port: $BACKEND_PORT"
+    print_status "  • Mode: $([ "$DEVELOPMENT_MODE" == "true" ] && echo "Development (HTTP)" || echo "Production (HTTPS)")"
+    if [[ "$DEVELOPMENT_MODE" == "false" ]]; then
+        print_status "  • Domain: $DOMAIN"
+        print_status "  • Email: $EMAIL"
+    fi
+    print_status "  • MQTT: $([ "$INSTALL_MQTT" == "true" ] && echo "Yes (user: $MQTT_USERNAME)" || echo "No")"
+    echo
+    print_warning "Installation will now run without interruption!"
+    echo
+    read -p "Press Enter to begin installation or Ctrl+C to cancel..." < /dev/tty
+    echo
+    print_success "Starting uninterrupted installation..."
 }
 
 # Function to update system
@@ -640,32 +796,32 @@ install_postgresql() {
     # Clean up any existing database components to prevent conflicts
     print_status "Cleaning up any existing database components..."
     # Terminate any active connections to the database
-    sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'esp8266_platform' AND pid <> pg_backend_pid();" 2>/dev/null || true
+    sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'sensity_platform' AND pid <> pg_backend_pid();" 2>/dev/null || true
     # Drop database first (must come before user due to ownership)
-    sudo -u postgres dropdb esp8266_platform 2>/dev/null || true
+    sudo -u postgres dropdb sensity_platform 2>/dev/null || true
     # Drop user
-    sudo -u postgres dropuser esp8266app 2>/dev/null || true
+    sudo -u postgres dropuser sensityapp 2>/dev/null || true
 
     # Create database and user
     print_status "Creating database user..."
-    if ! sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266app; then
-        sudo -u postgres psql -c "CREATE USER esp8266app WITH PASSWORD '$DB_PASSWORD';"
+    if ! sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw sensityapp; then
+        sudo -u postgres psql -c "CREATE USER sensityapp WITH PASSWORD '$DB_PASSWORD';"
         print_success "Database user created"
     else
         print_status "Database user already exists, updating password..."
-        sudo -u postgres psql -c "ALTER USER esp8266app PASSWORD '$DB_PASSWORD';"
+        sudo -u postgres psql -c "ALTER USER sensityapp PASSWORD '$DB_PASSWORD';"
     fi
 
     print_status "Creating database..."
-    if ! sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266_platform; then
-        sudo -u postgres psql -c "CREATE DATABASE esp8266_platform OWNER esp8266app;"
+    if ! sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw sensity_platform; then
+        sudo -u postgres psql -c "CREATE DATABASE sensity_platform OWNER sensityapp;"
         print_success "Database created"
     else
         print_status "Database already exists, ensuring correct ownership..."
-        sudo -u postgres psql -c "ALTER DATABASE esp8266_platform OWNER TO esp8266app;"
+        sudo -u postgres psql -c "ALTER DATABASE sensity_platform OWNER TO sensityapp;"
     fi
 
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE esp8266_platform TO esp8266app;"
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE sensity_platform TO sensityapp;"
 
     print_success "PostgreSQL installed and configured"
 }
@@ -776,15 +932,16 @@ EOF
 
     # Create password file with secure permissions from the start
     touch /etc/mosquitto/passwd
-    chmod 600 /etc/mosquitto/passwd
-    chown root:root /etc/mosquitto/passwd
+    chmod 640 /etc/mosquitto/passwd
+    chown mosquitto:mosquitto /etc/mosquitto/passwd
 
     # Add user credentials
     mosquitto_passwd -b /etc/mosquitto/passwd "$MQTT_USERNAME" "$MQTT_PASSWORD"
 
-    # Ensure password file has correct ownership
-    chown root:root /etc/mosquitto/passwd
-    chmod 600 /etc/mosquitto/passwd
+    # Ensure password file has correct ownership and permissions
+    # mosquitto user needs to READ the password file
+    chown mosquitto:mosquitto /etc/mosquitto/passwd
+    chmod 640 /etc/mosquitto/passwd
 
     # Create and set permissions for log directory
     mkdir -p /var/log/mosquitto
@@ -800,12 +957,20 @@ EOF
     chown mosquitto:mosquitto /etc/mosquitto/*.conf 2>/dev/null || true
     chown mosquitto:mosquitto /etc/mosquitto/conf.d/*.conf 2>/dev/null || true
 
+    # Test configuration before starting
+    print_status "Testing Mosquitto configuration..."
+    if ! mosquitto -c /etc/mosquitto/mosquitto.conf -t 2>&1 | grep -q "Error"; then
+        print_success "Mosquitto configuration test passed"
+    else
+        print_warning "Mosquitto configuration test showed warnings (this may be normal)"
+    fi
+
     # Enable and start mosquitto service
     systemctl enable mosquitto
     systemctl restart mosquitto
 
     # Wait a moment for service to start
-    sleep 2
+    sleep 3
 
     # Verify mosquitto is running
     if systemctl is-active --quiet mosquitto; then
@@ -817,9 +982,20 @@ EOF
         print_status "To add more users: sudo mosquitto_passwd /etc/mosquitto/passwd <username>"
         print_status "To change password: sudo mosquitto_passwd -b /etc/mosquitto/passwd $MQTT_USERNAME <new_password>"
     else
-        print_error "Mosquitto failed to start. Check logs: journalctl -u mosquitto"
+        print_error "Mosquitto failed to start"
+        print_error "Checking logs..."
+        journalctl -xeu mosquitto.service -n 20 --no-pager
+        print_error "Configuration file:"
+        cat /etc/mosquitto/conf.d/esp8266-platform.conf
+        print_error "Password file permissions:"
+        ls -la /etc/mosquitto/passwd
+        print_status "You can skip MQTT and continue with HTTP-only device communication"
+        print_status "To fix MQTT later, check: journalctl -u mosquitto"
         MQTT_ENABLED="false"
-        return 1
+        
+        # Don't fail the entire installation, just disable MQTT
+        print_warning "Continuing installation without MQTT support"
+        return 0
     fi
 }
 
@@ -917,7 +1093,7 @@ setup_database() {
     print_status "Setting up database schema..."
 
     if [[ -f "$APP_DIR/database/schema.sql" ]]; then
-        sudo -u postgres psql -d esp8266_platform -f "$APP_DIR/database/schema.sql"
+        sudo -u postgres psql -d sensity_platform -f "$APP_DIR/database/schema.sql"
         print_success "Database schema created"
     else
         print_warning "Database schema file not found - you'll need to run migrations manually"
@@ -984,20 +1160,20 @@ run_database_migrations() {
 fix_database_permissions() {
     print_status "Configuring database permissions..."
 
-    sudo -u postgres psql -d esp8266_platform << 'EOF'
+    sudo -u postgres psql -d sensity_platform << 'EOF'
 -- Grant all privileges on schema
-GRANT ALL PRIVILEGES ON SCHEMA public TO esp8266app;
+GRANT ALL PRIVILEGES ON SCHEMA public TO sensityapp;
 
 -- Grant all privileges on all existing tables
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO esp8266app;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO sensityapp;
 
 -- Grant all privileges on all sequences (for auto-increment)
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO esp8266app;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO sensityapp;
 
 -- Set default privileges for future objects
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO esp8266app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO esp8266app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO esp8266app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO sensityapp;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO sensityapp;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO sensityapp;
 
 -- Ensure ownership of all existing tables
 DO $$
@@ -1006,7 +1182,7 @@ DECLARE
 BEGIN
     FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
     LOOP
-        EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' OWNER TO esp8266app';
+        EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' OWNER TO sensityapp';
     END LOOP;
 END $$;
 
@@ -1017,7 +1193,7 @@ DECLARE
 BEGIN
     FOR r IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public'
     LOOP
-        EXECUTE 'ALTER SEQUENCE ' || quote_ident(r.sequencename) || ' OWNER TO esp8266app';
+        EXECUTE 'ALTER SEQUENCE ' || quote_ident(r.sequencename) || ' OWNER TO sensityapp';
     END LOOP;
 END $$;
 EOF
@@ -1037,8 +1213,8 @@ create_env_files() {
 # Database Configuration
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=esp8266_platform
-DB_USER=esp8266app
+DB_NAME=sensity_platform
+DB_USER=sensityapp
 DB_PASSWORD=$DB_PASSWORD
 
 # Redis Configuration
@@ -1152,8 +1328,8 @@ module.exports = {
       // Database Configuration
       DB_HOST: 'localhost',
       DB_PORT: 5432,
-      DB_NAME: 'esp8266_platform',
-      DB_USER: 'esp8266app',
+      DB_NAME: 'sensity_platform',
+      DB_USER: 'sensityapp',
       DB_PASSWORD: '$DB_PASSWORD',
       // Redis Configuration
       REDIS_HOST: 'localhost',
@@ -1660,13 +1836,13 @@ sudo tail -f /var/log/nginx/error.log
 ## Database Access
 \`\`\`bash
 # Connect to database
-sudo -u postgres psql -d esp8266_platform
+sudo -u postgres psql -d sensity_platform
 
 # Backup database
-sudo -u postgres pg_dump esp8266_platform > backup.sql
+sudo -u postgres pg_dump sensity_platform > backup.sql
 
 # Restore database
-sudo -u postgres psql -d esp8266_platform < backup.sql
+sudo -u postgres psql -d sensity_platform < backup.sql
 \`\`\`
 
 ## Troubleshooting
@@ -1770,18 +1946,18 @@ cleanup_failed_installation() {
     fi
 
     # Remove database and user (database must be dropped before user due to ownership)
-    if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266_platform; then
-        print_status "Removing database (esp8266_platform)..."
+    if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw sensity_platform; then
+        print_status "Removing database (sensity_platform)..."
         # Terminate any active connections to the database
-        sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'esp8266_platform' AND pid <> pg_backend_pid();" 2>/dev/null || true
+        sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'sensity_platform' AND pid <> pg_backend_pid();" 2>/dev/null || true
         # Drop the database
-        sudo -u postgres dropdb esp8266_platform 2>/dev/null || true
+        sudo -u postgres dropdb sensity_platform 2>/dev/null || true
         print_status "Database removed"
     fi
 
-    if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266app; then
-        print_status "Removing database user (esp8266app)..."
-        sudo -u postgres dropuser esp8266app 2>/dev/null || true
+    if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw sensityapp; then
+        print_status "Removing database user (sensityapp)..."
+        sudo -u postgres dropuser sensityapp 2>/dev/null || true
         print_status "Database user removed"
     fi
 
@@ -1821,13 +1997,13 @@ detect_existing_installation() {
     fi
 
     # Check for database
-    if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266_platform; then
-        found_components+=("Database (esp8266_platform)")
+    if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw sensity_platform; then
+        found_components+=("Database (sensity_platform)")
     fi
 
     # Check for database user
-    if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw esp8266app; then
-        found_components+=("Database user (esp8266app)")
+    if sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw sensityapp; then
+        found_components+=("Database user (sensityapp)")
     fi
 
     # Check for nginx config
@@ -1879,9 +2055,9 @@ detect_existing_installation() {
                         echo "  sudo -u $APP_USER pm2 delete all && sudo -u $APP_USER pm2 kill"
                         echo "  sudo rm -rf $APP_DIR"
                         echo "  sudo userdel -r $APP_USER"
-                        echo "  sudo -u postgres dropdb esp8266_platform"
-                        echo "  sudo -u postgres dropuser esp8266app"
-                        echo "  sudo rm -f /etc/nginx/sites-*/*esp8266* /etc/nginx/sites-*/*$DOMAIN*"
+                        echo "  sudo -u postgres dropdb sensity_platform"
+                        echo "  sudo -u postgres dropuser sensityapp"
+                        echo "  sudo rm -f /etc/nginx/sites-*/*sensity* /etc/nginx/sites-*/*$DOMAIN*"
                         echo
                         exit 0
                         ;;

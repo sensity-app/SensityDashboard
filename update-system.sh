@@ -9,8 +9,8 @@
 set -e
 
 # Configuration
-APP_USER="esp8266app"
-APP_DIR="/opt/esp8266-platform"
+APP_USER="sensityapp"
+APP_DIR="/opt/sensity-platform"
 REPO_URL="https://github.com/sensity-app/SensityDashboard.git"
 
 # Colors
@@ -169,7 +169,7 @@ reset_first_user() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         # Clear users table only
-        sudo -u postgres psql -d esp8266_platform -c "DELETE FROM users;" 2>/dev/null || true
+        sudo -u postgres psql -d sensity_platform -c "DELETE FROM users;" 2>/dev/null || true
 
         # Fix database permissions while we're at it
         fix_database_permissions
@@ -183,20 +183,20 @@ reset_first_user() {
 fix_database_permissions() {
     print_status "🔧 Fixing database permissions..."
 
-    sudo -u postgres psql -d esp8266_platform << 'EOF'
+    sudo -u postgres psql -d sensity_platform << 'EOF'
 -- Grant all privileges on schema
-GRANT ALL PRIVILEGES ON SCHEMA public TO esp8266app;
+GRANT ALL PRIVILEGES ON SCHEMA public TO sensityapp;
 
 -- Grant all privileges on all existing tables
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO esp8266app;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO sensityapp;
 
 -- Grant all privileges on all sequences (for auto-increment)
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO esp8266app;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO sensityapp;
 
 -- Set default privileges for future objects
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO esp8266app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO esp8266app;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO esp8266app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO sensityapp;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO sensityapp;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON FUNCTIONS TO sensityapp;
 
 -- Ensure ownership of all existing tables
 DO $$
@@ -205,7 +205,7 @@ DECLARE
 BEGIN
     FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
     LOOP
-        EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' OWNER TO esp8266app';
+        EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' OWNER TO sensityapp';
     END LOOP;
 END $$;
 
@@ -216,7 +216,7 @@ DECLARE
 BEGIN
     FOR r IN SELECT sequencename FROM pg_sequences WHERE schemaname = 'public'
     LOOP
-        EXECUTE 'ALTER SEQUENCE ' || quote_ident(r.sequencename) || ' OWNER TO esp8266app';
+        EXECUTE 'ALTER SEQUENCE ' || quote_ident(r.sequencename) || ' OWNER TO sensityapp';
     END LOOP;
 END $$;
 EOF
@@ -242,7 +242,7 @@ create_test_admin() {
     fi
 
     # Get database password from ecosystem config or .env
-    DB_PASSWORD=$(grep "DB_PASSWORD:" /opt/esp8266-platform/ecosystem.config.js | cut -d"'" -f2 2>/dev/null || grep "^DB_PASSWORD=" /opt/esp8266-platform/backend/.env | cut -d'=' -f2 2>/dev/null || echo "")
+    DB_PASSWORD=$(grep "DB_PASSWORD:" /opt/sensity-platform/ecosystem.config.js | cut -d"'" -f2 2>/dev/null || grep "^DB_PASSWORD=" /opt/sensity-platform/backend/.env | cut -d'=' -f2 2>/dev/null || echo "")
 
     if [[ -z "$DB_PASSWORD" ]]; then
         print_error "Could not find database password"
@@ -250,7 +250,7 @@ create_test_admin() {
     fi
 
     # Insert test user into database using correct schema
-    PGPASSWORD="$DB_PASSWORD" psql -h localhost -U esp8266app -d esp8266_platform << EOF
+    PGPASSWORD="$DB_PASSWORD" psql -h localhost -U sensityapp -d sensity_platform << EOF
 -- Remove existing test user if it exists
 DELETE FROM users WHERE email = 'admin@changeme.com';
 
@@ -297,11 +297,11 @@ main() {
         reset_first_user
     elif [[ "$1" == "create-test-admin" ]]; then
         create_test_admin
-        sudo -u esp8266app pm2 restart all
+        sudo -u sensityapp pm2 restart all
     elif [[ "$1" == "update" ]] || [[ "$1" == "" ]]; then
         update_system
     else
-        echo "ESP8266 IoT Platform Update Script"
+        echo "Sensity Platform Update Script"
         echo
         echo "Usage:"
         echo "  sudo $0                      # Update system from GitHub"

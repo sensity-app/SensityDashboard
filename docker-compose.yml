@@ -4,10 +4,10 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: esp8266-postgres
+    container_name: sensity-postgres
     environment:
-      POSTGRES_DB: esp8266_platform
-      POSTGRES_USER: esp8266app
+      POSTGRES_DB: sensity_platform
+      POSTGRES_USER: sensityapp
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme123}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -16,12 +16,12 @@ services:
       - "5432:5432"
     restart: unless-stopped
     networks:
-      - esp8266-network
+      - sensity-network
 
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: esp8266-redis
+    container_name: sensity-redis
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
@@ -29,20 +29,20 @@ services:
       - "6379:6379"
     restart: unless-stopped
     networks:
-      - esp8266-network
+      - sensity-network
 
   # Backend API
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: esp8266-backend
+    container_name: sensity-backend
     environment:
       NODE_ENV: production
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: esp8266_platform
-      DB_USER: esp8266app
+      DB_NAME: sensity_platform
+      DB_USER: sensityapp
       DB_PASSWORD: ${DB_PASSWORD:-changeme123}
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -58,7 +58,7 @@ services:
       - ./firmware:/app/firmware:ro
       - app_logs:/var/log/app
     networks:
-      - esp8266-network
+      - sensity-network
 
   # Frontend (Nginx)
   frontend:
@@ -68,7 +68,7 @@ services:
       args:
         REACT_APP_API_URL: ${DOMAIN:-http://localhost:3000}
         REACT_APP_WS_URL: ${WS_URL:-ws://localhost:3000}
-    container_name: esp8266-frontend
+    container_name: sensity-frontend
     ports:
       - "80:80"
       - "443:443"
@@ -79,7 +79,7 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ssl_certs:/etc/ssl/certs
     networks:
-      - esp8266-network
+      - sensity-network
 
 volumes:
   postgres_data:
@@ -92,5 +92,5 @@ volumes:
     driver: local
 
 networks:
-  esp8266-network:
+  sensity-network:
     driver: bridge

@@ -804,36 +804,38 @@ install_postgresql() {
     systemctl enable postgresql
 
     # Clean up any existing database components to prevent conflicts
-    print_status "Cleaning up any existing database components..."
+    print_status "Cleaning up any existing database components for instance '${INSTANCE_NAME}'..."
     # Terminate any active connections to the database
-    sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'sensity_platform' AND pid <> pg_backend_pid();" 2>/dev/null || true
+    sudo -u postgres psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();" 2>/dev/null || true
     # Drop database first (must come before user due to ownership)
-    sudo -u postgres dropdb sensity_platform 2>/dev/null || true
+    sudo -u postgres dropdb ${DB_NAME} 2>/dev/null || true
     # Drop user
-    sudo -u postgres dropuser sensityapp 2>/dev/null || true
+    sudo -u postgres dropuser ${APP_USER} 2>/dev/null || true
 
     # Create database and user
-    print_status "Creating database user..."
-    if ! sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw sensityapp; then
-        sudo -u postgres psql -c "CREATE USER sensityapp WITH PASSWORD '$DB_PASSWORD';"
-        print_success "Database user created"
+    print_status "Creating database user '${APP_USER}'..."
+    if ! sudo -u postgres psql -t -c '\du' 2>/dev/null | cut -d \| -f 1 | grep -qw ${APP_USER}; then
+        sudo -u postgres psql -c "CREATE USER ${APP_USER} WITH PASSWORD '$DB_PASSWORD';"
+        print_success "Database user '${APP_USER}' created"
     else
-        print_status "Database user already exists, updating password..."
-        sudo -u postgres psql -c "ALTER USER sensityapp PASSWORD '$DB_PASSWORD';"
+        print_status "Database user '${APP_USER}' already exists, updating password..."
+        sudo -u postgres psql -c "ALTER USER ${APP_USER} PASSWORD '$DB_PASSWORD';"
     fi
 
-    print_status "Creating database..."
-    if ! sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw sensity_platform; then
-        sudo -u postgres psql -c "CREATE DATABASE sensity_platform OWNER sensityapp;"
-        print_success "Database created"
+    print_status "Creating database '${DB_NAME}'..."
+    if ! sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw ${DB_NAME}; then
+        sudo -u postgres psql -c "CREATE DATABASE ${DB_NAME} OWNER ${APP_USER};"
+        print_success "Database '${DB_NAME}' created"
     else
-        print_status "Database already exists, ensuring correct ownership..."
-        sudo -u postgres psql -c "ALTER DATABASE sensity_platform OWNER TO sensityapp;"
+        print_status "Database '${DB_NAME}' already exists, ensuring correct ownership..."
+        sudo -u postgres psql -c "ALTER DATABASE ${DB_NAME} OWNER TO ${APP_USER};"
     fi
 
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE sensity_platform TO sensityapp;"
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${APP_USER};"
 
-    print_success "PostgreSQL installed and configured"
+    print_success "PostgreSQL configured for instance '${INSTANCE_NAME}'"
+    print_status "  • Database: ${DB_NAME}"
+    print_status "  • User: ${APP_USER}"
 }
 
 # Function to install Redis

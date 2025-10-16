@@ -960,7 +960,11 @@ run_database_migrations() {
 
     # Run any other migrations in the migrations directory
     for migration_file in migrations/*.js; do
-        if [[ -f "$migration_file" ]] && [[ "$migration_file" != *"add_telegram_support.js"* ]] && [[ "$migration_file" != *"add_auto_calibration.js"* ]]; then
+        # Skip the migration runner itself and already-run migrations
+        if [[ -f "$migration_file" ]] && \
+           [[ "$migration_file" != *"migrate.js"* ]] && \
+           [[ "$migration_file" != *"add_telegram_support.js"* ]] && \
+           [[ "$migration_file" != *"add_auto_calibration.js"* ]]; then
             migration_name=$(basename "$migration_file")
             print_status "Running migration: $migration_name..."
             sudo -u $APP_USER NODE_ENV=production node "$migration_file"

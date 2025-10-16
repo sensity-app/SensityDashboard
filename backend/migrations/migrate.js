@@ -1,3 +1,12 @@
+/**
+ * Migration Runner - DO NOT RUN AS A MIGRATION
+ * 
+ * This is the main migration runner that orchestrates all migrations.
+ * It should be called directly: node migrations/migrate.js
+ * 
+ * The install script automatically skips this file when running migrations.
+ */
+
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 

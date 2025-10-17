@@ -417,6 +417,7 @@ gather_input() {
         else
             # Sanitize instance name
             INSTANCE_NAME=$(echo "$INSTANCE_NAME_INPUT" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g')
+        fi
     fi
 
     # Set directory and database name based on instance

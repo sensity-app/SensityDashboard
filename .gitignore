@@ -107,7 +107,7 @@ backup_*.sql
 # Installation files
 INSTALLATION_INFO.md
 /.claude
-/.claude
 .last-backup
 /backups
 .last-backup
+/docs

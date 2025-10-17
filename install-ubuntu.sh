@@ -1137,7 +1137,13 @@ EOF
                 if [[ "$already_applied" == "0" ]]; then
                     print_status "Running SQL migration: $migration_name..."
                     
-                    if sudo -u postgres psql -d ${DB_NAME} -f "$sql_migration" 2>&1; then
+                    # Execute SQL migration (capture exit code, allow output)
+                    set +e  # Temporarily disable exit on error
+                    sudo -u postgres psql -d ${DB_NAME} -f "$sql_migration" 2>&1
+                    local migration_exit_code=$?
+                    set -e  # Re-enable exit on error
+                    
+                    if [[ $migration_exit_code -eq 0 ]]; then
                         # Record migration
                         sudo -u postgres psql -d ${DB_NAME} -c \
                             "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql');" \
@@ -1146,7 +1152,7 @@ EOF
                         print_success "✓ SQL migration completed: $migration_name"
                         ((migrations_run++))
                     else
-                        print_error "✗ SQL migration failed: $migration_name"
+                        print_error "✗ SQL migration failed: $migration_name (exit code: $migration_exit_code)"
                         ((migrations_failed++))
                     fi
                 else
@@ -1184,7 +1190,13 @@ EOF
                 if [[ "$already_applied" == "0" ]]; then
                     print_status "Running JS migration: $migration_name..."
                     
-                    if sudo -u $APP_USER NODE_ENV=production node "$js_migration" 2>&1; then
+                    # Execute JS migration (capture exit code, allow output)
+                    set +e  # Temporarily disable exit on error
+                    sudo -u $APP_USER NODE_ENV=production node "$js_migration" 2>&1
+                    local migration_exit_code=$?
+                    set -e  # Re-enable exit on error
+                    
+                    if [[ $migration_exit_code -eq 0 ]]; then
                         # Record migration
                         sudo -u postgres psql -d ${DB_NAME} -c \
                             "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js');" \
@@ -1193,7 +1205,7 @@ EOF
                         print_success "✓ JS migration completed: $migration_name"
                         ((migrations_run++))
                     else
-                        print_error "✗ JS migration failed: $migration_name"
+                        print_error "✗ JS migration failed: $migration_name (exit code: $migration_exit_code)"
                         ((migrations_failed++))
                     fi
                 else

@@ -183,14 +183,20 @@ EOF
                 if [[ "$already_applied" == "0" ]]; then
                     print_status "Running SQL: $migration_name..."
                     
-                    if sudo -u postgres psql -d ${DB_NAME} -f "$sql_migration" 2>&1; then
+                    # Execute SQL migration with proper error handling
+                    set +e
+                    sudo -u postgres psql -d ${DB_NAME} -f "$sql_migration" 2>&1
+                    local exit_code=$?
+                    set -e
+                    
+                    if [[ $exit_code -eq 0 ]]; then
                         sudo -u postgres psql -d ${DB_NAME} -c \
                             "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql');" \
                             2>/dev/null
                         print_success "✓ $migration_name"
                         ((migrations_run++))
                     else
-                        print_error "✗ $migration_name"
+                        print_error "✗ $migration_name (exit code: $exit_code)"
                         ((migrations_failed++))
                     fi
                 else
@@ -223,14 +229,20 @@ EOF
                 if [[ "$already_applied" == "0" ]]; then
                     print_status "Running JS: $migration_name..."
                     
-                    if sudo -u $APP_USER NODE_ENV=production node "$js_migration" 2>&1; then
+                    # Execute JS migration with proper error handling
+                    set +e
+                    sudo -u $APP_USER NODE_ENV=production node "$js_migration" 2>&1
+                    local exit_code=$?
+                    set -e
+                    
+                    if [[ $exit_code -eq 0 ]]; then
                         sudo -u postgres psql -d ${DB_NAME} -c \
                             "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js');" \
                             2>/dev/null
                         print_success "✓ $migration_name"
                         ((migrations_run++))
                     else
-                        print_error "✗ $migration_name"
+                        print_error "✗ $migration_name (exit code: $exit_code)"
                         ((migrations_failed++))
                     fi
                 else

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 ###############################################################################
-# ESP8266 IoT Platform - Ubuntu Server Installation Script
+# Sensity IoT Platform - Ubuntu Server Installation Script
 #
-# This script will install and configure the complete ESP8266 IoT monitoring
+# This script will install and configure the complete Sensity IoT monitoring
 # platform on a fresh Ubuntu server (18.04, 20.04, or 22.04).
 #
 # Features installed:
@@ -69,162 +69,21 @@ print_warning() {
 print_header() {
     echo -e "${PURPLE}
 ╔══════════════════════════════════════════════════════════════╗
-║                ESP8266 IoT Platform Installer               ║
-║                                                              ║
-║  This script will install the complete IoT monitoring       ║
-║  platform with firmware builder on your Ubuntu server      ║
-╚══════════════════════════════════════════════════════════════╝${NC}
-"
-}
+# Function to run database migrations via shared script
+run_database_migrations() {
+    local migration_script="$APP_DIR/scripts/run-migrations.sh"
 
-# Function to check if port is available
-check_port() {
-    local port=$1
-    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
-        return 1
-    fi
-    return 0
-}
-
-# Function to validate DNS configuration
-validate_dns() {
-    local domain=$1
-    print_status "Validating DNS configuration for $domain..."
-
-    # Get server's public IP
-    local server_ip=$(curl -s ifconfig.me 2>/dev/null || curl -s icanhazip.com 2>/dev/null)
-    if [[ -z "$server_ip" ]]; then
-        print_warning "Could not determine server's public IP address"
-        return 0
-    fi
-
-    # Resolve domain
-    local domain_ip=$(dig +short $domain | tail -n1 2>/dev/null)
-    if [[ -z "$domain_ip" ]]; then
-        print_error "Could not resolve domain $domain"
-        print_error "Please ensure DNS records are configured before continuing"
-        return 1
-    fi
-
-    # Compare IPs
-    if [[ "$server_ip" != "$domain_ip" ]]; then
-        print_warning "DNS mismatch: $domain points to $domain_ip, but server IP is $server_ip"
-        print_warning "SSL certificate acquisition may fail if DNS is not properly configured"
-        return 1
-    fi
-
-    print_success "DNS configuration valid"
-    return 0
-}
-
-# Function to check system requirements
-check_requirements() {
-    print_status "Checking system requirements..."
-
-    check_root
-    detect_ubuntu
-
-    # Check available disk space (at least 2GB)
-    AVAILABLE_SPACE=$(df / | awk 'NR==2{printf "%.0f", $4/1024/1024}')
-    if [[ $AVAILABLE_SPACE -lt 2 ]]; then
-        print_error "At least 2GB of free disk space is required"
+    if [[ ! -x "$migration_script" ]]; then
+        print_error "Migration runner not found at $migration_script"
+        print_error "Ensure the application repository contains scripts/run-migrations.sh"
         exit 1
     fi
 
-    # Check available memory (at least 1GB)
-    AVAILABLE_MEM=$(free -m | awk 'NR==2{printf "%.0f", $7}')
-    if [[ $AVAILABLE_MEM -lt 1024 ]]; then
-        print_warning "Low available memory (${AVAILABLE_MEM}MB). Installation may be slow."
-    fi
-
-    print_success "System requirements check passed"
+    APP_DIR="$APP_DIR" \
+    APP_USER="$APP_USER" \
+    DB_NAME="$DB_NAME" \
+        "$migration_script"
 }
-
-# Function to run pre-installation validation checks
-validate_installation() {
-    print_status "Running pre-installation validation checks..."
-
-    local validation_failed=0
-
-    # Check for running apt/dpkg processes
-    print_status "Checking for running package manager processes..."
-    if pgrep -x apt-get >/dev/null || pgrep -x dpkg >/dev/null || pgrep -x apt >/dev/null; then
-        print_error "Package manager (apt/dpkg) is currently running"
-        print_error "Please wait for other package operations to complete or run:"
-        print_error "  sudo killall apt apt-get dpkg"
-        validation_failed=1
-    else
-        print_success "No conflicting package manager processes found"
-    fi
-
-    # Check if required ports are available
-    print_status "Checking required ports availability..."
-    local required_ports=(80 443 3000 5432 6379 1883)
-    local ports_in_use=()
-    local conflicting_ports=()
-
-    for port in "${required_ports[@]}"; do
-        if ! check_port $port; then
-            ports_in_use+=($port)
-
-            # Identify which service is using the port
-            local service_name=""
-            case $port in
-                5432)
-                    # PostgreSQL - OK if it's already installed from previous installation
-                    if systemctl is-active --quiet postgresql; then
-                        service_name="PostgreSQL (existing installation)"
-                    else
-                        conflicting_ports+=($port)
-                        service_name="Unknown process"
-                    fi
-                    ;;
-                6379)
-                    # Redis - OK if it's already installed from previous installation
-                    if systemctl is-active --quiet redis-server || systemctl is-active --quiet redis; then
-                        service_name="Redis (existing installation)"
-                    else
-                        conflicting_ports+=($port)
-                        service_name="Unknown process"
-                    fi
-                    ;;
-                1883)
-                    # Mosquitto - OK if it's already installed from previous installation
-                    if systemctl is-active --quiet mosquitto; then
-                        service_name="Mosquitto (existing installation)"
-                    else
-                        conflicting_ports+=($port)
-                        service_name="Unknown process"
-                    fi
-                    ;;
-                80|443)
-                    # Nginx - OK if it's already installed from previous installation
-                    if systemctl is-active --quiet nginx; then
-                        service_name="Nginx (existing installation)"
-                    else
-                        conflicting_ports+=($port)
-                        service_name="Unknown process"
-                    fi
-                    ;;
-                3000)
-                    # Application port - check if PM2 is running it
-                    if pgrep -f "pm2.*sensity" >/dev/null 2>&1; then
-                        service_name="PM2 (existing installation)"
-                    else
-                        conflicting_ports+=($port)
-                        service_name="Unknown process"
-                    fi
-                    ;;
-                *)
-                    conflicting_ports+=($port)
-                    service_name="Unknown process"
-                    ;;
-            esac
-
-            if [[ -n "$service_name" ]]; then
-                if [[ " ${conflicting_ports[@]} " =~ " ${port} " ]]; then
-                    print_error "Port $port is in use by: $service_name"
-                else
                     print_warning "Port $port is in use by: $service_name"
                 fi
             fi
@@ -1104,6 +963,13 @@ setup_database() {
 run_database_migrations() {
     print_status "Running database migrations..."
 
+    # Temporarily disable errexit so we can handle errors manually
+    local errexit_was_set=0
+    if [[ $- == *e* ]]; then
+        errexit_was_set=1
+        set +e
+    fi
+
     # Create migrations tracking table
     print_status "Creating migrations tracking table..."
     sudo -u postgres psql -d ${DB_NAME} << 'EOF'
@@ -1114,6 +980,10 @@ CREATE TABLE IF NOT EXISTS migrations (
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 EOF
+    local tracking_exit=$?
+    if [[ $tracking_exit -ne 0 ]]; then
+        print_error "Failed to create migrations tracking table (exit code: $tracking_exit)"
+    fi
 
     local migrations_run=0
     local migrations_failed=0
@@ -1138,19 +1008,22 @@ EOF
                     print_status "Running SQL migration: $migration_name..."
                     
                     # Execute SQL migration (capture exit code, allow output)
-                    set +e  # Temporarily disable exit on error
-                    sudo -u postgres psql -d ${DB_NAME} -f "$sql_migration" 2>&1
+                    sudo -u postgres psql -d ${DB_NAME} -f "$sql_migration"
                     local migration_exit_code=$?
-                    set -e  # Re-enable exit on error
                     
                     if [[ $migration_exit_code -eq 0 ]]; then
                         # Record migration
                         sudo -u postgres psql -d ${DB_NAME} -c \
-                            "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql');" \
-                            2>/dev/null
-                        
-                        print_success "✓ SQL migration completed: $migration_name"
-                        ((migrations_run++))
+                            "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql');"
+                        local record_exit=$?
+
+                        if [[ $record_exit -eq 0 ]]; then
+                            print_success "✓ SQL migration completed: $migration_name"
+                            ((migrations_run++))
+                        else
+                            print_error "✗ SQL migration recorded but tracking insert failed: $migration_name (exit code: $record_exit)"
+                            ((migrations_failed++))
+                        fi
                     else
                         print_error "✗ SQL migration failed: $migration_name (exit code: $migration_exit_code)"
                         ((migrations_failed++))
@@ -1191,19 +1064,22 @@ EOF
                     print_status "Running JS migration: $migration_name..."
                     
                     # Execute JS migration (capture exit code, allow output)
-                    set +e  # Temporarily disable exit on error
-                    sudo -u $APP_USER NODE_ENV=production node "$js_migration" 2>&1
+                    sudo -u $APP_USER NODE_ENV=production node "$js_migration"
                     local migration_exit_code=$?
-                    set -e  # Re-enable exit on error
                     
                     if [[ $migration_exit_code -eq 0 ]]; then
                         # Record migration
                         sudo -u postgres psql -d ${DB_NAME} -c \
-                            "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js');" \
-                            2>/dev/null
-                        
-                        print_success "✓ JS migration completed: $migration_name"
-                        ((migrations_run++))
+                            "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js');"
+                        local record_exit=$?
+
+                        if [[ $record_exit -eq 0 ]]; then
+                            print_success "✓ JS migration completed: $migration_name"
+                            ((migrations_run++))
+                        else
+                            print_error "✗ JS migration recorded but tracking insert failed: $migration_name (exit code: $record_exit)"
+                            ((migrations_failed++))
+                        fi
                     else
                         print_error "✗ JS migration failed: $migration_name (exit code: $migration_exit_code)"
                         ((migrations_failed++))
@@ -1239,6 +1115,11 @@ EOF
         print_warning "You may need to run them manually later"
     else
         print_success "All database migrations completed successfully"
+    fi
+
+    # Restore errexit state
+    if [[ $errexit_was_set -eq 1 ]]; then
+        set -e
     fi
 }
 
@@ -2095,7 +1976,7 @@ show_completion_message() {
 ║                   🎉 INSTALLATION COMPLETE! 🎉               ║
 ╚══════════════════════════════════════════════════════════════╝${NC}
 
-${CYAN}Your ESP8266 IoT Platform is now installed and running!${NC}
+${CYAN}Your Sensity IoT Platform is now installed and running!${NC}
 ${CYAN}Installation Mode: ${MODE_TEXT}${NC}
 
 ${YELLOW}📍 Access your platform:${NC}
@@ -2119,7 +2000,7 @@ ${YELLOW}🛡️ Security:${NC}
    • Firewall is configured (SSH + HTTP/HTTPS only)
    • Database is password protected
 
-${GREEN}Happy monitoring with your ESP8266 devices! 🚀${NC}
+${GREEN}Happy monitoring with your Sensity devices! 🚀${NC}
 "
 }
 

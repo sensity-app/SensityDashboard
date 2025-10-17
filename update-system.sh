@@ -22,10 +22,12 @@ if [[ "$INSTANCE_NAME" == "default" ]]; then
     APP_USER="sensityapp"
     APP_DIR="/opt/sensity-platform"
     INSTANCE_LABEL="default"
+    DB_NAME="sensity_platform"
 else
     APP_USER="sensity_${INSTANCE_NAME}"
     APP_DIR="/opt/sensity-platform-${INSTANCE_NAME}"
     INSTANCE_LABEL="$INSTANCE_NAME"
+    DB_NAME="sensity_${INSTANCE_NAME}"
 fi
 
 REPO_URL="https://github.com/sensity-app/SensityDashboard.git"
@@ -149,121 +151,18 @@ check_services() {
 
 # Function to run all database migrations (SQL + JavaScript)
 run_database_migrations() {
-    local DB_NAME="sensity_platform"
-    
-    print_status "Running comprehensive database migrations..."
+    local migration_script="$APP_DIR/scripts/run-migrations.sh"
 
-    # Create migrations tracking table if it doesn't exist
-    sudo -u postgres psql -d ${DB_NAME} << 'EOF' 2>/dev/null
-CREATE TABLE IF NOT EXISTS migrations (
-    id SERIAL PRIMARY KEY,
-    migration_name VARCHAR(255) UNIQUE NOT NULL,
-    migration_type VARCHAR(10) NOT NULL,
-    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-EOF
-
-    local migrations_run=0
-    local migrations_failed=0
-    local migrations_skipped=0
-
-    # Run SQL migrations from database/migrations/
-    print_status "Checking SQL migrations..."
-    
-    if [[ -d "$APP_DIR/database/migrations" ]]; then
-        for sql_migration in "$APP_DIR/database/migrations"/*.sql; do
-            if [[ -f "$sql_migration" ]]; then
-                migration_name=$(basename "$sql_migration")
-                
-                # Check if already applied
-                local already_applied=$(sudo -u postgres psql -d ${DB_NAME} -t -c \
-                    "SELECT COUNT(*) FROM migrations WHERE migration_name = '$migration_name' AND migration_type = 'sql';" \
-                    2>/dev/null | tr -d ' ')
-                
-                if [[ "$already_applied" == "0" ]]; then
-                    print_status "Running SQL: $migration_name..."
-                    
-                    # Execute SQL migration with proper error handling
-                    set +e
-                    sudo -u postgres psql -d ${DB_NAME} -f "$sql_migration" 2>&1
-                    local exit_code=$?
-                    set -e
-                    
-                    if [[ $exit_code -eq 0 ]]; then
-                        sudo -u postgres psql -d ${DB_NAME} -c \
-                            "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql');" \
-                            2>/dev/null
-                        print_success "✓ $migration_name"
-                        ((migrations_run++))
-                    else
-                        print_error "✗ $migration_name (exit code: $exit_code)"
-                        ((migrations_failed++))
-                    fi
-                else
-                    ((migrations_skipped++))
-                fi
-            fi
-        done
+    if [[ ! -x "$migration_script" ]]; then
+        print_error "Migration runner not found at $migration_script"
+        print_error "Pull the latest repository or ensure scripts/run-migrations.sh exists"
+        exit 1
     fi
 
-    # Run JavaScript migrations from backend/migrations/
-    print_status "Checking JavaScript migrations..."
-    
-    cd "$APP_DIR/backend"
-
-    if [[ -d "migrations" ]]; then
-        for js_migration in migrations/*.js; do
-            if [[ -f "$js_migration" ]]; then
-                migration_name=$(basename "$js_migration")
-                
-                # Skip the migration runner
-                if [[ "$migration_name" == "migrate.js" ]]; then
-                    continue
-                fi
-                
-                # Check if already applied
-                local already_applied=$(sudo -u postgres psql -d ${DB_NAME} -t -c \
-                    "SELECT COUNT(*) FROM migrations WHERE migration_name = '$migration_name' AND migration_type = 'js';" \
-                    2>/dev/null | tr -d ' ')
-                
-                if [[ "$already_applied" == "0" ]]; then
-                    print_status "Running JS: $migration_name..."
-                    
-                    # Execute JS migration with proper error handling
-                    set +e
-                    sudo -u $APP_USER NODE_ENV=production node "$js_migration" 2>&1
-                    local exit_code=$?
-                    set -e
-                    
-                    if [[ $exit_code -eq 0 ]]; then
-                        sudo -u postgres psql -d ${DB_NAME} -c \
-                            "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js');" \
-                            2>/dev/null
-                        print_success "✓ $migration_name"
-                        ((migrations_run++))
-                    else
-                        print_error "✗ $migration_name (exit code: $exit_code)"
-                        ((migrations_failed++))
-                    fi
-                else
-                    ((migrations_skipped++))
-                fi
-            fi
-        done
-    fi
-
-    cd - > /dev/null
-
-    # Summary
-    print_status "Migrations: $migrations_run new, $migrations_skipped skipped, $migrations_failed failed"
-    
-    if [[ $migrations_failed -gt 0 ]]; then
-        print_warning "⚠ Some migrations failed - check details above"
-    elif [[ $migrations_run -eq 0 ]]; then
-        print_success "✓ All migrations already applied"
-    else
-        print_success "✓ All new migrations applied successfully"
-    fi
+    APP_DIR="$APP_DIR" \
+    APP_USER="$APP_USER" \
+    DB_NAME="$DB_NAME" \
+        "$migration_script"
 }
 
 update_system() {

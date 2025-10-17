@@ -898,9 +898,22 @@ const WebFlasher = ({ config, onClose }) => {
             logMessage('resetting', 'info');
 
             try {
-                // Perform hard reset to reboot the device
-                await esploader.hard_reset();
-                logMessage('resetSignal', 'info');
+                // Perform hard reset to reboot the device using the transport
+                if (transport && typeof transport.setDTR === 'function' && typeof transport.setRTS === 'function') {
+                    // Manual hard reset sequence
+                    await transport.setDTR(false);
+                    await transport.setRTS(true);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    await transport.setRTS(false);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    logMessage('resetSignal', 'info');
+                } else if (typeof esploader.hardReset === 'function') {
+                    // Try hardReset method (note: camelCase)
+                    await esploader.hardReset();
+                    logMessage('resetSignal', 'info');
+                } else {
+                    logMessage('resetWarning', 'warning', { message: 'No reset method available' });
+                }
 
                 // Give device time to reboot
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -908,15 +921,6 @@ const WebFlasher = ({ config, onClose }) => {
             } catch (resetError) {
                 console.warn('Device reset failed:', resetError);
                 logMessage('resetWarning', 'warning', { message: resetError.message });
-
-                // Try alternative reset method
-                try {
-                    await esploader.after('hard_reset');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    logMessage('rebootComplete', 'success');
-                } catch (altResetError) {
-                    console.warn('Alternative reset also failed:', altResetError);
-                }
             }
 
             setFlashProgress(100);

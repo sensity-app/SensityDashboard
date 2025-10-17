@@ -1451,6 +1451,13 @@ router.post('/:id/sensors', authenticateToken, async (req, res) => {
         const result = await db.query(`
             INSERT INTO device_sensors (device_id, sensor_type_id, pin, name, calibration_offset, calibration_multiplier, enabled)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (device_id, pin) DO UPDATE
+            SET sensor_type_id = $2,
+                name = $4,
+                calibration_offset = $5,
+                calibration_multiplier = $6,
+                enabled = $7,
+                updated_at = CURRENT_TIMESTAMP
             RETURNING *
         `, [deviceId, sensorTypeId, pin, name, calibration_offset || 0, calibration_multiplier || 1, enabled !== false]);
 

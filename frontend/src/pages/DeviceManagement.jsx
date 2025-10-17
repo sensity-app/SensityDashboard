@@ -60,7 +60,7 @@ function DeviceManagement() {
         ['devices'],
         () => apiService.getDevices(),
         {
-            refetchInterval: 30000,
+            refetchOnWindowFocus: false, // Disable auto-refresh to prevent scroll reset
             select: (data) => data.devices || data || []
         }
     );
@@ -372,7 +372,7 @@ function DeviceManagement() {
             </div>
 
             {/* Quick status filters */}
-            <div className="card animate-slide-up" style={{animationDelay: '60ms'}}>
+            <div className="card animate-slide-up" style={{ animationDelay: '60ms' }}>
                 <div className="flex flex-wrap gap-3">
                     {quickStatusFilters.map((filter) => {
                         const Icon = filter.icon;
@@ -384,17 +384,15 @@ function DeviceManagement() {
                                     setFilterStatus(filter.key);
                                     setCurrentPage(1);
                                 }}
-                                className={`inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-medium transition-all ${
-                                    isActive
+                                className={`inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm font-medium transition-all ${isActive
                                         ? 'border-indigo-600 bg-indigo-600 text-white shadow'
                                         : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
-                                }`}
+                                    }`}
                             >
                                 <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-indigo-500'}`} />
                                 <span>{filter.label}</span>
-                                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                    isActive ? 'bg-white text-indigo-700' : 'bg-white text-gray-700'
-                                }`}>
+                                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isActive ? 'bg-white text-indigo-700' : 'bg-white text-gray-700'
+                                    }`}>
                                     {filter.count}
                                 </span>
                             </button>
@@ -404,7 +402,7 @@ function DeviceManagement() {
             </div>
 
             {/* Modern Filters */}
-            <div className="card animate-slide-up" style={{animationDelay: '100ms'}}>
+            <div className="card animate-slide-up" style={{ animationDelay: '100ms' }}>
                 <div className="card-header">
                     <h3 className="card-title">
                         <Filter className="w-5 h-5 text-primary" />
@@ -574,7 +572,7 @@ function DeviceManagement() {
                                 </span>
                             )}
                             {filterGroup !== 'all' && deviceGroups && (
-                                <span className="badge flex items-center space-x-1" style={{backgroundColor: (deviceGroups || []).find(g => g.id === parseInt(filterGroup))?.color || '#3B82F6', color: 'white'}}>
+                                <span className="badge flex items-center space-x-1" style={{ backgroundColor: (deviceGroups || []).find(g => g.id === parseInt(filterGroup))?.color || '#3B82F6', color: 'white' }}>
                                     <Folder className="w-3 h-3" />
                                     <span>{t('deviceManagement.activeFilters.group', {
                                         label: (deviceGroups || []).find(g => g.id === parseInt(filterGroup))?.name || t('deviceManagement.labels.unknownType')
@@ -585,7 +583,7 @@ function DeviceManagement() {
                                 </span>
                             )}
                             {filterTag !== 'all' && deviceTags && (
-                                <span className="badge flex items-center space-x-1" style={{backgroundColor: (deviceTags || []).find(t => t.id === parseInt(filterTag))?.color || '#6B7280', color: 'white'}}>
+                                <span className="badge flex items-center space-x-1" style={{ backgroundColor: (deviceTags || []).find(t => t.id === parseInt(filterTag))?.color || '#6B7280', color: 'white' }}>
                                     <Tag className="w-3 h-3" />
                                     <span>{t('deviceManagement.activeFilters.tag', {
                                         label: (deviceTags || []).find(t => t.id === parseInt(filterTag))?.name || t('deviceManagement.labels.unknownType')
@@ -615,7 +613,7 @@ function DeviceManagement() {
 
             {/* Modern Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '200ms'}}>
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{ animationDelay: '200ms' }}>
                     <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                             <Monitor className="h-6 w-6 text-white" />
@@ -626,7 +624,7 @@ function DeviceManagement() {
                         </div>
                     </div>
                 </div>
-                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '300ms'}}>
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{ animationDelay: '300ms' }}>
                     <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
                             <Wifi className="h-6 w-6 text-white" />
@@ -639,7 +637,7 @@ function DeviceManagement() {
                         </div>
                     </div>
                 </div>
-                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '400ms'}}>
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{ animationDelay: '400ms' }}>
                     <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center">
                             <WifiOff className="h-6 w-6 text-white" />
@@ -652,7 +650,7 @@ function DeviceManagement() {
                         </div>
                     </div>
                 </div>
-                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{animationDelay: '500ms'}}>
+                <div className="card p-6 hover:shadow-xl transition-all duration-300 animate-slide-up" style={{ animationDelay: '500ms' }}>
                     <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
                             <AlertTriangle className="h-6 w-6 text-white" />
@@ -668,7 +666,7 @@ function DeviceManagement() {
             </div>
 
             {/* Modern Devices Table */}
-            <div className="card animate-slide-up" style={{animationDelay: '600ms'}}>
+            <div className="card animate-slide-up" style={{ animationDelay: '600ms' }}>
                 <div className="card-header">
                     <h2 className="card-title">
                         <Monitor className="w-6 h-6 text-primary" />
@@ -678,21 +676,19 @@ function DeviceManagement() {
                         <div className="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
                             <button
                                 onClick={() => setViewMode('compact')}
-                                className={`px-3 py-1 text-sm rounded ${
-                                    viewMode === 'compact'
+                                className={`px-3 py-1 text-sm rounded ${viewMode === 'compact'
                                         ? 'bg-white shadow text-gray-900'
                                         : 'text-gray-600 hover:text-gray-900'
-                                }`}
+                                    }`}
                             >
                                 {t('deviceManagement.view.compact')}
                             </button>
                             <button
                                 onClick={() => setViewMode('detailed')}
-                                className={`px-3 py-1 text-sm rounded ${
-                                    viewMode === 'detailed'
+                                className={`px-3 py-1 text-sm rounded ${viewMode === 'detailed'
                                         ? 'bg-white shadow text-gray-900'
                                         : 'text-gray-600 hover:text-gray-900'
-                                }`}
+                                    }`}
                             >
                                 {t('deviceManagement.view.detailed')}
                             </button>
@@ -726,13 +722,12 @@ function DeviceManagement() {
                         {/* Card view for mobile/tablet */}
                         <div className="block lg:hidden space-y-4">
                             {(devices || []).map((device, index) => (
-                                <div key={device.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
+                                <div key={device.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all animate-scale-in" style={{ animationDelay: `${index * 50}ms` }}>
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center space-x-3">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                                device.current_status === 'online' ? 'bg-green-100' :
-                                                device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
-                                            }`}>
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${device.current_status === 'online' ? 'bg-green-100' :
+                                                    device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
+                                                }`}>
                                                 {getStatusIcon(device.current_status || device.status)}
                                             </div>
                                             <div>
@@ -740,10 +735,9 @@ function DeviceManagement() {
                                                 <p className="text-xs text-gray-500 font-mono">ID: {device.id}</p>
                                             </div>
                                         </div>
-                                        <span className={`badge text-xs ${
-                                            (device.current_status || device.status) === 'online' ? 'badge-success' :
-                                            (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
-                                        }`}>
+                                        <span className={`badge text-xs ${(device.current_status || device.status) === 'online' ? 'badge-success' :
+                                                (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
+                                            }`}>
                                             {formatStatusLabel(device.current_status || device.status || 'offline')}
                                         </span>
                                     </div>
@@ -797,7 +791,7 @@ function DeviceManagement() {
                                                                 key={group.id}
                                                                 onClick={() => setFilterGroup(group.id.toString())}
                                                                 className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
-                                                                style={{backgroundColor: group.color, color: 'white'}}
+                                                                style={{ backgroundColor: group.color, color: 'white' }}
                                                                 title={`Filter by group: ${group.name}`}
                                                             >
                                                                 {group.name}
@@ -818,7 +812,7 @@ function DeviceManagement() {
                                                                 key={tag.id}
                                                                 onClick={() => setFilterTag(tag.id.toString())}
                                                                 className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
-                                                                style={{backgroundColor: tag.color, color: 'white'}}
+                                                                style={{ backgroundColor: tag.color, color: 'white' }}
                                                                 title={`Filter by tag: ${tag.name}`}
                                                             >
                                                                 {tag.name}
@@ -885,13 +879,12 @@ function DeviceManagement() {
                                     </thead>
                                     <tbody>
                                         {(devices || []).map((device, index) => (
-                                            <tr key={device.id} className="animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
+                                            <tr key={device.id} className="animate-scale-in" style={{ animationDelay: `${index * 50}ms` }}>
                                                 <td>
                                                     <div className="flex items-center space-x-2">
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                                            device.current_status === 'online' ? 'bg-green-100' :
-                                                            device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
-                                                        }`}>
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${device.current_status === 'online' ? 'bg-green-100' :
+                                                                device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
+                                                            }`}>
                                                             {getStatusIcon(device.current_status || device.status)}
                                                         </div>
                                                         <div className="min-w-0">
@@ -901,17 +894,16 @@ function DeviceManagement() {
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span className={`badge text-xs ${
-                                                        (device.current_status || device.status) === 'online' ? 'badge-success' :
-                                                        (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
-                                                    }`}>
+                                                    <span className={`badge text-xs ${(device.current_status || device.status) === 'online' ? 'badge-success' :
+                                                            (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
+                                                        }`}>
                                                         {formatStatusLabel(device.current_status || device.status || 'offline')}
                                                     </span>
                                                 </td>
                                                 <td>
-                                            <span className="badge badge-primary text-xs">
-                                                {formatDeviceType(device.device_type)}
-                                            </span>
+                                                    <span className="badge badge-primary text-xs">
+                                                        {formatDeviceType(device.device_type)}
+                                                    </span>
                                                 </td>
                                                 <td>
                                                     <span className="font-mono text-xs text-gray-900">
@@ -925,7 +917,7 @@ function DeviceManagement() {
                                                                 key={group.id}
                                                                 onClick={() => setFilterGroup(group.id.toString())}
                                                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
-                                                                style={{backgroundColor: group.color, color: 'white'}}
+                                                                style={{ backgroundColor: group.color, color: 'white' }}
                                                                 title={`Filter by group: ${group.name}`}
                                                             >
                                                                 <Folder className="w-2.5 h-2.5 mr-0.5" />
@@ -937,7 +929,7 @@ function DeviceManagement() {
                                                                 key={tag.id}
                                                                 onClick={() => setFilterTag(tag.id.toString())}
                                                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
-                                                                style={{backgroundColor: tag.color, color: 'white'}}
+                                                                style={{ backgroundColor: tag.color, color: 'white' }}
                                                                 title={`Filter by tag: ${tag.name}`}
                                                             >
                                                                 <Tag className="w-2.5 h-2.5 mr-0.5" />
@@ -1023,13 +1015,12 @@ function DeviceManagement() {
                                     </thead>
                                     <tbody>
                                         {(devices || []).map((device, index) => (
-                                            <tr key={device.id} className="animate-scale-in" style={{animationDelay: `${index * 50}ms`}}>
+                                            <tr key={device.id} className="animate-scale-in" style={{ animationDelay: `${index * 50}ms` }}>
                                                 <td className="min-w-[200px]">
                                                     <div className="flex items-center space-x-3">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                                            device.current_status === 'online' ? 'bg-green-100' :
-                                                            device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
-                                                        }`}>
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${device.current_status === 'online' ? 'bg-green-100' :
+                                                                device.current_status === 'alarm' ? 'bg-red-100' : 'bg-gray-100'
+                                                            }`}>
                                                             {getStatusIcon(device.current_status || device.status)}
                                                         </div>
                                                         <div className="min-w-0">
@@ -1039,10 +1030,9 @@ function DeviceManagement() {
                                                     </div>
                                                 </td>
                                                 <td className="whitespace-nowrap">
-                                                    <span className={`badge text-xs ${
-                                                        (device.current_status || device.status) === 'online' ? 'badge-success' :
-                                                        (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
-                                                    }`}>
+                                                    <span className={`badge text-xs ${(device.current_status || device.status) === 'online' ? 'badge-success' :
+                                                            (device.current_status || device.status) === 'alarm' ? 'badge-error' : 'badge-warning'
+                                                        }`}>
                                                         {formatStatusLabel(device.current_status || device.status || 'offline')}
                                                     </span>
                                                 </td>
@@ -1064,7 +1054,7 @@ function DeviceManagement() {
                                                                 key={group.id}
                                                                 onClick={() => setFilterGroup(group.id.toString())}
                                                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
-                                                                style={{backgroundColor: group.color, color: 'white'}}
+                                                                style={{ backgroundColor: group.color, color: 'white' }}
                                                                 title={`Filter by group: ${group.name}`}
                                                             >
                                                                 <Folder className="w-2.5 h-2.5 mr-0.5" />
@@ -1076,7 +1066,7 @@ function DeviceManagement() {
                                                                 key={tag.id}
                                                                 onClick={() => setFilterTag(tag.id.toString())}
                                                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
-                                                                style={{backgroundColor: tag.color, color: 'white'}}
+                                                                style={{ backgroundColor: tag.color, color: 'white' }}
                                                                 title={`Filter by tag: ${tag.name}`}
                                                             >
                                                                 <Tag className="w-2.5 h-2.5 mr-0.5" />
@@ -1217,11 +1207,10 @@ function DeviceManagement() {
                                                     <button
                                                         key={pageNum}
                                                         onClick={() => setCurrentPage(pageNum)}
-                                                        className={`px-3 py-1 text-sm border rounded ${
-                                                            currentPage === pageNum
+                                                        className={`px-3 py-1 text-sm border rounded ${currentPage === pageNum
                                                                 ? 'bg-blue-600 text-white border-blue-600'
                                                                 : 'border-gray-300 hover:bg-gray-50'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {pageNum}
                                                     </button>
@@ -1753,7 +1742,7 @@ function SensorEditForm({ sensor, onSave, onCancel, isLoading }) {
                     <input
                         type="text"
                         value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         className="input w-full"
                         required
                     />
@@ -1780,7 +1769,7 @@ function SensorEditForm({ sensor, onSave, onCancel, isLoading }) {
                         type="number"
                         step="0.01"
                         value={formData.calibration_offset}
-                        onChange={(e) => setFormData({...formData, calibration_offset: parseFloat(e.target.value) || 0})}
+                        onChange={(e) => setFormData({ ...formData, calibration_offset: parseFloat(e.target.value) || 0 })}
                         className="input w-full"
                     />
                 </div>
@@ -1792,7 +1781,7 @@ function SensorEditForm({ sensor, onSave, onCancel, isLoading }) {
                         type="number"
                         step="0.01"
                         value={formData.calibration_multiplier}
-                        onChange={(e) => setFormData({...formData, calibration_multiplier: parseFloat(e.target.value) || 1})}
+                        onChange={(e) => setFormData({ ...formData, calibration_multiplier: parseFloat(e.target.value) || 1 })}
                         className="input w-full"
                     />
                 </div>
@@ -1803,7 +1792,7 @@ function SensorEditForm({ sensor, onSave, onCancel, isLoading }) {
                     type="checkbox"
                     id={`enabled-${sensor.id}`}
                     checked={formData.enabled}
-                    onChange={(e) => setFormData({...formData, enabled: e.target.checked})}
+                    onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
                     className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
                 />
                 <label htmlFor={`enabled-${sensor.id}`} className="ml-2 text-sm text-gray-700">
@@ -1861,7 +1850,7 @@ function AddSensorForm({ onSave, onCancel, isLoading, availablePins, pinMapping,
 
     const handleSelectType = (type) => {
         setSelectedType(type);
-        setFormData({...formData, type: type.value, name: type.label});
+        setFormData({ ...formData, type: type.value, name: type.label });
     };
 
     const handleSubmit = (e) => {
@@ -1878,9 +1867,8 @@ function AddSensorForm({ onSave, onCancel, isLoading, availablePins, pinMapping,
                         <div key={type.value} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between mb-2">
                                 <h5 className="font-medium text-gray-900">{type.label}</h5>
-                                <span className={`px-2 py-1 text-xs font-medium rounded ${
-                                    type.unit === 'boolean' || type.label.includes('Digital') ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                                }`}>
+                                <span className={`px-2 py-1 text-xs font-medium rounded ${type.unit === 'boolean' || type.label.includes('Digital') ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                                    }`}>
                                     {type.unit === 'boolean' || type.label.includes('Digital') ? 'digital' : 'analog'}
                                 </span>
                             </div>
@@ -1928,9 +1916,8 @@ function AddSensorForm({ onSave, onCancel, isLoading, availablePins, pinMapping,
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                         <h4 className="font-medium text-gray-900">{selectedType.label} 1</h4>
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${
-                            selectedType.unit === 'boolean' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                        }`}>
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${selectedType.unit === 'boolean' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                            }`}>
                             {selectedType.unit === 'boolean' ? 'digital' : 'analog'}
                         </span>
                     </div>
@@ -1952,12 +1939,11 @@ function AddSensorForm({ onSave, onCancel, isLoading, availablePins, pinMapping,
                             value={formData.pin}
                             onChange={(e) => {
                                 const pin = e.target.value;
-                                setFormData({...formData, pin});
+                                setFormData({ ...formData, pin });
                                 setPinConflict(usedPins[pin] && usedPins[pin].length > 0);
                             }}
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm bg-white ${
-                                pinConflict ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                            }`}
+                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm bg-white ${pinConflict ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                                }`}
                             required
                         >
                             <option value="">Select Pin</option>
@@ -1989,7 +1975,7 @@ function AddSensorForm({ onSave, onCancel, isLoading, availablePins, pinMapping,
                         <input
                             type="text"
                             value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             className="input w-full"
                             required
                             placeholder={`${selectedType.label} 1`}
@@ -2099,9 +2085,8 @@ function OTAUpdateModal({ device, onClose }) {
                         </div>
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Status:</span>
-                            <span className={`badge text-xs ${
-                                device.current_status === 'online' ? 'badge-success' : 'badge-warning'
-                            }`}>
+                            <span className={`badge text-xs ${device.current_status === 'online' ? 'badge-success' : 'badge-warning'
+                                }`}>
                                 {formatStatusLabel(device.current_status || 'offline')}
                             </span>
                         </div>

@@ -147,6 +147,113 @@ check_services() {
     return 0
 }
 
+# Function to run all database migrations (SQL + JavaScript)
+run_database_migrations() {
+    local DB_NAME="sensity_platform"
+    
+    print_status "Running comprehensive database migrations..."
+
+    # Create migrations tracking table if it doesn't exist
+    sudo -u postgres psql -d ${DB_NAME} << 'EOF' 2>/dev/null
+CREATE TABLE IF NOT EXISTS migrations (
+    id SERIAL PRIMARY KEY,
+    migration_name VARCHAR(255) UNIQUE NOT NULL,
+    migration_type VARCHAR(10) NOT NULL,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+EOF
+
+    local migrations_run=0
+    local migrations_failed=0
+    local migrations_skipped=0
+
+    # Run SQL migrations from database/migrations/
+    print_status "Checking SQL migrations..."
+    
+    if [[ -d "$APP_DIR/database/migrations" ]]; then
+        for sql_migration in "$APP_DIR/database/migrations"/*.sql; do
+            if [[ -f "$sql_migration" ]]; then
+                migration_name=$(basename "$sql_migration")
+                
+                # Check if already applied
+                local already_applied=$(sudo -u postgres psql -d ${DB_NAME} -t -c \
+                    "SELECT COUNT(*) FROM migrations WHERE migration_name = '$migration_name' AND migration_type = 'sql';" \
+                    2>/dev/null | tr -d ' ')
+                
+                if [[ "$already_applied" == "0" ]]; then
+                    print_status "Running SQL: $migration_name..."
+                    
+                    if sudo -u postgres psql -d ${DB_NAME} -f "$sql_migration" 2>&1; then
+                        sudo -u postgres psql -d ${DB_NAME} -c \
+                            "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql');" \
+                            2>/dev/null
+                        print_success "✓ $migration_name"
+                        ((migrations_run++))
+                    else
+                        print_error "✗ $migration_name"
+                        ((migrations_failed++))
+                    fi
+                else
+                    ((migrations_skipped++))
+                fi
+            fi
+        done
+    fi
+
+    # Run JavaScript migrations from backend/migrations/
+    print_status "Checking JavaScript migrations..."
+    
+    cd "$APP_DIR/backend"
+
+    if [[ -d "migrations" ]]; then
+        for js_migration in migrations/*.js; do
+            if [[ -f "$js_migration" ]]; then
+                migration_name=$(basename "$js_migration")
+                
+                # Skip the migration runner
+                if [[ "$migration_name" == "migrate.js" ]]; then
+                    continue
+                fi
+                
+                # Check if already applied
+                local already_applied=$(sudo -u postgres psql -d ${DB_NAME} -t -c \
+                    "SELECT COUNT(*) FROM migrations WHERE migration_name = '$migration_name' AND migration_type = 'js';" \
+                    2>/dev/null | tr -d ' ')
+                
+                if [[ "$already_applied" == "0" ]]; then
+                    print_status "Running JS: $migration_name..."
+                    
+                    if sudo -u $APP_USER NODE_ENV=production node "$js_migration" 2>&1; then
+                        sudo -u postgres psql -d ${DB_NAME} -c \
+                            "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js');" \
+                            2>/dev/null
+                        print_success "✓ $migration_name"
+                        ((migrations_run++))
+                    else
+                        print_error "✗ $migration_name"
+                        ((migrations_failed++))
+                    fi
+                else
+                    ((migrations_skipped++))
+                fi
+            fi
+        done
+    fi
+
+    cd - > /dev/null
+
+    # Summary
+    print_status "Migrations: $migrations_run new, $migrations_skipped skipped, $migrations_failed failed"
+    
+    if [[ $migrations_failed -gt 0 ]]; then
+        print_warning "⚠ Some migrations failed - check details above"
+    elif [[ $migrations_run -eq 0 ]]; then
+        print_success "✓ All migrations already applied"
+    else
+        print_success "✓ All new migrations applied successfully"
+    fi
+}
+
 update_system() {
     print_status "🔄 Updating Sensity Platform (instance: $INSTANCE_LABEL)..."
     echo
@@ -189,10 +296,9 @@ update_system() {
     cd "$APP_DIR/backend"
     sudo -u "$APP_USER" npm install --production
 
-    # Run database migrations
+    # Run database migrations (comprehensive system)
     print_status "Running database migrations..."
-    cd "$APP_DIR/backend"
-    sudo -u "$APP_USER" node migrations/migrate.js
+    run_database_migrations
 
     print_status "Updating and building frontend..."
     cd "$APP_DIR/frontend"

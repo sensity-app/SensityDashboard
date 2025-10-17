@@ -1090,56 +1090,168 @@ setup_database() {
 
     # Run database migrations
     run_database_migrations
+    
+    # Ensure no default users exist (clean first-user setup)
+    ensure_no_default_users
 }
 
 # Function to run database migrations
 run_database_migrations() {
     print_status "Running database migrations..."
 
+    # Create migrations tracking table
+    print_status "Creating migrations tracking table..."
+    sudo -u postgres psql -d ${DB_NAME} << 'EOF'
+CREATE TABLE IF NOT EXISTS migrations (
+    id SERIAL PRIMARY KEY,
+    migration_name VARCHAR(255) UNIQUE NOT NULL,
+    migration_type VARCHAR(10) NOT NULL, -- 'sql' or 'js'
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+EOF
+
+    local migrations_run=0
+    local migrations_failed=0
+    local migrations_skipped=0
+
+    # ============================================================
+    # PART 1: Run SQL migrations from database/migrations/
+    # ============================================================
+    print_status "Checking SQL migrations in database/migrations/..."
+    
+    if [[ -d "$APP_DIR/database/migrations" ]]; then
+        for sql_migration in "$APP_DIR/database/migrations"/*.sql; do
+            if [[ -f "$sql_migration" ]]; then
+                migration_name=$(basename "$sql_migration")
+                
+                # Check if already applied
+                local already_applied=$(sudo -u postgres psql -d ${DB_NAME} -t -c \
+                    "SELECT COUNT(*) FROM migrations WHERE migration_name = '$migration_name' AND migration_type = 'sql';" \
+                    2>/dev/null | tr -d ' ')
+                
+                if [[ "$already_applied" == "0" ]]; then
+                    print_status "Running SQL migration: $migration_name..."
+                    
+                    if sudo -u postgres psql -d ${DB_NAME} -f "$sql_migration" 2>&1; then
+                        # Record migration
+                        sudo -u postgres psql -d ${DB_NAME} -c \
+                            "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql');" \
+                            2>/dev/null
+                        
+                        print_success "✓ SQL migration completed: $migration_name"
+                        ((migrations_run++))
+                    else
+                        print_error "✗ SQL migration failed: $migration_name"
+                        ((migrations_failed++))
+                    fi
+                else
+                    print_status "⊙ SQL migration already applied: $migration_name"
+                    ((migrations_skipped++))
+                fi
+            fi
+        done
+    else
+        print_warning "SQL migrations directory not found: $APP_DIR/database/migrations"
+    fi
+
+    # ============================================================
+    # PART 2: Run JavaScript migrations from backend/migrations/
+    # ============================================================
+    print_status "Checking JavaScript migrations in backend/migrations/..."
+    
     cd "$APP_DIR/backend"
 
-    # Run Telegram support migration
-    if [[ -f "migrations/add_telegram_support.js" ]]; then
-        print_status "Running Telegram support migration..."
-        sudo -u $APP_USER NODE_ENV=production node migrations/add_telegram_support.js
-        if [[ $? -eq 0 ]]; then
-            print_success "Telegram support migration completed"
-        else
-            print_warning "Telegram support migration failed - you may need to run it manually"
-        fi
-    fi
-
-    # Run auto-calibration migration
-    if [[ -f "migrations/add_auto_calibration.js" ]]; then
-        print_status "Running auto-calibration migration..."
-        sudo -u $APP_USER NODE_ENV=production node migrations/add_auto_calibration.js
-        if [[ $? -eq 0 ]]; then
-            print_success "Auto-calibration migration completed"
-        else
-            print_warning "Auto-calibration migration failed - you may need to run it manually"
-        fi
-    fi
-
-    # Run any other migrations in the migrations directory
-    for migration_file in migrations/*.js; do
-        # Skip the migration runner itself and already-run migrations
-        if [[ -f "$migration_file" ]] && \
-           [[ "$migration_file" != *"migrate.js"* ]] && \
-           [[ "$migration_file" != *"add_telegram_support.js"* ]] && \
-           [[ "$migration_file" != *"add_auto_calibration.js"* ]]; then
-            migration_name=$(basename "$migration_file")
-            print_status "Running migration: $migration_name..."
-            sudo -u $APP_USER NODE_ENV=production node "$migration_file"
-            if [[ $? -eq 0 ]]; then
-                print_success "Migration $migration_name completed"
-            else
-                print_warning "Migration $migration_name failed - you may need to run it manually"
+    if [[ -d "migrations" ]]; then
+        for js_migration in migrations/*.js; do
+            if [[ -f "$js_migration" ]]; then
+                migration_name=$(basename "$js_migration")
+                
+                # Skip the migration runner itself
+                if [[ "$migration_name" == "migrate.js" ]]; then
+                    continue
+                fi
+                
+                # Check if already applied
+                local already_applied=$(sudo -u postgres psql -d ${DB_NAME} -t -c \
+                    "SELECT COUNT(*) FROM migrations WHERE migration_name = '$migration_name' AND migration_type = 'js';" \
+                    2>/dev/null | tr -d ' ')
+                
+                if [[ "$already_applied" == "0" ]]; then
+                    print_status "Running JS migration: $migration_name..."
+                    
+                    if sudo -u $APP_USER NODE_ENV=production node "$js_migration" 2>&1; then
+                        # Record migration
+                        sudo -u postgres psql -d ${DB_NAME} -c \
+                            "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js');" \
+                            2>/dev/null
+                        
+                        print_success "✓ JS migration completed: $migration_name"
+                        ((migrations_run++))
+                    else
+                        print_error "✗ JS migration failed: $migration_name"
+                        ((migrations_failed++))
+                    fi
+                else
+                    print_status "⊙ JS migration already applied: $migration_name"
+                    ((migrations_skipped++))
+                fi
             fi
-        fi
-    done
+        done
+    else
+        print_warning "JavaScript migrations directory not found: backend/migrations"
+    fi
 
     cd - > /dev/null
-    print_success "Database migrations completed"
+
+    # ============================================================
+    # Summary
+    # ============================================================
+    echo
+    print_status "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    print_status "Migration Summary:"
+    print_success "  ✓ Executed:      $migrations_run"
+    print_status  "  ⊙ Already done:  $migrations_skipped"
+    if [[ $migrations_failed -gt 0 ]]; then
+        print_error "  ✗ Failed:        $migrations_failed"
+    fi
+    print_status "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo
+    
+    if [[ $migrations_failed -gt 0 ]]; then
+        print_warning "Some migrations failed - check logs above for details"
+        print_warning "You may need to run them manually later"
+    else
+        print_success "All database migrations completed successfully"
+    fi
+}
+
+# Function to ensure no default users (security best practice)
+ensure_no_default_users() {
+    print_status "Ensuring no default users exist in database..."
+    
+    # Check if any users exist
+    local user_count=$(sudo -u postgres psql -d ${DB_NAME} -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' ' || echo "0")
+    
+    if [[ "$user_count" -gt 0 ]]; then
+        print_warning "Found $user_count user(s) in database - clearing for first-user setup..."
+        
+        # Delete all users to ensure clean first-user registration flow
+        sudo -u postgres psql -d ${DB_NAME} -c "DELETE FROM users;" 2>/dev/null || true
+        
+        # Verify deletion
+        local final_count=$(sudo -u postgres psql -d ${DB_NAME} -t -c "SELECT COUNT(*) FROM users;" 2>/dev/null | tr -d ' ' || echo "0")
+        
+        if [[ "$final_count" -eq 0 ]]; then
+            print_success "Users table cleared - ready for first-user setup"
+        else
+            print_error "Failed to clear users table (still $final_count users)"
+        fi
+    else
+        print_success "Users table is empty - ready for first-user setup"
+    fi
+    
+    print_status "📝 IMPORTANT: No default users created for security"
+    print_status "📝 After installation, visit your site to create first admin user"
 }
 
 # Function to fix database permissions
@@ -2274,7 +2386,22 @@ main() {
     echo -e "  Restart:       ${CYAN}sudo -u $APP_USER pm2 restart ${PM2_APP_NAME}${NC}"
     echo -e "  Update system: ${CYAN}sudo ./update-system.sh ${INSTANCE_NAME}${NC}"
     echo
-    echo -e "${PURPLE}🚀 Your IoT platform is ready! Register the first admin user via the web interface.${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}⚠️  FIRST-TIME SETUP REQUIRED${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        echo -e "  ${GREEN}1.${NC} Visit: ${CYAN}http://$SERVER_IP:${BACKEND_PORT}${NC}"
+    else
+        echo -e "  ${GREEN}1.${NC} Visit: ${CYAN}https://$DOMAIN${NC}"
+    fi
+    echo -e "  ${GREEN}2.${NC} Create your first admin user"
+    echo -e "  ${GREEN}3.${NC} Start configuring your IoT platform"
+    echo
+    echo -e "${YELLOW}📝 NOTE: No default users exist for security reasons${NC}"
+    echo -e "${YELLOW}📝 The system will guide you through creating the admin account${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo
+    echo -e "${PURPLE}🚀 Installation complete! Visit your site to get started.${NC}"
     echo
 }
 

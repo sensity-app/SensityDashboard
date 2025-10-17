@@ -771,32 +771,9 @@ const runMigrations = async () => {
     }
 };
 
-// Create default admin user if no users exist
-const createDefaultUser = async () => {
-    try {
-        const userCount = await query('SELECT COUNT(*) as count FROM users');
-
-        if (parseInt(userCount.rows[0].count) === 0) {
-            const bcrypt = require('bcryptjs');
-            const defaultPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
-            const passwordHash = await bcrypt.hash(defaultPassword, 12);
-
-            await query(`
-                INSERT INTO users (email, password_hash, role, preferred_language)
-                VALUES ($1, $2, $3, $4)
-            `, ['admin@example.com', passwordHash, 'admin', process.env.DEFAULT_ADMIN_LANGUAGE || 'en']);
-
-            logger.warn('Default admin user created:', {
-                email: 'admin@example.com',
-                password: defaultPassword
-            });
-        }
-    } catch (error) {
-        logger.error('Error creating default user:', error);
-    }
-};
-
 // Graceful shutdown
+// NOTE: No default users are created - system uses first-user registration flow
+// This ensures no hardcoded passwords exist in the system
 const gracefulShutdown = async () => {
     try {
         logger.info('Closing database connection pool...');
@@ -821,7 +798,6 @@ module.exports = {
     transaction,
     healthCheck,
     initialize,
-    createDefaultUser,
     gracefulShutdown,
     getClient,
     pool

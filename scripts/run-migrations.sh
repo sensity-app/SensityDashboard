@@ -105,29 +105,29 @@ if [[ -d "$APP_DIR/database/migrations" ]]; then
             2>/dev/null | tr -d ' ')
 
         if [[ "$already_applied" == "0" ]]; then
-            print_status "Running SQL migration: $migration_name..."
-            sudo -u postgres psql -d "$DB_NAME" -f "$sql_migration"
+            # Execute SQL migration (quiet mode)
+            sudo -u postgres psql -d "$DB_NAME" -f "$sql_migration" >/dev/null 2>&1
             migration_exit=$?
 
             if [[ $migration_exit -eq 0 ]]; then
                 sudo -u postgres psql -d "$DB_NAME" -c \
                     "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql') ON CONFLICT (migration_name) DO NOTHING;" \
-                    2>/dev/null
+                    >/dev/null 2>&1
                 record_exit=$?
 
                 if [[ $record_exit -eq 0 ]]; then
-                    print_success "✓ SQL migration completed: $migration_name"
+                    print_migration_status "success" "SQL: $migration_name"
                     ((migrations_run++))
                 else
-                    print_error "✗ SQL migration recorded but tracking insert failed: $migration_name (exit code: $record_exit)"
+                    print_migration_status "error" "SQL tracking failed: $migration_name"
                     ((migrations_failed++))
                 fi
             else
-                print_error "✗ SQL migration failed: $migration_name (exit code: $migration_exit)"
+                print_migration_status "error" "SQL failed: $migration_name"
                 ((migrations_failed++))
             fi
         else
-            print_status "⊙ SQL migration already applied: $migration_name"
+            print_migration_status "skip" "SQL: $migration_name"
             ((migrations_skipped++))
         fi
     done
@@ -154,29 +154,29 @@ if [[ -d "$APP_DIR/backend/migrations" ]]; then
             2>/dev/null | tr -d ' ')
 
         if [[ "$already_applied" == "0" ]]; then
-            print_status "Running JS migration: $migration_name..."
-            sudo -u "$APP_USER" NODE_ENV=production node "$js_migration"
+            # Execute JS migration (quiet mode)
+            sudo -u "$APP_USER" NODE_ENV=production node "$js_migration" >/dev/null 2>&1
             migration_exit=$?
 
             if [[ $migration_exit -eq 0 ]]; then
                 sudo -u postgres psql -d "$DB_NAME" -c \
                     "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js') ON CONFLICT (migration_name) DO NOTHING;" \
-                    2>/dev/null
+                    >/dev/null 2>&1
                 record_exit=$?
 
                 if [[ $record_exit -eq 0 ]]; then
-                    print_success "✓ JS migration completed: $migration_name"
+                    print_migration_status "success" "JS: $migration_name"
                     ((migrations_run++))
                 else
-                    print_error "✗ JS migration recorded but tracking insert failed: $migration_name (exit code: $record_exit)"
+                    print_migration_status "error" "JS tracking failed: $migration_name"
                     ((migrations_failed++))
                 fi
             else
-                print_error "✗ JS migration failed: $migration_name (exit code: $migration_exit)"
+                print_migration_status "error" "JS failed: $migration_name"
                 ((migrations_failed++))
             fi
         else
-            print_status "⊙ JS migration already applied: $migration_name"
+            print_migration_status "skip" "JS: $migration_name"
             ((migrations_skipped++))
         fi
     done
@@ -188,19 +188,11 @@ fi
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
-print_status "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-print_status "Migration Summary:"
-print_success "  ✓ Executed:      $migrations_run"
-print_status "  ⊙ Already done:  $migrations_skipped"
 if [[ $migrations_failed -gt 0 ]]; then
-    print_error "  ✗ Failed:        $migrations_failed"
-fi
-print_status "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-if [[ $migrations_failed -gt 0 ]]; then
-    print_warning "Some migrations failed - check logs above for details"
+    print_migration_status "error" "Migrations completed with $migrations_failed failure(s)"
+    exit 1
 else
-    print_success "All database migrations completed successfully"
+    print_migration_status "success" "All migrations completed successfully"
 fi
 
 # Restore errexit state if needed

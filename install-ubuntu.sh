@@ -107,7 +107,7 @@ print_status_progress() {
     echo -e "\n${BLUE}[INFO]${NC} $message"
 }
 
-# Function to run database migrations via shared script
+# Function to run database migrations
 run_database_migrations() {
     local migration_script="$APP_DIR/scripts/run-migrations.sh"
 
@@ -117,10 +117,16 @@ run_database_migrations() {
         exit 1
     fi
 
-    APP_DIR="$APP_DIR" \
-    APP_USER="$APP_USER" \
-    DB_NAME="$DB_NAME" \
-        "$migration_script"
+    # Run migrations quietly
+    if APP_DIR="$APP_DIR" \
+       APP_USER="$APP_USER" \
+       DB_NAME="$DB_NAME" \
+       "$migration_script" >/dev/null 2>&1; then
+        print_success "Database migrations completed"
+    else
+        print_error "Database migrations failed"
+        exit 1
+    fi
 }
 
 # Function to validate installation requirements
@@ -992,28 +998,26 @@ build_frontend() {
 
 # Function to setup database schema
 setup_database() {
-    print_status "Setting up database schema..."
-
+    # Create schema quietly
     if [[ -f "$APP_DIR/database/schema.sql" ]]; then
-        sudo -u postgres psql -d ${DB_NAME} -f "$APP_DIR/database/schema.sql"
-        print_success "Database schema created"
+        if sudo -u postgres psql -d ${DB_NAME} -f "$APP_DIR/database/schema.sql" >/dev/null 2>&1; then
+            print_success "Database schema created"
+        else
+            print_error "Database schema creation failed"
+            exit 1
+        fi
     else
-        print_warning "Database schema file not found - you'll need to run migrations manually"
+        print_warning "Database schema file not found"
     fi
 
-    # Fix database permissions after schema creation
-    print_status "Step 1/3: Fixing database permissions..."
-    fix_database_permissions
+    # Fix database permissions quietly
+    fix_database_permissions >/dev/null 2>&1 && print_success "Database permissions configured" || print_error "Database permissions failed"
 
-    # Run database migrations
-    print_status "Step 2/3: Running database migrations..."
+    # Run database migrations (already quiet)
     run_database_migrations
     
-    # Ensure no default users exist (clean first-user setup)
-    print_status "Step 3/3: Ensuring no default users..."
-    ensure_no_default_users
-    
-    print_success "✓ Database setup completed successfully"
+    # Ensure no default users exist quietly
+    ensure_no_default_users >/dev/null 2>&1 && print_success "User setup prepared" || print_error "User setup failed"
 }
 
 # Function to run database migrations

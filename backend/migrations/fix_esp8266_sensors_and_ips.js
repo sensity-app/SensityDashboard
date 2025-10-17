@@ -36,13 +36,19 @@ async function fixESP8266SensorsAndIPs() {
             )
         `);
 
-        // Check if already applied (for standalone runs)
-        const alreadyApplied = await client.query(`
-            SELECT 1 FROM migrations WHERE migration_name = 'fix_esp8266_sensors_and_ips.js' AND migration_type = 'js'
+        // Check if required tables exist
+        const devicesCheck = await client.query(`
+            SELECT 1 FROM information_schema.tables WHERE table_name = 'devices'
+        `);
+        const sensorsCheck = await client.query(`
+            SELECT 1 FROM information_schema.tables WHERE table_name = 'device_sensors'
+        `);
+        const typesCheck = await client.query(`
+            SELECT 1 FROM information_schema.tables WHERE table_name = 'sensor_types'
         `);
 
-        if (alreadyApplied.rows.length > 0) {
-            logger.info('Migration already applied, skipping...');
+        if (devicesCheck.rows.length === 0 || sensorsCheck.rows.length === 0 || typesCheck.rows.length === 0) {
+            logger.info('Required tables not found, skipping migration');
             await client.query('COMMIT');
             return;
         }

@@ -473,7 +473,13 @@ const WebFlasher = ({ config, onClose }) => {
         try {
             // Get sensor types from backend
             const sensorTypesResponse = await apiService.getSensorTypes();
-            const sensorTypes = sensorTypesResponse?.sensor_types || sensorTypesResponse || [];
+            let sensorTypes = sensorTypesResponse?.sensor_types || sensorTypesResponse || [];
+
+            // Ensure sensorTypes is an array
+            if (!Array.isArray(sensorTypes)) {
+                console.warn('Sensor types response is not an array:', sensorTypes);
+                sensorTypes = [];
+            }
 
             for (const sensor of sensors) {
                 if (!sensor.enabled) continue;
@@ -892,11 +898,25 @@ const WebFlasher = ({ config, onClose }) => {
             logMessage('resetting', 'info');
 
             try {
-                await esploader.after('hard_reset');
+                // Perform hard reset to reboot the device
+                await esploader.hard_reset();
                 logMessage('resetSignal', 'info');
+
+                // Give device time to reboot
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                logMessage('rebootComplete', 'success');
             } catch (resetError) {
                 console.warn('Device reset failed:', resetError);
                 logMessage('resetWarning', 'warning', { message: resetError.message });
+
+                // Try alternative reset method
+                try {
+                    await esploader.after('hard_reset');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    logMessage('rebootComplete', 'success');
+                } catch (altResetError) {
+                    console.warn('Alternative reset also failed:', altResetError);
+                }
             }
 
             setFlashProgress(100);
@@ -1289,8 +1309,8 @@ const WebFlasher = ({ config, onClose }) => {
                             <button
                                 onClick={isMonitoring ? stopSerialMonitor : startSerialMonitor}
                                 className={`px-4 py-3 flex items-center space-x-2 border rounded-lg ${isMonitoring
-                                        ? 'text-red-600 border-red-600 hover:bg-red-50'
-                                        : 'text-green-600 border-green-600 hover:bg-green-50'
+                                    ? 'text-red-600 border-red-600 hover:bg-red-50'
+                                    : 'text-green-600 border-green-600 hover:bg-green-50'
                                     }`}
                             >
                                 <Usb className="w-4 h-4" />

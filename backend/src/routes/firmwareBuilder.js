@@ -122,8 +122,18 @@ async function registerDeviceInDatabase(config) {
         `, [device_id, true, heartbeat_interval, ota_enabled]);
 
         // Register sensors if provided
-        if (sensors && sensors.length > 0) {
-            for (const sensor of sensors) {
+        // Convert sensors to array if it's an object
+        let sensorsArray = sensors;
+        if (sensors && !Array.isArray(sensors)) {
+            // Convert object to array of sensors
+            sensorsArray = Object.entries(sensors).map(([type, config]) => ({
+                type,
+                ...config
+            }));
+        }
+
+        if (sensorsArray && Array.isArray(sensorsArray) && sensorsArray.length > 0) {
+            for (const sensor of sensorsArray) {
                 if (!sensor.enabled) continue;
 
                 const sensorTypeName = sensorTypeMapping[sensor.type] || sensor.type;

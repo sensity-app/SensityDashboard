@@ -1094,7 +1094,38 @@ void sendAlarmEvent(int sensorIndex, float value)
 #endif
     http.addHeader("Content-Type", "application/json");
 
-    StaticJsonDocument<384> doc;
+    StaticJsonDocument<512> doc;
+    doc["device_id"] = config.device_id;
+    doc["sensor_pin"] = sensors[sensorIndex].pin;
+    doc["sensor_type"] = sensors[sensorIndex].type;
+    doc["sensor_name"] = sensors[sensorIndex].name;
+    doc["value"] = value;
+    doc["threshold_min"] = sensors[sensorIndex].threshold_min;
+    doc["threshold_max"] = sensors[sensorIndex].threshold_max;
+    doc["alert_type"] = "THRESHOLD_BREACH";
+    doc["severity"] = (value > sensors[sensorIndex].threshold_max * 1.5) ? "high" : "medium";
+
+    String message = sensors[sensorIndex].name + " value " + String(value) +
+                     " exceeds threshold (" + String(sensors[sensorIndex].threshold_min) +
+                     " - " + String(sensors[sensorIndex].threshold_max) + ")";
+    doc["message"] = message;
+
+    String payload;
+    serializeJson(doc, payload);
+
+    Serial.println("ALARM: " + message);
+
+    int httpCode = http.POST(payload);
+    if (httpCode > 0)
+    {
+        Serial.println("Alarm sent successfully");
+    }
+    else
+    {
+        Serial.println("Failed to send alarm");
+    }
+
+    http.end();
 }
 
 void sendImmediateThresholdAlert(int sensorIndex, float value, const String &alertType)
@@ -1156,38 +1187,6 @@ void sendImmediateThresholdAlert(int sensorIndex, float value, const String &ale
     }
 
     http.end();
-}
-doc["device_id"] = config.device_id;
-doc["sensor_pin"] = sensors[sensorIndex].pin;
-doc["sensor_type"] = sensors[sensorIndex].type;
-doc["sensor_name"] = sensors[sensorIndex].name;
-doc["value"] = value;
-doc["threshold_min"] = sensors[sensorIndex].threshold_min;
-doc["threshold_max"] = sensors[sensorIndex].threshold_max;
-doc["alert_type"] = "THRESHOLD_BREACH";
-doc["severity"] = (value > sensors[sensorIndex].threshold_max * 1.5) ? "high" : "medium";
-
-String message = sensors[sensorIndex].name + " value " + String(value) +
-                 " exceeds threshold (" + String(sensors[sensorIndex].threshold_min) +
-                 " - " + String(sensors[sensorIndex].threshold_max) + ")";
-doc["message"] = message;
-
-String payload;
-serializeJson(doc, payload);
-
-Serial.println("ALARM: " + message);
-
-int httpCode = http.POST(payload);
-if (httpCode > 0)
-{
-    Serial.println("Alarm sent successfully");
-}
-else
-{
-    Serial.println("Failed to send alarm");
-}
-
-http.end();
 }
 
 void connectToWiFi()

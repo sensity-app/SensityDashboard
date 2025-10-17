@@ -774,6 +774,8 @@ function generateDeviceConfig(config) {
 #define HEARTBEAT_INTERVAL_SEC ${config.heartbeat_interval}
 #define SENSOR_READ_INTERVAL_MS ${config.sensor_read_interval}
 #define TELEMETRY_BATCH_SIZE 5
+#define TELEMETRY_SEND_INTERVAL_MS 5000
+#define THRESHOLD_ALERT_ENABLED true
 #define DEVICE_ARMED ${config.device_armed ? 'true' : 'false'}
 #define DEBUG_MODE ${config.debug_mode ? 'true' : 'false'}
 #define OTA_ENABLED ${config.ota_enabled ? 'true' : 'false'}

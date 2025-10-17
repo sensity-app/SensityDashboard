@@ -49,6 +49,13 @@ APP_DIR="/opt/sensity-platform"
 DB_NAME="sensity_platform"
 NODE_VERSION="18"
 
+# Check for non-interactive mode
+NON_INTERACTIVE=false
+if [[ ! -t 0 ]] || [[ "${CI:-false}" == "true" ]] || [[ "${NON_INTERACTIVE_INSTALL:-false}" == "true" ]]; then
+    NON_INTERACTIVE=true
+    print_warning "Running in non-interactive mode - using default values"
+fi
+
 # Function to print colored output
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -400,12 +407,16 @@ gather_input() {
         echo "For multiple installations, give each a unique name (e.g., 'production', 'staging', 'dev1')"
         echo "Leave empty for 'default' (will use /opt/sensity-platform, port 3000)"
     fi
-    read -p "Instance name [default]: " INSTANCE_NAME_INPUT < /dev/tty
-    if [[ -z "$INSTANCE_NAME_INPUT" ]]; then
+    if [[ "$NON_INTERACTIVE" == "true" ]]; then
         INSTANCE_NAME="default"
+        print_status "Using default instance name: $INSTANCE_NAME"
     else
-        # Sanitize instance name
-        INSTANCE_NAME=$(echo "$INSTANCE_NAME_INPUT" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g')
+        read -p "Instance name [default]: " INSTANCE_NAME_INPUT < /dev/tty
+        if [[ -z "$INSTANCE_NAME_INPUT" ]]; then
+            INSTANCE_NAME="default"
+        else
+            # Sanitize instance name
+            INSTANCE_NAME=$(echo "$INSTANCE_NAME_INPUT" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g')
     fi
 
     # Set directory and database name based on instance
@@ -434,16 +445,21 @@ gather_input() {
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "Choose a unique port for this instance's backend (default: 3000)"
         echo "Used ports: 3000 (if default exists)"
-        while [[ -z "$BACKEND_PORT" ]]; do
-            read -p "Backend port [3001]: " PORT_INPUT < /dev/tty
-            if [[ -z "$PORT_INPUT" ]]; then
-                BACKEND_PORT="3001"
-            elif [[ "$PORT_INPUT" =~ ^[0-9]{4,5}$ ]] && [[ "$PORT_INPUT" -ge 3000 ]] && [[ "$PORT_INPUT" -le 65535 ]]; then
-                BACKEND_PORT="$PORT_INPUT"
-            else
-                print_error "Port must be between 3000 and 65535"
-            fi
-        done
+        if [[ "$NON_INTERACTIVE" == "true" ]]; then
+            BACKEND_PORT="3001"
+            print_status "Using default backend port: $BACKEND_PORT"
+        else
+            while [[ -z "$BACKEND_PORT" ]]; do
+                read -p "Backend port [3001]: " PORT_INPUT < /dev/tty
+                if [[ -z "$PORT_INPUT" ]]; then
+                    BACKEND_PORT="3001"
+                elif [[ "$PORT_INPUT" =~ ^[0-9]{4,5}$ ]] && [[ "$PORT_INPUT" -ge 3000 ]] && [[ "$PORT_INPUT" -le 65535 ]]; then
+                    BACKEND_PORT="$PORT_INPUT"
+                else
+                    print_error "Port must be between 3000 and 65535"
+                fi
+            done
+        fi
         print_success "Backend port: $BACKEND_PORT"
         echo
     fi
@@ -456,22 +472,27 @@ gather_input() {
     echo "2) Development (no SSL, access via IP address only)"
     echo
 
-    while [[ -z "$DEVELOPMENT_MODE" ]]; do
-        read -p "Select installation type (1 or 2): " INSTALL_TYPE < /dev/tty
-        case $INSTALL_TYPE in
-            1)
-                DEVELOPMENT_MODE="false"
-                print_success "Selected: Production installation with SSL"
-                ;;
-            2)
-                DEVELOPMENT_MODE="true"
-                print_success "Selected: Development installation without SSL"
-                ;;
-            *)
-                print_error "Please enter 1 or 2"
-                ;;
-        esac
-    done
+    if [[ "$NON_INTERACTIVE" == "true" ]]; then
+        DEVELOPMENT_MODE="true"
+        print_status "Using development mode (non-interactive default)"
+    else
+        while [[ -z "$DEVELOPMENT_MODE" ]]; do
+            read -p "Select installation type (1 or 2): " INSTALL_TYPE < /dev/tty
+            case $INSTALL_TYPE in
+                1)
+                    DEVELOPMENT_MODE="false"
+                    print_success "Selected: Production installation with SSL"
+                    ;;
+                2)
+                    DEVELOPMENT_MODE="true"
+                    print_success "Selected: Development installation without SSL"
+                    ;;
+                *)
+                    print_error "Please enter 1 or 2"
+                    ;;
+            esac
+        done
+    fi
 
     echo
 
@@ -523,23 +544,29 @@ gather_input() {
     print_status "QUESTION 6/8: Database Password"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Press Enter for auto-generated secure password, or type your own (min 8 chars)"
-    while [[ -z "$DB_PASSWORD" ]]; do
-        read -s -p "Database password: " DB_PASSWORD_INPUT < /dev/tty
-        echo
+    if [[ "$NON_INTERACTIVE" == "true" ]]; then
+        # Auto-generate secure password for non-interactive mode
+        DB_PASSWORD=$(openssl rand -base64 24 | tr -d '\n')
+        print_success "Auto-generated database password: $DB_PASSWORD"
+    else
+        while [[ -z "$DB_PASSWORD" ]]; do
+            read -s -p "Database password: " DB_PASSWORD_INPUT < /dev/tty
+            echo
 
-        if [[ -z "$DB_PASSWORD_INPUT" ]]; then
-            # Auto-generate secure password
-            DB_PASSWORD=$(openssl rand -base64 24 | tr -d '\n')
-            print_success "Auto-generated database password: $DB_PASSWORD"
-        else
-            if [[ ${#DB_PASSWORD_INPUT} -lt 8 ]]; then
-                print_error "Password must be at least 8 characters long"
+            if [[ -z "$DB_PASSWORD_INPUT" ]]; then
+                # Auto-generate secure password
+                DB_PASSWORD=$(openssl rand -base64 24 | tr -d '\n')
+                print_success "Auto-generated database password: $DB_PASSWORD"
             else
-                DB_PASSWORD="$DB_PASSWORD_INPUT"
-                print_success "Database password set"
+                if [[ ${#DB_PASSWORD_INPUT} -lt 8 ]]; then
+                    print_error "Password must be at least 8 characters long"
+                else
+                    DB_PASSWORD="$DB_PASSWORD_INPUT"
+                    print_success "Database password set"
+                fi
             fi
-        fi
-    done
+        done
+    fi
     echo
 
     # Question 7: MQTT installation
@@ -552,45 +579,52 @@ gather_input() {
     echo "  • Real-time bidirectional communication"
     echo
     echo "Devices can use HTTP if you skip MQTT."
-    read -p "Install Mosquitto MQTT broker? (y/N): " -n 1 -r < /dev/tty
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        INSTALL_MQTT="true"
-        print_success "MQTT will be installed"
-        echo
-
-        # Question 8: MQTT credentials
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        print_status "QUESTION 8/8: MQTT Credentials"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        read -p "MQTT username [iot]: " MQTT_USERNAME < /dev/tty
-        if [[ -z "$MQTT_USERNAME" ]]; then
-            MQTT_USERNAME="iot"
-        fi
-        print_success "MQTT username: $MQTT_USERNAME"
-
-        while [[ -z "$MQTT_PASSWORD" ]]; do
-            read -s -p "MQTT password (or press Enter for auto-generated): " MQTT_PASSWORD_INPUT < /dev/tty
-            echo
-
-            if [[ -z "$MQTT_PASSWORD_INPUT" ]]; then
-                # Auto-generate secure password
-                MQTT_PASSWORD=$(openssl rand -base64 16 | tr -d '\n')
-                print_success "Auto-generated MQTT password: $MQTT_PASSWORD"
-            else
-                if [[ ${#MQTT_PASSWORD_INPUT} -lt 8 ]]; then
-                    print_error "Password must be at least 8 characters long"
-                else
-                    MQTT_PASSWORD="$MQTT_PASSWORD_INPUT"
-                    print_success "MQTT password set"
-                fi
-            fi
-        done
-    else
+    if [[ "$NON_INTERACTIVE" == "true" ]]; then
         INSTALL_MQTT="false"
-        print_status "MQTT broker will NOT be installed (devices will use HTTP)"
+        print_status "Skipping MQTT installation (non-interactive mode)"
         MQTT_USERNAME="iot"
         MQTT_PASSWORD=""
+    else
+        read -p "Install Mosquitto MQTT broker? (y/N): " -n 1 -r < /dev/tty
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            INSTALL_MQTT="true"
+            print_success "MQTT will be installed"
+            echo
+
+            # Question 8: MQTT credentials
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            print_status "QUESTION 8/8: MQTT Credentials"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            read -p "MQTT username [iot]: " MQTT_USERNAME < /dev/tty
+            if [[ -z "$MQTT_USERNAME" ]]; then
+                MQTT_USERNAME="iot"
+            fi
+            print_success "MQTT username: $MQTT_USERNAME"
+
+            while [[ -z "$MQTT_PASSWORD" ]]; do
+                read -s -p "MQTT password (or press Enter for auto-generated): " MQTT_PASSWORD_INPUT < /dev/tty
+                echo
+
+                if [[ -z "$MQTT_PASSWORD_INPUT" ]]; then
+                    # Auto-generate secure password
+                    MQTT_PASSWORD=$(openssl rand -base64 16 | tr -d '\n')
+                    print_success "Auto-generated MQTT password: $MQTT_PASSWORD"
+                else
+                    if [[ ${#MQTT_PASSWORD_INPUT} -lt 8 ]]; then
+                        print_error "Password must be at least 8 characters long"
+                    else
+                        MQTT_PASSWORD="$MQTT_PASSWORD_INPUT"
+                        print_success "MQTT password set"
+                    fi
+                fi
+            done
+        else
+            INSTALL_MQTT="false"
+            print_status "MQTT broker will NOT be installed (devices will use HTTP)"
+            MQTT_USERNAME="iot"
+            MQTT_PASSWORD=""
+        fi
     fi
 
     # Generate JWT secret
@@ -615,9 +649,13 @@ gather_input() {
     echo
     print_warning "Installation will now run without interruption!"
     echo
-    read -p "Press Enter to begin installation or Ctrl+C to cancel..." < /dev/tty
-    echo
-    print_success "Starting uninterrupted installation..."
+    if [[ "$NON_INTERACTIVE" == "true" ]]; then
+        print_status "Starting unattended installation..."
+    else
+        read -p "Press Enter to begin installation or Ctrl+C to cancel..." < /dev/tty
+        echo
+        print_success "Starting uninterrupted installation..."
+    fi
 }
 
 # Function to update system
@@ -626,7 +664,7 @@ update_system() {
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
     apt-get upgrade -y
-    apt-get install -y curl wget git unzip software-properties-common apt-transport-https ca-certificates gnupg lsb-release
+    apt-get install -y curl wget git unzip software-properties-common apt-transport-https ca-certificates gnupg lsb-release netcat-openbsd
     print_success "System updated"
 }
 
@@ -1405,30 +1443,23 @@ module.exports = {
     env: {
       NODE_ENV: 'production',
       PORT: ${BACKEND_PORT},
-      // Instance Configuration
       INSTANCE_NAME: '${INSTANCE_NAME}',
-      // Database Configuration
       DB_HOST: 'localhost',
       DB_PORT: 5432,
       DB_NAME: '${DB_NAME}',
       DB_USER: '${APP_USER}',
       DB_PASSWORD: '$DB_PASSWORD',
-      // Redis Configuration
       REDIS_HOST: 'localhost',
       REDIS_PORT: 6379,
       REDIS_PASSWORD: '',
-      // JWT Configuration
       JWT_SECRET: '$JWT_SECRET',
       JWT_EXPIRES_IN: '7d',
-      // MQTT Configuration
       MQTT_ENABLED: '${INSTALL_MQTT}',
       MQTT_HOST: 'localhost',
       MQTT_PORT: 1883,
       MQTT_USERNAME: '${MQTT_USERNAME}',
       MQTT_PASSWORD: '${MQTT_PASSWORD}',
-      // Telegram Configuration (optional)
       TELEGRAM_BOT_TOKEN: '',
-      // Additional Configuration
       FRONTEND_URL: '$([ "$DEVELOPMENT_MODE" == "true" ] && echo "http://localhost:${BACKEND_PORT}" || echo "https://$DOMAIN")',
       MAX_FILE_SIZE: '50mb',
       LOG_LEVEL: 'info'
@@ -1451,7 +1482,21 @@ EOF
     chown "$APP_USER:$APP_USER" "${LOG_DIR}"
 
     # Setup PM2 startup script (run as root to configure systemd)
+    print_status "Configuring PM2 for auto-startup..."
     sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u "$APP_USER" --hp "/home/$APP_USER" --silent
+    
+    # Reload systemd daemon to pick up PM2 changes
+    sudo systemctl daemon-reload
+    
+    # Check if PM2 systemd service was created
+    if [[ -f "/etc/systemd/system/pm2-$APP_USER.service" ]]; then
+        print_status "PM2 systemd service created: pm2-$APP_USER.service"
+        # Enable PM2 systemd service (but don't start it yet - we'll start the app later)
+        sudo systemctl enable "pm2-$APP_USER.service"
+        print_success "PM2 systemd service enabled for auto-startup"
+    else
+        print_warning "PM2 systemd service file not found - PM2 startup may not work"
+    fi
 
     print_success "PM2 installed and configured for instance '${INSTANCE_NAME}'"
     print_status "  • Process name: ${PM2_APP_NAME}"
@@ -1887,16 +1932,204 @@ setup_firewall() {
 start_services() {
     print_status "Starting all services..."
 
+    # Determine PM2 app name for this instance
+    local PM2_APP_NAME
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        PM2_APP_NAME="sensity-platform"
+    else
+        PM2_APP_NAME="sensity-platform-${INSTANCE_NAME}"
+    fi
+
     # Nginx is already started and enabled in install_nginx function
+
+    # Test that backend can start without immediate crash
+    print_status "Testing backend startup..."
+    cd "$APP_DIR/backend"
+    timeout 10s sudo -u "$APP_USER" node -e "
+        process.env.NODE_ENV='production';
+        process.env.PORT='$BACKEND_PORT';
+        process.env.DB_HOST='localhost';
+        process.env.DB_PORT='5432';
+        process.env.DB_NAME='$DB_NAME';
+        process.env.DB_USER='$APP_USER';
+        process.env.DB_PASSWORD='$DB_PASSWORD';
+        process.env.JWT_SECRET='$JWT_SECRET';
+        process.env.MQTT_ENABLED='$INSTALL_MQTT';
+        process.env.FRONTEND_URL='$([ "$DEVELOPMENT_MODE" == "true" ] && echo "http://localhost:${BACKEND_PORT}" || echo "https://$DOMAIN")';
+        
+        try {
+            const server = require('./server.js');
+            console.log('Backend loaded successfully');
+            process.exit(0);
+        } catch (error) {
+            console.error('Backend failed to load:', error.message);
+            process.exit(1);
+        }
+    " 2>&1 | head -20
+
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+        print_error "Backend failed to start - check dependencies and configuration"
+        print_status "Checking Node.js version..."
+        sudo -u "$APP_USER" node --version
+        print_status "Checking if required modules are installed..."
+        if [[ -d "$APP_DIR/backend/node_modules" ]]; then
+            print_success "Node modules directory exists"
+        else
+            print_error "Node modules directory missing - dependencies not installed"
+        fi
+        exit 1
+    fi
+    print_success "Backend startup test passed"
+
+    # Verify frontend build exists
+    if [[ ! -d "$APP_DIR/frontend/build" ]]; then
+        print_error "Frontend build directory not found: $APP_DIR/frontend/build"
+        print_status "Building frontend..."
+        if ! build_frontend; then
+            print_error "Frontend build failed"
+            exit 1
+        fi
+    fi
+
+    # Test database connectivity before starting backend
+    print_status "Testing database connectivity..."
+    if ! sudo -u "$APP_USER" psql -d "$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
+        print_error "Cannot connect to database $DB_NAME as user $APP_USER"
+        print_status "Checking database status..."
+        systemctl status postgresql --no-pager -l
+        print_status "Checking database user and permissions..."
+        sudo -u postgres psql -c "\du $APP_USER"
+        sudo -u postgres psql -c "\l $DB_NAME"
+        exit 1
+    fi
+    print_success "Database connectivity confirmed"
 
     # Start application with PM2
     cd "$APP_DIR"
-    sudo -u "$APP_USER" pm2 start ecosystem.config.js
+
+    print_status "Starting backend application with PM2..."
+    print_status "Working directory: $(pwd)"
+    print_status "Ecosystem file: $APP_DIR/ecosystem.config.js"
+    print_status "App user: $APP_USER"
+
+    # Ensure backend files exist
+    if [[ ! -f "$APP_DIR/backend/server.js" ]]; then
+        print_error "Backend server file not found: $APP_DIR/backend/server.js"
+        exit 1
+    fi
+
+    if [[ ! -d "$APP_DIR/backend/node_modules" ]]; then
+        print_error "Backend node_modules not found - dependencies not installed"
+        exit 1
+    fi
+
+    # Check if backend directory is accessible
+    if ! sudo -u "$APP_USER" test -x "$APP_DIR/backend"; then
+        print_error "App user $APP_USER cannot access backend directory"
+        ls -la "$APP_DIR/backend" | head -5
+        exit 1
+    fi
+
+    # Validate ecosystem config syntax before starting PM2
+    print_status "Validating ecosystem configuration..."
+    if ! sudo -u "$APP_USER" node -c "$APP_DIR/ecosystem.config.js" 2>&1; then
+        print_error "Ecosystem config file has syntax errors"
+        print_status "Ecosystem file contents:"
+        cat "$APP_DIR/ecosystem.config.js"
+        exit 1
+    fi
+    print_success "Ecosystem configuration is valid"
+
+    # Initialize PM2 daemon if not running
+    print_status "Ensuring PM2 daemon is running for user $APP_USER..."
+    sudo -u "$APP_USER" pm2 ping &>/dev/null || {
+        print_status "PM2 daemon not running, initializing..."
+        sudo -u "$APP_USER" pm2 ls &>/dev/null
+    }
+
+    print_status "Starting PM2 process..."
+    
+    # First, delete any existing PM2 process with the same name
+    print_status "Cleaning up any existing PM2 processes..."
+    sudo -u "$APP_USER" pm2 delete "$PM2_APP_NAME" 2>/dev/null || true
+    
+    # Start the application
+    if ! sudo -u "$APP_USER" pm2 start "$APP_DIR/ecosystem.config.js" 2>&1 | tee /tmp/pm2-start.log; then
+        print_error "Failed to start PM2 application"
+        print_status "PM2 start output:"
+        cat /tmp/pm2-start.log
+        print_status "Checking PM2 status..."
+        sudo -u "$APP_USER" pm2 status
+        print_status "Checking PM2 logs..."
+        sudo -u "$APP_USER" pm2 logs --lines 20 --nostream 2>/dev/null || echo "No PM2 logs available"
+        print_status "Checking if PM2 daemon is running..."
+        sudo -u "$APP_USER" pm2 ping
+        exit 1
+    fi
+
+    # Give PM2 a moment to start the process
+    sleep 3
+
+    # Check if PM2 process actually started
+    print_status "Checking if PM2 process started..."
+    if ! sudo -u "$APP_USER" pm2 list | grep -q "$PM2_APP_NAME"; then
+        print_error "PM2 process did not start successfully"
+        print_status "PM2 status:"
+        sudo -u "$APP_USER" pm2 status
+        print_status "Recent PM2 logs:"
+        sudo -u "$APP_USER" pm2 logs --lines 10 2>/dev/null || echo "No PM2 logs available"
+        exit 1
+    fi
+
+    print_success "PM2 process started successfully"
+
+    # Wait for backend to start and check if it's listening
+    print_status "Waiting for backend to start on port $BACKEND_PORT..."
+    local max_attempts=30
+    local attempt=1
+
+    while [[ $attempt -le $max_attempts ]]; do
+        if nc -z localhost "$BACKEND_PORT" 2>/dev/null; then
+            print_success "Backend is now listening on port $BACKEND_PORT"
+            break
+        fi
+
+        if [[ $attempt -eq $max_attempts ]]; then
+            print_error "Backend failed to start listening on port $BACKEND_PORT after $max_attempts attempts"
+            print_status "Checking PM2 status..."
+            sudo -u "$APP_USER" pm2 status
+            print_status "Checking PM2 logs..."
+            sudo -u "$APP_USER" pm2 logs --lines 50
+            print_status "Checking if backend process is running..."
+            ps aux | grep -E "(node|pm2)" | grep -v grep
+            exit 1
+        fi
+
+        print_status "Waiting for backend to start... (attempt $attempt/$max_attempts)"
+        sleep 2
+        ((attempt++))
+    done
 
     # Save PM2 configuration for auto-startup
+    print_status "Saving PM2 process list..."
     sudo -u "$APP_USER" pm2 save
 
     print_success "All services started and configured for auto-startup"
+    
+    # Start PM2 systemd service to ensure it's running
+    print_status "Starting PM2 systemd service..."
+    if [[ -f "/etc/systemd/system/pm2-$APP_USER.service" ]]; then
+        sudo systemctl start "pm2-$APP_USER.service" 2>/dev/null || true
+        
+        if systemctl is-active --quiet "pm2-$APP_USER.service" 2>/dev/null; then
+            print_success "PM2 systemd service is active and running"
+        else
+            print_warning "PM2 systemd service failed to start - checking status..."
+            sudo systemctl status "pm2-$APP_USER.service" --no-pager -l || true
+        fi
+    else
+        print_warning "PM2 systemd service file not found at /etc/systemd/system/pm2-$APP_USER.service"
+    fi
 }
 
 # Function to create initial setup completion file
@@ -2340,6 +2573,36 @@ main() {
     fi
 
     # Final success message
+    # Final verification
+    print_status "Performing final verification..."
+    
+    # Check if backend is still running
+    if nc -z localhost "$BACKEND_PORT" 2>/dev/null; then
+        print_success "✅ Backend is running on port $BACKEND_PORT"
+    else
+        print_error "❌ Backend is not responding on port $BACKEND_PORT"
+        print_status "Checking PM2 status..."
+        sudo -u "$APP_USER" pm2 status 2>/dev/null || echo "PM2 status check failed"
+        print_status "Checking recent logs..."
+        sudo -u "$APP_USER" pm2 logs --lines 5 2>/dev/null || echo "No PM2 logs available"
+        print_warning "Installation completed but backend may need manual restart"
+    fi
+    
+    # Check if Nginx is serving
+    if [[ "$DEVELOPMENT_MODE" == "true" ]]; then
+        if curl -s -f "http://localhost" >/dev/null 2>&1; then
+            print_success "✅ Nginx is serving on HTTP"
+        else
+            print_warning "⚠️ Nginx may not be serving correctly"
+        fi
+    else
+        if curl -s -f -k "https://localhost" >/dev/null 2>&1; then
+            print_success "✅ Nginx is serving on HTTPS"
+        else
+            print_warning "⚠️ Nginx may not be serving correctly"
+        fi
+    fi
+
     echo
     echo "╔══════════════════════════════════════════════════════════════╗"
     echo "║           INSTALLATION COMPLETED SUCCESSFULLY!               ║"

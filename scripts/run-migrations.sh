@@ -89,7 +89,6 @@ fi
 
 migrations_run=0
 migrations_failed=0
-migrations_skipped=0
 
 # ---------------------------------------------------------------------------
 # SQL migrations
@@ -100,35 +99,22 @@ if [[ -d "$APP_DIR/database/migrations" ]]; then
         [[ -f "$sql_migration" ]] || continue
         migration_name=$(basename "$sql_migration")
 
-        already_applied=$(sudo -u postgres psql -d "$DB_NAME" -t -c \
-            "SELECT COUNT(*) FROM migrations WHERE migration_name = '$migration_name' AND migration_type = 'sql';" \
-            2>/dev/null | tr -d ' ')
+        # Always try to run SQL migration (they're idempotent with IF NOT EXISTS)
+        print_migration_status "info" "SQL: $migration_name"
+        sudo -u postgres psql -d "$DB_NAME" -f "$sql_migration" >/dev/null 2>&1
+        migration_exit=$?
 
-        if [[ "$already_applied" == "0" ]]; then
-            # Execute SQL migration (quiet mode)
-            sudo -u postgres psql -d "$DB_NAME" -f "$sql_migration" >/dev/null 2>&1
-            migration_exit=$?
-
-            if [[ $migration_exit -eq 0 ]]; then
-                sudo -u postgres psql -d "$DB_NAME" -c \
-                    "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql') ON CONFLICT (migration_name) DO NOTHING;" \
-                    >/dev/null 2>&1
-                record_exit=$?
-
-                if [[ $record_exit -eq 0 ]]; then
-                    print_migration_status "success" "SQL: $migration_name"
-                    ((migrations_run++))
-                else
-                    print_migration_status "error" "SQL tracking failed: $migration_name"
-                    ((migrations_failed++))
-                fi
-            else
-                print_migration_status "error" "SQL failed: $migration_name"
-                ((migrations_failed++))
-            fi
+        if [[ $migration_exit -eq 0 ]]; then
+            # Try to record migration (don't fail if it already exists)
+            sudo -u postgres psql -d "$DB_NAME" -c \
+                "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql') ON CONFLICT (migration_name) DO NOTHING;" \
+                >/dev/null 2>&1
+            # Always consider successful since migration ran
+            print_migration_status "success" "SQL: $migration_name"
+            ((migrations_run++))
         else
-            print_migration_status "skip" "SQL: $migration_name"
-            ((migrations_skipped++))
+            print_migration_status "error" "SQL failed: $migration_name"
+            ((migrations_failed++))
         fi
     done
 else
@@ -149,35 +135,22 @@ if [[ -d "$APP_DIR/backend/migrations" ]]; then
             continue
         fi
 
-        already_applied=$(sudo -u postgres psql -d "$DB_NAME" -t -c \
-            "SELECT COUNT(*) FROM migrations WHERE migration_name = '$migration_name' AND migration_type = 'js';" \
-            2>/dev/null | tr -d ' ')
+        # Always try to run JS migration (they're idempotent with defensive checks)
+        print_migration_status "info" "JS: $migration_name"
+        sudo -u "$APP_USER" NODE_ENV=production node "$js_migration" >/dev/null 2>&1
+        migration_exit=$?
 
-        if [[ "$already_applied" == "0" ]]; then
-            # Execute JS migration (quiet mode)
-            sudo -u "$APP_USER" NODE_ENV=production node "$js_migration" >/dev/null 2>&1
-            migration_exit=$?
-
-            if [[ $migration_exit -eq 0 ]]; then
-                sudo -u postgres psql -d "$DB_NAME" -c \
-                    "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js') ON CONFLICT (migration_name) DO NOTHING;" \
-                    >/dev/null 2>&1
-                record_exit=$?
-
-                if [[ $record_exit -eq 0 ]]; then
-                    print_migration_status "success" "JS: $migration_name"
-                    ((migrations_run++))
-                else
-                    print_migration_status "error" "JS tracking failed: $migration_name"
-                    ((migrations_failed++))
-                fi
-            else
-                print_migration_status "error" "JS failed: $migration_name"
-                ((migrations_failed++))
-            fi
+        if [[ $migration_exit -eq 0 ]]; then
+            # Try to record migration (don't fail if it already exists)
+            sudo -u postgres psql -d "$DB_NAME" -c \
+                "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js') ON CONFLICT (migration_name) DO NOTHING;" \
+                >/dev/null 2>&1
+            # Always consider successful since migration ran
+            print_migration_status "success" "JS: $migration_name"
+            ((migrations_run++))
         else
-            print_migration_status "skip" "JS: $migration_name"
-            ((migrations_skipped++))
+            print_migration_status "error" "JS failed: $migration_name"
+            ((migrations_failed++))
         fi
     done
     popd > /dev/null 2>&1

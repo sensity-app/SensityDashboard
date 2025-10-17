@@ -69,6 +69,44 @@ print_warning() {
 print_header() {
     echo -e "${PURPLE}
 ╔══════════════════════════════════════════════════════════════╗
+║                 SENSITY IOT PLATFORM INSTALLER              ║
+╚══════════════════════════════════════════════════════════════╝${NC}"
+}
+
+# Function to display progress bar
+show_progress() {
+    local current=$1
+    local total=$2
+    local width=50
+    local percentage=$((current * 100 / total))
+    local completed=$((current * width / total))
+
+    # Build progress bar
+    local bar=""
+    for ((i=0; i<completed; i++)); do
+        bar="${bar}█"
+    done
+    for ((i=completed; i<width; i++)); do
+        bar="${bar}░"
+    done
+
+    # Print progress bar
+    echo -ne "\r${BLUE}[PROGRESS]${NC} ${bar} ${percentage}% (${current}/${total})"
+}
+
+# Function to print status with progress
+print_status_progress() {
+    local message=$1
+    local current=$2
+    local total=$3
+
+    # Show progress bar first
+    show_progress "$current" "$total"
+
+    # Then show the message on a new line
+    echo -e "\n${BLUE}[INFO]${NC} $message"
+}
+
 # Function to run database migrations via shared script
 run_database_migrations() {
     local migration_script="$APP_DIR/scripts/run-migrations.sh"
@@ -84,8 +122,27 @@ run_database_migrations() {
     DB_NAME="$DB_NAME" \
         "$migration_script"
 }
-                    print_warning "Port $port is in use by: $service_name"
-                fi
+
+# Function to validate installation requirements
+validate_installation() {
+    print_status "Running pre-installation validation..."
+
+    local validation_failed=0
+
+    # Check required ports
+    print_status "Checking required ports..."
+    local required_ports=(80 443 3000 1883 9001)
+    local ports_in_use=()
+    local conflicting_ports=()
+
+    for port in "${required_ports[@]}"; do
+        if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+            ports_in_use+=($port)
+            # Check if it's our own service
+            local service_name=$(lsof -Pi :$port -sTCP:LISTEN | tail -n 1 | awk '{print $1}')
+            if [[ "$service_name" != "nginx" && "$service_name" != "mosquitto" && "$service_name" != "node" ]]; then
+                conflicting_ports+=($port)
+                print_warning "Port $port is in use by: $service_name"
             fi
         fi
     done
@@ -831,7 +888,7 @@ EOF
         print_error "Checking logs..."
         journalctl -xeu mosquitto.service -n 20 --no-pager
         print_error "Configuration file:"
-        cat /etc/mosquitto/conf.d/esp8266-platform.conf
+        cat /etc/mosquitto/conf.d/sensity-platform.conf
         print_error "Password file permissions:"
         ls -la /etc/mosquitto/passwd
         print_status "You can skip MQTT and continue with HTTP-only device communication"
@@ -2016,7 +2073,7 @@ cleanup_failed_installation() {
     systemctl stop redis-server 2>/dev/null || true
 
     # Stop PM2 processes
-    if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "esp8266"; then
+    if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "sensity"; then
         sudo -u "$APP_USER" pm2 delete all 2>/dev/null || true
         sudo -u "$APP_USER" pm2 kill 2>/dev/null || true
     fi
@@ -2075,6 +2132,14 @@ cleanup_failed_installation() {
 detect_existing_installation() {
     local found_components=()
 
+    # Determine PM2 app name
+    local PM2_APP_NAME
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        PM2_APP_NAME="sensity-platform"
+    else
+        PM2_APP_NAME="sensity-platform-${INSTANCE_NAME}"
+    fi
+
     # Check for existing application directory
     if [[ -d "$APP_DIR" ]]; then
         found_components+=("Application directory ($APP_DIR)")
@@ -2096,12 +2161,12 @@ detect_existing_installation() {
     fi
 
     # Check for nginx config
-    if [[ -f "/etc/nginx/sites-available/$DOMAIN" ]] || [[ -f "/etc/nginx/sites-available/esp8266-platform" ]]; then
+    if [[ -f "/etc/nginx/sites-available/$DOMAIN" ]] || [[ -f "/etc/nginx/sites-available/sensity-platform" ]]; then
         found_components+=("Nginx configuration")
     fi
 
     # Check for PM2 processes
-    if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "${PM2_PROCESS_NAME}" 2>/dev/null; then
+    if sudo -u "$APP_USER" pm2 list 2>/dev/null | grep -q "${PM2_APP_NAME}" 2>/dev/null; then
         found_components+=("PM2 processes")
     fi
 
@@ -2162,7 +2227,8 @@ detect_existing_installation() {
 # Main installation function
 main() {
     print_header
-    check_requirements
+    check_root
+    detect_ubuntu
 
     # Get configuration
     get_user_input
@@ -2195,56 +2261,56 @@ main() {
     echo
 
     # Installation steps
-    print_status "📦 [1/16] Updating system packages..."
+    print_status_progress "📦 [1/16] Updating system packages..." 1 16
     update_system
     
-    print_status "📦 [2/16] Installing Node.js..."
+    print_status_progress "📦 [2/16] Installing Node.js..." 2 16
     install_nodejs
     
-    print_status "📦 [3/16] Installing PostgreSQL..."
+    print_status_progress "📦 [3/16] Installing PostgreSQL..." 3 16
     install_postgresql
     
-    print_status "📦 [4/16] Installing Redis..."
+    print_status_progress "📦 [4/16] Installing Redis..." 4 16
     install_redis
     
-    print_status "📦 [5/16] Configuring MQTT broker..."
+    print_status_progress "📦 [5/16] Configuring MQTT broker..." 5 16
     install_mqtt_broker
     
-    print_status "📦 [6/16] Creating application user..."
+    print_status_progress "📦 [6/16] Creating application user..." 6 16
     create_app_user
     
-    print_status "📦 [7/16] Installing Arduino CLI..."
+    print_status_progress "📦 [7/16] Installing Arduino CLI..." 7 16
     install_arduino_cli
     
-    print_status "📦 [8/16] Setting up application files..."
+    print_status_progress "📦 [8/16] Setting up application files..." 8 16
     setup_application
     
-    print_status "📦 [9/16] Installing dependencies..."
+    print_status_progress "📦 [9/16] Installing dependencies..." 9 16
     install_app_dependencies
     
-    print_status "📦 [10/16] Creating environment files..."
+    print_status_progress "📦 [10/16] Creating environment files..." 10 16
     create_env_files
     
-    print_status "📦 [11/16] Setting up database (schema, migrations, permissions)..."
+    print_status_progress "📦 [11/16] Setting up database (schema, migrations, permissions)..." 11 16
     setup_database
     
-    print_status "📦 [12/16] Building frontend..."
+    print_status_progress "📦 [12/16] Building frontend..." 12 16
     build_frontend
     
-    print_status "📦 [13/16] Installing PM2 process manager..."
+    print_status_progress "📦 [13/16] Installing PM2 process manager..." 13 16
     install_pm2
     
-    print_status "📦 [14/16] Configuring Nginx..."
+    print_status_progress "📦 [14/16] Configuring Nginx..." 14 16
     install_nginx
     
-    print_status "📦 [15/16] Configuring firewall..."
+    print_status_progress "📦 [15/16] Configuring firewall..." 15 16
     setup_firewall
 
     if [[ "$DEVELOPMENT_MODE" != "true" ]]; then
-        print_status "📦 [16/16] Setting up SSL certificates..."
+        print_status_progress "📦 [16/16] Setting up SSL certificates..." 16 16
         setup_ssl
     else
-        print_status "📦 [16/16] Skipping SSL (development mode)..."
+        print_status_progress "📦 [16/16] Skipping SSL (development mode)..." 16 16
     fi
 
     echo
@@ -2253,6 +2319,10 @@ main() {
     
     print_status "📝 Creating installation info..."
     create_setup_completion
+
+    # Show 100% completion
+    show_progress 16 16
+    echo -e "\n"
 
     # Determine PM2 app name and log directory for final message
     local PM2_APP_NAME

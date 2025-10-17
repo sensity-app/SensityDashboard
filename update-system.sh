@@ -429,8 +429,8 @@ create_test_admin() {
 
     # Generate bcrypt hash for "password"
     local password_hash
-    cd /opt/esp8266-platform/backend
-    password_hash=$(node -e "
+    cd "$APP_DIR/backend"
+    password_hash=$(sudo -u "$APP_USER" node -e "
         const bcrypt = require('bcrypt');
         const hash = bcrypt.hashSync('password', 10);
         console.log(hash);

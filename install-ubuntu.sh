@@ -1086,13 +1086,18 @@ setup_database() {
     fi
 
     # Fix database permissions after schema creation
+    print_status "Step 1/3: Fixing database permissions..."
     fix_database_permissions
 
     # Run database migrations
+    print_status "Step 2/3: Running database migrations..."
     run_database_migrations
     
     # Ensure no default users exist (clean first-user setup)
+    print_status "Step 3/3: Ensuring no default users..."
     ensure_no_default_users
+    
+    print_success "✓ Database setup completed successfully"
 }
 
 # Function to run database migrations
@@ -2294,31 +2299,66 @@ main() {
     fi
 
     print_status "Starting installation process..."
+    echo
 
     # Installation steps
+    print_status "📦 [1/16] Updating system packages..."
     update_system
+    
+    print_status "📦 [2/16] Installing Node.js..."
     install_nodejs
+    
+    print_status "📦 [3/16] Installing PostgreSQL..."
     install_postgresql
+    
+    print_status "📦 [4/16] Installing Redis..."
     install_redis
-    install_mqtt_broker  # New: Optional MQTT broker installation
+    
+    print_status "📦 [5/16] Configuring MQTT broker..."
+    install_mqtt_broker
+    
+    print_status "📦 [6/16] Creating application user..."
     create_app_user
-    install_arduino_cli  # Install Arduino CLI for web-based firmware flashing
+    
+    print_status "📦 [7/16] Installing Arduino CLI..."
+    install_arduino_cli
+    
+    print_status "📦 [8/16] Setting up application files..."
     setup_application
+    
+    print_status "📦 [9/16] Installing dependencies..."
     install_app_dependencies
-    create_env_files     # Must be before setup_database so migrations can connect
+    
+    print_status "📦 [10/16] Creating environment files..."
+    create_env_files
+    
+    print_status "📦 [11/16] Setting up database (schema, migrations, permissions)..."
     setup_database
+    
+    print_status "📦 [12/16] Building frontend..."
     build_frontend
+    
+    print_status "📦 [13/16] Installing PM2 process manager..."
     install_pm2
+    
+    print_status "📦 [14/16] Configuring Nginx..."
     install_nginx
     
-    # IMPORTANT: Configure firewall BEFORE SSL setup (Let's Encrypt needs port 80 open)
+    print_status "📦 [15/16] Configuring firewall..."
     setup_firewall
 
     if [[ "$DEVELOPMENT_MODE" != "true" ]]; then
+        print_status "📦 [16/16] Setting up SSL certificates..."
         setup_ssl
+    else
+        print_status "📦 [16/16] Skipping SSL (development mode)..."
     fi
 
+    echo
+    print_status "🚀 Starting services..."
     start_services
+    
+    print_status "📝 Creating installation info..."
     create_setup_completion
 
     # Determine PM2 app name and log directory for final message

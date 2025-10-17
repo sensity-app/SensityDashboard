@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../database/connection');
+const db = require('../models/database');
 const { authenticateToken } = require('../middleware/auth');
 const logger = require('../utils/logger');
 
@@ -64,7 +64,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
         query += ` ORDER BY sr.created_at DESC`;
 
-        const result = await pool.query(query, params);
+        const result = await db.query(query, params);
         res.json(result.rows);
     } catch (error) {
         logger.error('Error fetching sensor rules:', error);
@@ -77,7 +77,7 @@ router.get('/device/:deviceId', authenticateToken, async (req, res) => {
     try {
         const { deviceId } = req.params;
 
-        const result = await pool.query(`
+        const result = await db.query(`
             SELECT 
                 sr.id,
                 sr.device_sensor_id,
@@ -112,7 +112,7 @@ router.get('/location/:locationId', authenticateToken, async (req, res) => {
     try {
         const { locationId } = req.params;
 
-        const result = await pool.query(`
+        const result = await db.query(`
             SELECT 
                 sr.id,
                 sr.device_sensor_id,
@@ -148,7 +148,7 @@ router.get('/location/:locationId', authenticateToken, async (req, res) => {
 // Get all available sensor types
 router.get('/sensor-types', authenticateToken, async (req, res) => {
     try {
-        const result = await pool.query(`
+        const result = await db.query(`
             SELECT DISTINCT sensor_type as name
             FROM device_sensors ds
             JOIN devices d ON ds.device_id = d.id

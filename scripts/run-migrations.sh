@@ -111,7 +111,7 @@ if [[ -d "$APP_DIR/database/migrations" ]]; then
 
             if [[ $migration_exit -eq 0 ]]; then
                 sudo -u postgres psql -d "$DB_NAME" -c \
-                    "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql');" \
+                    "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'sql') ON CONFLICT (migration_name) DO NOTHING;" \
                     2>/dev/null
                 record_exit=$?
 
@@ -160,7 +160,7 @@ if [[ -d "$APP_DIR/backend/migrations" ]]; then
 
             if [[ $migration_exit -eq 0 ]]; then
                 sudo -u postgres psql -d "$DB_NAME" -c \
-                    "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js');" \
+                    "INSERT INTO migrations (migration_name, migration_type) VALUES ('$migration_name', 'js') ON CONFLICT (migration_name) DO NOTHING;" \
                     2>/dev/null
                 record_exit=$?
 

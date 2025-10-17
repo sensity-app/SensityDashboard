@@ -30,14 +30,15 @@ async function fixESP8266SensorsAndIPs() {
         await client.query(`
             CREATE TABLE IF NOT EXISTS migrations (
                 id SERIAL PRIMARY KEY,
-                name VARCHAR(255) UNIQUE NOT NULL,
+                migration_name VARCHAR(255) UNIQUE NOT NULL,
+                migration_type VARCHAR(10) NOT NULL,
                 applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
         // Check if already applied (for standalone runs)
         const alreadyApplied = await client.query(`
-            SELECT 1 FROM migrations WHERE name = 'fix_esp8266_sensors_and_ips'
+            SELECT 1 FROM migrations WHERE migration_name = 'fix_esp8266_sensors_and_ips.js' AND migration_type = 'js'
         `);
 
         if (alreadyApplied.rows.length > 0) {
@@ -130,9 +131,9 @@ async function fixESP8266SensorsAndIPs() {
 
         // Step 3: Record this migration
         await client.query(`
-            INSERT INTO migrations (name)
-            VALUES ('fix_esp8266_sensors_and_ips')
-            ON CONFLICT (name) DO NOTHING
+            INSERT INTO migrations (migration_name, migration_type)
+            VALUES ('fix_esp8266_sensors_and_ips.js', 'js')
+            ON CONFLICT (migration_name) DO NOTHING
         `);
 
         await client.query('COMMIT');

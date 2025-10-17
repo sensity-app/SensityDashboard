@@ -2,6 +2,7 @@
 -- Sensity Platform - Performance Optimization Indexes
 -- Migration: 004
 -- Purpose: Add database indexes for faster queries
+-- Note: Only creates indexes for tables that exist
 -- =====================================================
 
 -- =====================================================
@@ -23,45 +24,24 @@ CREATE INDEX IF NOT EXISTS idx_devices_mac ON devices(mac_address);
 -- Created date for sorting and filtering
 CREATE INDEX IF NOT EXISTS idx_devices_created ON devices(created_at DESC);
 
--- Last seen for online/offline detection
-CREATE INDEX IF NOT EXISTS idx_devices_last_seen ON devices(last_seen DESC);
+-- Last heartbeat for online/offline detection (note: column is last_heartbeat, not last_seen)
+CREATE INDEX IF NOT EXISTS idx_devices_last_heartbeat ON devices(last_heartbeat DESC);
 
 -- Composite index for common query pattern (status + location)
 CREATE INDEX IF NOT EXISTS idx_devices_status_location ON devices(status, location_id);
 
 -- =====================================================
--- 2. DEVICE GROUPS & TAGS INDEXES
+-- 2. DEVICE SENSORS INDEXES
 -- =====================================================
 
--- Device-to-group relationships (many-to-many)
-CREATE INDEX IF NOT EXISTS idx_device_groups_device ON device_groups(device_id);
-CREATE INDEX IF NOT EXISTS idx_device_groups_group ON device_groups(group_id);
+-- Device sensor lookups
+CREATE INDEX IF NOT EXISTS idx_device_sensors_device ON device_sensors(device_id);
 
--- Device-to-tag relationships (many-to-many)
-CREATE INDEX IF NOT EXISTS idx_device_tags_device ON device_tags(device_id);
-CREATE INDEX IF NOT EXISTS idx_device_tags_tag ON device_tags(tag_id);
-
--- Group lookups
-CREATE INDEX IF NOT EXISTS idx_groups_name ON groups(name);
-
--- Tag lookups
-CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
+-- Sensor type filtering
+CREATE INDEX IF NOT EXISTS idx_device_sensors_type ON device_sensors(sensor_type_id);
 
 -- =====================================================
--- 3. TELEMETRY DATA INDEXES
--- =====================================================
-
--- Most common query: get recent telemetry for a device
-CREATE INDEX IF NOT EXISTS idx_telemetry_device_time ON telemetry_data(device_id, timestamp DESC);
-
--- Time-based queries for analytics
-CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry_data(timestamp DESC);
-
--- Metric-specific queries
-CREATE INDEX IF NOT EXISTS idx_telemetry_device_metric ON telemetry_data(device_id, metric_name);
-
--- =====================================================
--- 4. ALERTS & NOTIFICATIONS INDEXES
+-- 3. ALERTS & NOTIFICATIONS INDEXES
 -- =====================================================
 
 -- Alert rules by device
@@ -74,179 +54,222 @@ CREATE INDEX IF NOT EXISTS idx_alert_rules_enabled ON alert_rules(enabled);
 CREATE INDEX IF NOT EXISTS idx_alerts_device ON alerts(device_id);
 
 -- Recent alerts (for dashboard)
-CREATE INDEX IF NOT EXISTS idx_alerts_created ON alerts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_alerts_created_desc ON alerts(triggered_at DESC);
 
--- Unacknowledged alerts
-CREATE INDEX IF NOT EXISTS idx_alerts_acknowledged ON alerts(acknowledged);
+-- Alert status filtering
+CREATE INDEX IF NOT EXISTS idx_alerts_status ON alerts(status);
 
 -- Alert severity filtering
 CREATE INDEX IF NOT EXISTS idx_alerts_severity ON alerts(severity);
 
--- =====================================================
--- 5. OTA UPDATES INDEXES
--- =====================================================
-
--- Firmware versions
-CREATE INDEX IF NOT EXISTS idx_firmware_version ON firmware_versions(version);
-
--- Firmware updates by device
-CREATE INDEX IF NOT EXISTS idx_firmware_updates_device ON firmware_updates(device_id);
-
--- Update status filtering
-CREATE INDEX IF NOT EXISTS idx_firmware_updates_status ON firmware_updates(status);
-
--- Recent updates
-CREATE INDEX IF NOT EXISTS idx_firmware_updates_created ON firmware_updates(created_at DESC);
+-- Composite severity + status index
+CREATE INDEX IF NOT EXISTS idx_alerts_severity_status ON alerts(severity, status);
 
 -- =====================================================
--- 6. USER & AUTHENTICATION INDEXES
+-- 4. AUDIT LOGS INDEXES
 -- =====================================================
 
--- User login (email lookup)
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+-- Audit logs by action type
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action_type ON audit_logs(action_type);
 
--- Active users
-CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
-
--- User role filtering
-CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-
--- Session tokens
-CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
-CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
-
--- =====================================================
--- 7. AUDIT LOGS INDEXES (if table exists)
--- =====================================================
-
--- Recent audit logs
-CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC);
+-- Audit logs by action category
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action_category ON audit_logs(action_category);
 
 -- Audit logs by user
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
 
--- Audit logs by action
-CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+-- Audit logs by resource
+CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
 
--- Audit logs by entity (e.g., specific device)
-CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+-- Recent audit logs
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC);
 
--- =====================================================
--- 8. DEVICE LOCATIONS INDEXES
--- =====================================================
-
--- Location lookups
-CREATE INDEX IF NOT EXISTS idx_locations_name ON device_locations(name);
-
--- Active locations
-CREATE INDEX IF NOT EXISTS idx_locations_active ON device_locations(active);
+-- Audit logs by IP address
+CREATE INDEX IF NOT EXISTS idx_audit_logs_ip_address ON audit_logs(ip_address);
 
 -- =====================================================
--- 9. LICENSE KEYS INDEXES (if table exists)
+-- 5. LICENSE SYSTEM INDEXES
 -- =====================================================
 
--- License key lookup
-CREATE INDEX IF NOT EXISTS idx_license_keys_key ON license_keys(license_key);
-
--- License by customer
+-- License keys by customer
 CREATE INDEX IF NOT EXISTS idx_license_keys_customer ON license_keys(customer_email);
 
--- Active licenses
+-- License keys by status
 CREATE INDEX IF NOT EXISTS idx_license_keys_status ON license_keys(status);
 
--- Expiring licenses (for notifications)
+-- License keys by expiration
 CREATE INDEX IF NOT EXISTS idx_license_keys_expires ON license_keys(expires_at);
 
--- =====================================================
--- 10. PARTIAL INDEXES (for specific queries)
--- =====================================================
+-- License key lookups
+CREATE INDEX IF NOT EXISTS idx_license_keys_key ON license_keys(license_key);
 
--- Only index online devices (saves space, faster queries)
-CREATE INDEX IF NOT EXISTS idx_devices_online ON devices(id, last_seen)
-WHERE status = 'online';
+-- License features by license
+CREATE INDEX IF NOT EXISTS idx_license_features_license ON license_features(license_key_id);
 
--- Only index offline devices
-CREATE INDEX IF NOT EXISTS idx_devices_offline ON devices(id, last_seen)
-WHERE status = 'offline';
+-- License validations by key
+CREATE INDEX IF NOT EXISTS idx_license_validations_key_id ON license_validations(license_key_id);
 
--- Only index unacknowledged alerts
-CREATE INDEX IF NOT EXISTS idx_alerts_unacknowledged ON alerts(device_id, created_at DESC)
-WHERE acknowledged = false;
-
--- Only index pending firmware updates
-CREATE INDEX IF NOT EXISTS idx_firmware_updates_pending ON firmware_updates(device_id, created_at)
-WHERE status IN ('pending', 'in_progress');
+-- Recent license validations
+CREATE INDEX IF NOT EXISTS idx_license_validations_validated_at ON license_validations(validated_at DESC);
 
 -- =====================================================
--- 11. FUNCTIONAL INDEXES (for JSON columns)
+-- 6. FIRMWARE VERSIONS INDEXES
 -- =====================================================
 
--- If using JSONB for device metadata
-CREATE INDEX IF NOT EXISTS idx_devices_metadata ON devices USING GIN (metadata);
-
--- If using JSONB for telemetry data
-CREATE INDEX IF NOT EXISTS idx_telemetry_data ON telemetry_data USING GIN (data);
+-- Firmware versions by version number
+CREATE INDEX IF NOT EXISTS idx_firmware_versions_version ON firmware_versions(version);
 
 -- =====================================================
--- 12. ANALYZE TABLES (update statistics)
+-- 7. FAILED LOGIN ATTEMPTS INDEXES
 -- =====================================================
 
+-- Failed logins by email
+CREATE INDEX IF NOT EXISTS idx_failed_login_email ON failed_login_attempts(email);
+
+-- Failed logins by IP
+CREATE INDEX IF NOT EXISTS idx_failed_login_ip ON failed_login_attempts(ip_address);
+
+-- Recent failed login attempts
+CREATE INDEX IF NOT EXISTS idx_failed_login_attempted ON failed_login_attempts(attempted_at DESC);
+
+-- =====================================================
+-- 8. DEVICE COMMAND AUDIT INDEXES
+-- =====================================================
+
+-- Command audit by device
+CREATE INDEX IF NOT EXISTS idx_device_command_device ON device_command_audit(device_id);
+
+-- Command audit by status
+CREATE INDEX IF NOT EXISTS idx_device_command_status ON device_command_audit(status);
+
+-- Recent command audits
+CREATE INDEX IF NOT EXISTS idx_device_command_sent ON device_command_audit(sent_at DESC);
+
+-- Command audit by user
+CREATE INDEX IF NOT EXISTS idx_device_command_user ON device_command_audit(user_id);
+
+-- =====================================================
+-- 9. CONFIG CHANGE AUDIT INDEXES
+-- =====================================================
+
+-- Config changes by category
+CREATE INDEX IF NOT EXISTS idx_config_change_category ON config_change_audit(config_category);
+
+-- Config changes by user
+CREATE INDEX IF NOT EXISTS idx_config_change_user ON config_change_audit(user_id);
+
+-- Recent config changes
+CREATE INDEX IF NOT EXISTS idx_config_change_created ON config_change_audit(created_at DESC);
+
+-- =====================================================
+-- 10. DATA EXPORT AUDIT INDEXES
+-- =====================================================
+
+-- Data exports by user
+CREATE INDEX IF NOT EXISTS idx_data_export_user ON data_export_audit(user_id);
+
+-- Recent data exports
+CREATE INDEX IF NOT EXISTS idx_data_export_created ON data_export_audit(created_at DESC);
+
+-- =====================================================
+-- CONDITIONAL INDEXES (only if tables exist)
+-- These will be created by a separate migration after JS migrations run
+-- =====================================================
+
+-- Check if device_groups table exists (created by JS migration)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'device_groups') THEN
+        -- Device groups by name
+        CREATE INDEX IF NOT EXISTS idx_device_groups_name ON device_groups(name);
+
+        -- Device group members by group
+        CREATE INDEX IF NOT EXISTS idx_device_group_members_group ON device_group_members(group_id);
+
+        -- Device group members by device
+        CREATE INDEX IF NOT EXISTS idx_device_group_members_device ON device_group_members(device_id);
+    END IF;
+END $$;
+
+-- Check if device_tags table exists (created by JS migration)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'device_tags') THEN
+        -- Device tags by name
+        CREATE INDEX IF NOT EXISTS idx_device_tags_name ON device_tags(name);
+
+        -- Device tag assignments by tag
+        CREATE INDEX IF NOT EXISTS idx_device_tag_assignments_tag ON device_tag_assignments(tag_id);
+
+        -- Device tag assignments by device
+        CREATE INDEX IF NOT EXISTS idx_device_tag_assignments_device ON device_tag_assignments(device_id);
+    END IF;
+END $$;
+
+-- Check if telegram_config table exists (created by JS migration)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'telegram_config') THEN
+        -- Telegram config (usually only one row, but index for completeness)
+        CREATE INDEX IF NOT EXISTS idx_telegram_config_active ON telegram_config(is_active);
+    END IF;
+END $$;
+
+-- =====================================================
+-- FINAL STEP: ANALYZE TABLES
+-- =====================================================
+
+-- Update table statistics for query planner
 ANALYZE devices;
-ANALYZE telemetry_data;
+ANALYZE device_sensors;
 ANALYZE alerts;
-ANALYZE firmware_updates;
-ANALYZE users;
+ANALYZE alert_rules;
 ANALYZE audit_logs;
-ANALYZE device_groups;
-ANALYZE device_tags;
+ANALYZE license_keys;
+ANALYZE license_features;
+ANALYZE license_validations;
+ANALYZE firmware_versions;
+ANALYZE failed_login_attempts;
+ANALYZE device_command_audit;
+ANALYZE config_change_audit;
+ANALYZE data_export_audit;
+
+-- Conditional analyze for tables that might not exist yet
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'device_groups') THEN
+        ANALYZE device_groups;
+        ANALYZE device_group_members;
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'device_tags') THEN
+        ANALYZE device_tags;
+        ANALYZE device_tag_assignments;
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'telegram_config') THEN
+        ANALYZE telegram_config;
+        ANALYZE telegram_notifications;
+    END IF;
+END $$;
 
 -- =====================================================
--- VERIFICATION QUERIES
+-- MIGRATION COMPLETED
 -- =====================================================
 
--- Check all indexes created
+-- Insert migration tracking record
+INSERT INTO migrations (migration_name, migration_type)
+VALUES ('004_add_performance_indexes.sql', 'sql')
+ON CONFLICT (migration_name) DO NOTHING;
+
+-- Success message
 SELECT
-    schemaname,
-    tablename,
-    indexname,
-    indexdef
-FROM pg_indexes
-WHERE schemaname = 'public'
-ORDER BY tablename, indexname;
+    'Performance indexes migration completed successfully!' as status,
+    'Created indexes on existing tables - conditional indexes will be added later' as summary;
 
--- Check index sizes
-SELECT
-    tablename,
-    indexname,
-    pg_size_pretty(pg_relation_size(indexrelid)) AS index_size
-FROM pg_stat_user_indexes
-WHERE schemaname = 'public'
-ORDER BY pg_relation_size(indexrelid) DESC;
-
--- =====================================================
--- NOTES
--- =====================================================
-
--- Run this migration with:
--- psql -d esp8266_platform -f 004_add_performance_indexes.sql
-
--- Expected improvements:
--- - 50-80% faster device list queries
--- - 70-90% faster telemetry queries
--- - 60-80% faster alert queries
--- - Faster dashboard loading
--- - Better pagination performance
-
--- To monitor query performance before/after:
--- EXPLAIN ANALYZE SELECT * FROM devices WHERE status = 'online';
-
--- To drop all indexes (if needed):
--- DROP INDEX IF EXISTS idx_devices_status CASCADE;
-
--- Migration completed: Performance indexes added
--- Estimated disk space used: 50-200 MB (depending on data volume)
-
-COMMENT ON INDEX idx_devices_status IS 'Optimizes device filtering by status';
-COMMENT ON INDEX idx_telemetry_device_time IS 'Optimizes recent telemetry queries';
-COMMENT ON INDEX idx_alerts_device IS 'Optimizes alert lookups by device';

@@ -220,10 +220,25 @@ const DeviceHealthDashboard = () => {
                             <h3 className="text-sm font-medium text-blue-800 mb-2">
                                 {t('deviceHealth.recommendations')}
                             </h3>
-                            <ul className="space-y-1">
+                            <ul className="space-y-3">
                                 {Array.isArray(deviceHealth.recommendations) && deviceHealth.recommendations.map((recommendation, index) => (
-                                    <li key={index} className="text-sm text-blue-700">
-                                        • {recommendation}
+                                    <li key={index} className="text-sm">
+                                        <div className="flex items-start gap-2">
+                                            <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded ${
+                                                recommendation.priority === 'critical' ? 'bg-red-100 text-red-700' :
+                                                recommendation.priority === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                                                'bg-blue-100 text-blue-700'
+                                            }`}>
+                                                {recommendation.priority || 'info'}
+                                            </span>
+                                            <div className="flex-1">
+                                                <p className="font-medium text-gray-900">{recommendation.title}</p>
+                                                <p className="text-gray-600 mt-0.5">{recommendation.description}</p>
+                                                {recommendation.action && (
+                                                    <p className="text-gray-500 text-xs mt-1 italic">→ {recommendation.action}</p>
+                                                )}
+                                            </div>
+                                        </div>
                                     </li>
                                 ))}
                             </ul>

@@ -31,7 +31,13 @@ const AlertsPage = () => {
     );
 
     // Fetch devices for filtering
-    const { data: devices = [] } = useQuery('devices', apiService.getDevices);
+    const { data: devices = [] } = useQuery(
+        'devices',
+        apiService.getDevices,
+        {
+            select: (data) => data?.devices || []
+        }
+    );
 
     // Acknowledge alert mutation
     const acknowledgeMutation = useMutation(

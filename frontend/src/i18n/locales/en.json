@@ -613,7 +613,8 @@
       "justNow": "Just now",
       "minutes": "{{count}} min ago",
       "hours": "{{hours}}h {{minutes}}m ago",
-      "days": "{{count}} day{{count, plural, one{} other{s}}} ago"
+      "days_one": "{{count}} day ago",
+      "days_other": "{{count}} days ago"
     },
     "sensorBadge": {
       "live": "Live",

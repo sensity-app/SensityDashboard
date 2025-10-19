@@ -145,7 +145,7 @@ function DeviceDetail() {
 
         const days = Math.floor(hours / 24);
         if (days < 7) {
-            return t('deviceDetail.relative.days', '{{count}} day(s) ago', {
+            return t(`deviceDetail.relative.days_${days === 1 ? 'one' : 'other'}`, '{{count}} day(s) ago', {
                 count: days
             });
         }
@@ -1102,7 +1102,10 @@ function SensorEditorModal({ sensor, deviceId, onClose, onSave, mutation }) {
                 onSuccess: (response) => {
                     toast.success(t('deviceDetail.toast.sensorUpdated'));
                     if (triggerOTA) {
-                        toast.info(response?.data?.message || t('deviceDetail.toast.otaQueued'));
+                        toast(response?.data?.message || t('deviceDetail.toast.otaQueued'), {
+                            icon: 'ℹ️',
+                            duration: 4000
+                        });
                     }
                     onSave();
                 },

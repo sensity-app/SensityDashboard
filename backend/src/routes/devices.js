@@ -422,15 +422,26 @@ router.post('/:id/telemetry', [
             light: 'Photodiode'
         };
 
+        // ESP8266 pin mapping - pin 17 is actually A0 (analog input)
+        const mapESP8266Pin = (pin) => {
+            if (pin === 17 || pin === '17') {
+                return 'A0';
+            }
+            return String(pin);
+        };
+
         for (const sensorData of sensors) {
             try {
+                // Map pin for ESP8266 compatibility
+                const mappedPin = mapESP8266Pin(sensorData.pin);
+
                 // Find or create device sensor
                 let deviceSensor = await db.query(`
                     SELECT ds.*, st.name as sensor_type_name, st.unit
                     FROM device_sensors ds
                     JOIN sensor_types st ON ds.sensor_type_id = st.id
                     WHERE ds.device_id = $1 AND ds.pin = $2
-                `, [id, sensorData.pin]);
+                `, [id, mappedPin]);
 
                 if (deviceSensor.rows.length === 0) {
                     const sensorTypeName = SENSOR_TYPE_ALIASES[sensorData.type] || sensorData.type;
@@ -446,10 +457,10 @@ router.post('/:id/telemetry', [
                             INSERT INTO device_sensors (device_id, sensor_type_id, pin, name, enabled)
                             VALUES ($1, $2, $3, $4, false)
                             RETURNING *
-                        `, [id, sensorType.rows[0].id, sensorData.pin, sensorData.name || `${sensorData.type} Sensor`]);
+                        `, [id, sensorType.rows[0].id, mappedPin, sensorData.name || `${sensorData.type} Sensor`]);
 
                         deviceSensor.rows = [{ ...newSensor.rows[0], sensor_type_name: sensorData.type }];
-                        logger.info(`Auto-created disabled sensor: ${sensorData.type} on pin ${sensorData.pin} for device ${id} (needs manual enable)`);
+                        logger.info(`Auto-created disabled sensor: ${sensorData.type} on pin ${mappedPin} for device ${id} (needs manual enable)`);
                     } else {
                         logger.warn(`Unknown sensor type: ${sensorData.type} for device ${id}`);
                         continue;
@@ -473,7 +484,7 @@ router.post('/:id/telemetry', [
                     processedValue,
                     JSON.stringify({
                         timestamp: sensorData.timestamp,
-                        pin: sensorData.pin,
+                        pin: mappedPin,
                         sensor_type: sensorData.type,
                         unit: sensor.unit
                     })
@@ -481,7 +492,7 @@ router.post('/:id/telemetry', [
 
                 // Process sensor rules for alerts using the telemetry processor
                 await telemetryProcessor.processRulesForSensor(id, {
-                    pin: sensorData.pin,
+                    pin: mappedPin,
                     type: sensorData.type,
                     name: sensor.name,
                     raw_value: rawValue,

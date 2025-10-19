@@ -613,7 +613,8 @@
       "justNow": "Právě teď",
       "minutes": "Před {{count}} min",
       "hours": "Před {{hours}} h {{minutes}} m",
-      "days": "Před {{count}} d"
+      "days_one": "Před {{count}} dnem",
+      "days_other": "Před {{count}} dny"
     },
     "sensorBadge": {
       "live": "Aktuální",

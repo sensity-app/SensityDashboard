@@ -42,6 +42,26 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+print_migration_status() {
+    local status_type="$1"
+    local message="$2"
+
+    case "$status_type" in
+        "info")
+            echo -e "${BLUE}  ▸${NC} $message"
+            ;;
+        "success")
+            echo -e "${GREEN}  ✓${NC} $message"
+            ;;
+        "error")
+            echo -e "${RED}  ✗${NC} $message"
+            ;;
+        *)
+            echo "  $message"
+            ;;
+    esac
+}
+
 # Validate required environment variables
 if [[ -z "$APP_DIR" ]]; then
     print_error "APP_DIR is not set"

@@ -92,6 +92,26 @@
     "help": "Nápověda",
     "language": "Jazyk"
   },
+  "settings": {
+    "appearance": "Vzhled",
+    "theme": "Téma",
+    "dark": "Tmavý",
+    "light": "Světlý",
+    "auto": "Automaticky",
+    "advanced": "Pokročilá nastavení",
+    "apiSettings": "Nastavení API",
+    "databaseSettings": "Nastavení databáze",
+    "cacheSettings": "Nastavení mezipaměti",
+    "securitySettings": "Nastavení zabezpečení",
+    "loggingSettings": "Nastavení logování",
+    "dateFormat": "Formát data",
+    "timeFormat": "Formát času",
+    "settingsSaved": "Nastavení byla uložena",
+    "settingsReset": "Nastavení byla obnovena na výchozí",
+    "languageChanged": "Jazyk byl změněn",
+    "languageUpdateFailed": "Změna jazyka se nezdařila",
+    "import": "Importovat"
+  },
   "silentMode": {
     "title": "Tichý režim upozornění",
     "subtitle": "Nastavte tiché hodiny pro upozornění zařízení",

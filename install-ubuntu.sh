@@ -2462,8 +2462,193 @@ detect_existing_installation() {
     fi
 }
 
+# Uninstall/destroy function
+uninstall_system() {
+    print_header
+    check_root
+
+    echo -e "${RED}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║           SENSITY PLATFORM UNINSTALLER                      ║${NC}"
+    echo -e "${RED}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo
+    print_warning "This will COMPLETELY REMOVE all Sensity installations!"
+    echo
+    echo -e "${YELLOW}The following will be removed:${NC}"
+    echo "  • All Sensity platform instances"
+    echo "  • PM2 processes"
+    echo "  • Nginx configurations"
+    echo "  • Database and user data"
+    echo "  • Application directories"
+    echo "  • System users"
+    echo
+    print_warning "PostgreSQL, Redis, Nginx, and Node.js will NOT be removed"
+    echo -e "${BLUE}(These can be used by other applications)${NC}"
+    echo
+
+    # List all installations
+    print_status "Found installations:"
+    local installations_found=0
+
+    if [[ -d "/opt/sensity-platform" ]]; then
+        echo -e "  ${CYAN}• default${NC} (at /opt/sensity-platform)"
+        ((installations_found++))
+    fi
+
+    for dir in /opt/sensity-platform-*; do
+        if [[ -d "$dir" ]]; then
+            local inst_name=$(basename "$dir" | sed 's/sensity-platform-//')
+            echo -e "  ${CYAN}• $inst_name${NC} (at $dir)"
+            ((installations_found++))
+        fi
+    done
+
+    if [[ $installations_found -eq 0 ]]; then
+        print_success "No Sensity installations found!"
+        exit 0
+    fi
+
+    echo
+    echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${RED}                      ⚠️  WARNING ⚠️                           ${NC}"
+    echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}This action CANNOT be undone!${NC}"
+    echo -e "${YELLOW}All device data, telemetry, and configurations will be lost!${NC}"
+    echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+    echo
+
+    # Triple confirmation
+    read -p "Type 'DELETE' in capital letters to confirm: " -r
+    if [[ ! $REPLY == "DELETE" ]]; then
+        print_status "Uninstall cancelled"
+        exit 0
+    fi
+
+    read -p "Are you absolutely sure? Type 'yes' to proceed: " -r
+    if [[ ! $REPLY == "yes" ]]; then
+        print_status "Uninstall cancelled"
+        exit 0
+    fi
+
+    echo
+    print_status "Starting uninstallation process..."
+    echo
+
+    # Stop and delete PM2 processes for all instances
+    print_status "Stopping PM2 processes..."
+    if id "sensityapp" &>/dev/null; then
+        sudo -u sensityapp pm2 delete all 2>/dev/null || true
+        sudo -u sensityapp pm2 kill 2>/dev/null || true
+    fi
+
+    for user in sensity_*; do
+        if id "$user" &>/dev/null 2>&1; then
+            sudo -u "$user" pm2 delete all 2>/dev/null || true
+            sudo -u "$user" pm2 kill 2>/dev/null || true
+        fi
+    done
+
+    # Remove Nginx configurations
+    print_status "Removing Nginx configurations..."
+    rm -f /etc/nginx/sites-enabled/sensity-* 2>/dev/null || true
+    rm -f /etc/nginx/sites-available/sensity-* 2>/dev/null || true
+    systemctl reload nginx 2>/dev/null || true
+
+    # Drop all Sensity databases
+    print_status "Removing databases..."
+    sudo -u postgres psql -c "DROP DATABASE IF EXISTS sensity_platform;" 2>/dev/null || true
+
+    for db in $(sudo -u postgres psql -t -c "SELECT datname FROM pg_database WHERE datname LIKE 'sensity_%';" 2>/dev/null); do
+        db=$(echo "$db" | xargs)  # trim whitespace
+        if [[ -n "$db" ]]; then
+            print_status "  Dropping database: $db"
+            sudo -u postgres psql -c "DROP DATABASE IF EXISTS $db;" 2>/dev/null || true
+        fi
+    done
+
+    # Remove database users
+    print_status "Removing database users..."
+    sudo -u postgres psql -c "DROP USER IF EXISTS sensityapp;" 2>/dev/null || true
+
+    for dbuser in $(sudo -u postgres psql -t -c "SELECT usename FROM pg_user WHERE usename LIKE 'sensity_%';" 2>/dev/null); do
+        dbuser=$(echo "$dbuser" | xargs)
+        if [[ -n "$dbuser" ]]; then
+            print_status "  Dropping user: $dbuser"
+            sudo -u postgres psql -c "DROP USER IF EXISTS $dbuser;" 2>/dev/null || true
+        fi
+    done
+
+    # Remove application directories
+    print_status "Removing application directories..."
+    rm -rf /opt/sensity-platform 2>/dev/null || true
+    rm -rf /opt/sensity-platform-* 2>/dev/null || true
+    rm -rf /opt/sensity-platform.backup.* 2>/dev/null || true
+    rm -rf /opt/sensity-platform-*.backup.* 2>/dev/null || true
+
+    # Remove system users
+    print_status "Removing system users..."
+    if id "sensityapp" &>/dev/null; then
+        userdel -r sensityapp 2>/dev/null || true
+    fi
+
+    for user in sensity_*; do
+        if id "$user" &>/dev/null 2>&1; then
+            print_status "  Removing user: $user"
+            userdel -r "$user" 2>/dev/null || true
+        fi
+    done
+
+    # Remove SSL certificates (optional)
+    read -p "Remove Let's Encrypt SSL certificates? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        print_status "Removing SSL certificates..."
+        certbot delete --cert-name sensity.* 2>/dev/null || true
+        rm -rf /etc/letsencrypt/live/sensity.* 2>/dev/null || true
+        rm -rf /etc/letsencrypt/archive/sensity.* 2>/dev/null || true
+        rm -rf /etc/letsencrypt/renewal/sensity.* 2>/dev/null || true
+    fi
+
+    # Remove logrotate config
+    print_status "Removing logrotate configuration..."
+    rm -f /etc/logrotate.d/sensity-platform 2>/dev/null || true
+
+    # Remove systemd override if any
+    print_status "Cleaning up systemd files..."
+    rm -rf /etc/systemd/system/sensity-* 2>/dev/null || true
+    systemctl daemon-reload 2>/dev/null || true
+
+    echo
+    print_success "═══════════════════════════════════════════════════════════════"
+    print_success "              ✅  UNINSTALL COMPLETE  ✅"
+    print_success "═══════════════════════════════════════════════════════════════"
+    echo
+    print_status "Removed items:"
+    echo "  ✓ All Sensity installations"
+    echo "  ✓ PM2 processes"
+    echo "  ✓ Databases and users"
+    echo "  ✓ Application directories"
+    echo "  ✓ Nginx configurations"
+    echo "  ✓ System users"
+    echo
+    print_status "Kept items:"
+    echo "  • PostgreSQL (still installed)"
+    echo "  • Redis (still installed)"
+    echo "  • Nginx (still installed)"
+    echo "  • Node.js (still installed)"
+    echo "  • PM2 (still installed)"
+    echo
+    print_status "To reinstall, run the installer again"
+    echo
+}
+
 # Main installation function
 main() {
+    # Check for uninstall flag
+    if [[ "$1" == "--uninstall" ]] || [[ "$1" == "uninstall" ]] || [[ "$1" == "--destroy" ]]; then
+        uninstall_system
+        exit 0
+    fi
+
     print_header
     check_root
     detect_ubuntu

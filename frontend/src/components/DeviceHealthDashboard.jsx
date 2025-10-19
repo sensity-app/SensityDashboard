@@ -13,7 +13,10 @@ const DeviceHealthDashboard = () => {
     // Fetch devices
     const { data: devices = [], isLoading: devicesLoading } = useQuery(
         'devices',
-        apiService.getDevices
+        apiService.getDevices,
+        {
+            select: (data) => data?.devices || []
+        }
     );
 
     // Fetch device health for selected device

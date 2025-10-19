@@ -1644,7 +1644,7 @@ router.get('/:id/alerts', authenticateToken, async (req, res) => {
                 LEFT JOIN device_sensors ds ON a.device_sensor_id = ds.id
                 LEFT JOIN sensor_types st ON ds.sensor_type_id = st.id
                 WHERE a.device_id = $1
-                ORDER BY a.created_at DESC
+                ORDER BY COALESCE(a.created_at, a.triggered_at) DESC
                 LIMIT $2
             `, [deviceId, limit]);
         } catch (joinError) {
@@ -1654,7 +1654,7 @@ router.get('/:id/alerts', authenticateToken, async (req, res) => {
                 SELECT a.*
                 FROM alerts a
                 WHERE a.device_id = $1
-                ORDER BY a.created_at DESC
+                ORDER BY COALESCE(a.created_at, a.triggered_at) DESC
                 LIMIT $2
             `, [deviceId, limit]);
         }

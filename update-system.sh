@@ -159,10 +159,28 @@ run_database_migrations() {
         exit 1
     fi
 
+    # Run migrations and capture exit status
+    # We disable errexit temporarily to handle migration failures gracefully
+    set +e
     APP_DIR="$APP_DIR" \
     APP_USER="$APP_USER" \
     DB_NAME="$DB_NAME" \
         "$migration_script"
+    local migration_exit=$?
+    set -e
+
+    # Check if migrations failed
+    if [[ $migration_exit -ne 0 ]]; then
+        print_warning "Some migrations failed (exit code: $migration_exit)"
+        print_warning "This is usually not critical - the update will continue"
+        print_status "You can check migration logs above for details"
+    else
+        print_success "All database migrations completed successfully"
+    fi
+
+    # Always return success to allow the update to continue
+    # Migration failures are treated as warnings, not critical errors
+    return 0
 }
 
 update_system() {

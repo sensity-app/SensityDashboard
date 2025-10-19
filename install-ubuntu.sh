@@ -397,6 +397,22 @@ gather_input() {
         echo "  • Database name"
         echo "  • Directory"
         echo
+
+        # Offer to uninstall existing installations
+        if [[ "$NON_INTERACTIVE" != "true" ]]; then
+            echo -e "${YELLOW}Would you like to:${NC}"
+            echo "  1) Install a new instance (alongside existing ones)"
+            echo "  2) Uninstall existing installations first"
+            echo
+            read -p "Choose option [1]: " INSTALL_OPTION < /dev/tty
+
+            if [[ "$INSTALL_OPTION" == "2" ]]; then
+                echo
+                uninstall_system
+                exit 0
+            fi
+        fi
+        echo
     fi
 
     # Question 2: Instance name (for multiple installations)
@@ -1221,6 +1237,10 @@ EOF
     if [[ $errexit_was_set -eq 1 ]]; then
         set -e
     fi
+
+    # Always return success to allow installation to continue
+    # Migration failures are warnings, not critical errors
+    return 0
 }
 
 # Function to ensure no default users (security best practice)

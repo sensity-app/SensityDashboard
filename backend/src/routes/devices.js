@@ -493,8 +493,8 @@ router.post('/:id/telemetry', [
         const isPrivateIP = (ip) => {
             if (!ip) return false;
             return ip.startsWith('192.168.') ||
-                   ip.startsWith('10.') ||
-                   /^172\.(1[6-9]|2[0-9]|3[01])\./.test(ip);
+                ip.startsWith('10.') ||
+                /^172\.(1[6-9]|2[0-9]|3[01])\./.test(ip);
         };
 
         // If we got a public IP, try to preserve the existing private IP from database
@@ -825,6 +825,49 @@ router.post('/:id/threshold-alert', [
 
         const { id } = req.params;
         const { sensor_pin, sensor_name, sensor_type, value, alert_type, threshold_min, threshold_max } = req.body;
+
+        // AUTO-CREATE SENSOR IF IT DOESN'T EXIST
+        // This fixes the issue where device sends alerts but sensor isn't in database
+        try {
+            const sensorCheck = await db.query(`
+                SELECT id FROM device_sensors 
+                WHERE device_id = $1 AND pin = $2
+            `, [id, sensor_pin]);
+
+            if (sensorCheck.rows.length === 0) {
+                // Sensor doesn't exist - auto-create it
+                logger.info(`Auto-creating sensor for alert: device=${id}, pin=${sensor_pin}, type=${sensor_type || 'Photodiode'}`);
+
+                const SENSOR_TYPE_ALIASES = {
+                    light: 'Photodiode',
+                    temperature: 'DHT22',
+                    motion: 'PIR'
+                };
+
+                const sensorTypeName = SENSOR_TYPE_ALIASES[sensor_type?.toLowerCase()] || sensor_type || 'Photodiode';
+
+                const sensorTypeResult = await db.query(
+                    'SELECT id, default_min, default_max FROM sensor_types WHERE LOWER(name) = LOWER($1)',
+                    [sensorTypeName]
+                );
+
+                if (sensorTypeResult.rows.length > 0) {
+                    const sensorTypeData = sensorTypeResult.rows[0];
+                    await db.query(`
+                        INSERT INTO device_sensors (device_id, sensor_type_id, pin, name, enabled)
+                        VALUES ($1, $2, $3, $4, true)
+                        ON CONFLICT (device_id, pin) DO NOTHING
+                    `, [id, sensorTypeData.id, sensor_pin, sensor_name || `${sensorTypeName} Sensor`]);
+
+                    logger.info(`Auto-created sensor: ${sensor_name} on pin ${sensor_pin} for device ${id}`);
+                } else {
+                    logger.warn(`Cannot auto-create sensor - unknown type: ${sensorTypeName}`);
+                }
+            }
+        } catch (autoCreateError) {
+            logger.error(`Failed to auto-create sensor for alert: ${autoCreateError.message}`);
+            // Continue with alert creation even if sensor creation fails
+        }
 
         // Check cooldown - don't send alert if one was sent recently (default 10 seconds for firmware alerts)
         const ALERT_COOLDOWN_SECONDS = parseInt(process.env.THRESHOLD_ALERT_COOLDOWN_SEC || '10');

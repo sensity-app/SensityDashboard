@@ -20,12 +20,23 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
     useEffect(() => {
         const fetchSensorTypes = async () => {
             try {
+                console.log('Fetching sensor types...');
                 const response = await apiService.getSensorTypes();
+                console.log('Sensor types response:', response);
                 const types = Array.isArray(response) ? response : (response?.sensor_types || []);
-                setSensorTypes(types);
+                console.log('Parsed sensor types:', types);
+
+                if (!types || types.length === 0) {
+                    console.warn('No sensor types found!');
+                    toast.error(t('deviceDetail.sensorManager.noSensorTypes', 'No sensor types available. Please contact administrator.'));
+                } else {
+                    setSensorTypes(types);
+                    console.log(`Loaded ${types.length} sensor types`);
+                }
             } catch (error) {
                 console.error('Failed to fetch sensor types:', error);
-                toast.error(t('deviceDetail.sensorManager.fetchTypesError', 'Failed to load sensor types'));
+                console.error('Error details:', error.response?.data || error.message);
+                toast.error(t('deviceDetail.sensorManager.fetchTypesError', `Failed to load sensor types: ${error.response?.data?.error || error.message}`));
             }
         };
         fetchSensorTypes();
@@ -250,46 +261,58 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                                     <X className="h-5 w-5" />
                                 </button>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {sensorTypes.map((sensorType) => {
-                                    const count = localSensors.filter(s => s.sensor_type_id === sensorType.id).length;
-                                    return (
-                                        <div
-                                            key={sensorType.id}
-                                            className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer"
-                                            onClick={() => handleAddSensorType(sensorType)}
-                                        >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h5 className="font-semibold text-gray-900">{sensorType.name}</h5>
-                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${sensorType.pin_type === 'analog'
+                            {sensorTypes.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <AlertCircle className="h-12 w-12 mx-auto mb-3 text-amber-500" />
+                                    <p className="text-sm text-gray-600 mb-2">
+                                        {t('deviceDetail.sensorManager.noSensorTypesAvailable', 'No sensor types available')}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        Check browser console for errors or contact administrator
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {sensorTypes.map((sensorType) => {
+                                        const count = localSensors.filter(s => s.sensor_type_id === sensorType.id).length;
+                                        return (
+                                            <div
+                                                key={sensorType.id}
+                                                className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md hover:border-indigo-300 transition-all cursor-pointer"
+                                                onClick={() => handleAddSensorType(sensorType)}
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h5 className="font-semibold text-gray-900">{sensorType.name}</h5>
+                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${sensorType.pin_type === 'analog'
                                                         ? 'bg-green-100 text-green-800'
                                                         : 'bg-blue-100 text-blue-800'
-                                                    }`}>
-                                                    {sensorType.pin_type || 'digital'}
-                                                </span>
+                                                        }`}>
+                                                        {sensorType.pin_type || 'digital'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-3">
+                                                    {sensorType.description || `Unit: ${sensorType.unit}`}
+                                                </p>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs text-gray-500">
+                                                        {count} configured
+                                                    </span>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleAddSensorType(sensorType);
+                                                        }}
+                                                        className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1 text-xs font-medium text-white hover:bg-indigo-700"
+                                                    >
+                                                        <Plus className="h-3 w-3" />
+                                                        Add
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <p className="text-sm text-gray-600 mb-3">
-                                                {sensorType.description || `Unit: ${sensorType.unit}`}
-                                            </p>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-xs text-gray-500">
-                                                    {count} configured
-                                                </span>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleAddSensorType(sensorType);
-                                                    }}
-                                                    className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1 text-xs font-medium text-white hover:bg-indigo-700"
-                                                >
-                                                    <Plus className="h-3 w-3" />
-                                                    Add
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -309,8 +332,8 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                                     <div
                                         key={sensor.id}
                                         className={`rounded-xl border-2 ${hasPinConflict
-                                                ? 'border-red-300 bg-red-50'
-                                                : 'border-gray-200 bg-white'
+                                            ? 'border-red-300 bg-red-50'
+                                            : 'border-gray-200 bg-white'
                                             } shadow-sm hover:shadow-md transition-shadow`}
                                     >
                                         {/* Sensor Header */}

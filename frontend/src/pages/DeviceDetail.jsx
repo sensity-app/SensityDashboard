@@ -41,8 +41,15 @@ function DeviceDetail() {
         {
             enabled: !!id,
             refetchOnWindowFocus: false, // Disable auto-refresh
+            onSuccess: (data) => {
+                console.log('Sensors fetched successfully:', data);
+            },
+            onError: (error) => {
+                console.error('Failed to fetch sensors:', error);
+            },
             select: (data) => {
                 // Ensure we always return an array
+                console.log('Raw sensor data:', data);
                 if (!data) return [];
                 if (Array.isArray(data.sensors)) return data.sensors;
                 if (Array.isArray(data)) return data;
@@ -576,6 +583,34 @@ function DeviceDetail() {
                                     <div className="col-span-full rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
                                         <p className="font-medium text-gray-700">{t('deviceDetail.sensorSectionEmpty')}</p>
                                         <p className="mt-1 text-sm text-gray-500">{t('deviceDetail.sensorSectionEmptyHint')}</p>
+                                        {activeAlerts.length > 0 && (
+                                            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg mx-auto max-w-md">
+                                                <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-red-600" />
+                                                <p className="text-sm font-semibold text-red-900">⚠️ Sensor Data Detected</p>
+                                                <p className="mt-1 text-xs text-red-800">
+                                                    Your device is sending sensor alerts, but sensors aren't showing in the UI. Try refreshing or adding sensors manually.
+                                                </p>
+                                            </div>
+                                        )}
+                                        <div className="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                                            <button
+                                                onClick={() => {
+                                                    queryClient.invalidateQueries(['device-sensors', id]);
+                                                    toast.success('Refreshing sensors...');
+                                                }}
+                                                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                            >
+                                                <Activity className="h-4 w-4" />
+                                                Refresh Sensors
+                                            </button>
+                                            <button
+                                                onClick={() => setShowSensorManager(true)}
+                                                className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-700 transition-colors shadow-lg"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                {t('deviceDetail.manageSensors', 'Configure Sensors Now')}
+                                            </button>
+                                        </div>
                                     </div>
                                 ) : (
                                     sortedSensors.map((sensor) => {
@@ -946,9 +981,24 @@ function SensorEditorModal({ sensor, deviceId, onClose, onSave, mutation }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-                <h3 className="text-lg font-semibold text-gray-900">{t('deviceDetail.modal.title', { name: sensor.name })}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">{t('deviceDetail.modal.title', { name: sensor.name })}</h3>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        type="button"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm text-amber-800">
+                        <strong>Note:</strong> To change sensor type or pin, use the "Manage Sensors" button instead.
+                    </p>
+                </div>
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                     <div>
@@ -957,7 +1007,7 @@ function SensorEditorModal({ sensor, deviceId, onClose, onSave, mutation }) {
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                             required
                         />
                     </div>
@@ -969,8 +1019,8 @@ function SensorEditorModal({ sensor, deviceId, onClose, onSave, mutation }) {
                                 type="number"
                                 step="0.01"
                                 value={formData.calibration_offset}
-                                onChange={(e) => setFormData({ ...formData, calibration_offset: parseFloat(e.target.value) })}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+                                onChange={(e) => setFormData({ ...formData, calibration_offset: parseFloat(e.target.value) || 0 })}
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                             />
                         </div>
                         <div>
@@ -979,8 +1029,8 @@ function SensorEditorModal({ sensor, deviceId, onClose, onSave, mutation }) {
                                 type="number"
                                 step="0.01"
                                 value={formData.calibration_multiplier}
-                                onChange={(e) => setFormData({ ...formData, calibration_multiplier: parseFloat(e.target.value) })}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+                                onChange={(e) => setFormData({ ...formData, calibration_multiplier: parseFloat(e.target.value) || 1 })}
+                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                             />
                         </div>
                     </div>

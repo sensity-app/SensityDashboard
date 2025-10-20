@@ -115,7 +115,13 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
             const removedSensors = sensors.filter(s => !localSensors.find(ls => ls.id === s.id));
             for (const sensor of removedSensors) {
                 if (!sensor.id.toString().startsWith('new_')) {
-                    await apiService.deleteSensor(device.id, sensor.id);
+                    try {
+                        await apiService.deleteSensor(device.id, sensor.id);
+                        console.log(`Deleted sensor ${sensor.id}`);
+                    } catch (error) {
+                        console.error(`Failed to delete sensor ${sensor.id}:`, error);
+                        throw error;
+                    }
                 }
             }
 
@@ -125,28 +131,42 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
 
                 if (sensor.isNew) {
                     // Create new sensor
-                    const response = await apiService.createSensor(device.id, {
-                        pin: sensor.pin,
-                        sensor_type_id: sensor.sensor_type_id,
-                        name: sensor.name,
-                        enabled: sensor.enabled,
-                        calibration_offset: sensor.calibration_offset || 0,
-                        calibration_multiplier: (sensor.calibration_multiplier || 1) * (sensor.sensitivity || 1),
-                        threshold_min: sensor.threshold_min,
-                        threshold_max: sensor.threshold_max
-                    });
-                    sensorId = response.sensor?.id || response.id;
+                    try {
+                        const response = await apiService.createSensor(device.id, {
+                            pin: sensor.pin,
+                            sensor_type_id: sensor.sensor_type_id,
+                            name: sensor.name,
+                            enabled: sensor.enabled,
+                            calibration_offset: sensor.calibration_offset || 0,
+                            calibration_multiplier: (sensor.calibration_multiplier || 1) * (sensor.sensitivity || 1),
+                            threshold_min: sensor.threshold_min,
+                            threshold_max: sensor.threshold_max
+                        });
+                        sensorId = response.sensor?.id || response.data?.sensor?.id || response.id;
+                        console.log(`Created sensor ${sensor.name} with ID ${sensorId}`);
+                    } catch (error) {
+                        console.error(`Failed to create sensor ${sensor.name}:`, error);
+                        toast.error(t('deviceDetail.sensorManager.createError', `Failed to create sensor ${sensor.name}: ${error.response?.data?.error || error.message}`));
+                        throw error;
+                    }
                 } else {
                     // Update existing sensor
-                    await apiService.updateSensor(device.id, sensor.id, {
-                        name: sensor.name,
-                        enabled: sensor.enabled,
-                        calibration_offset: sensor.calibration_offset,
-                        calibration_multiplier: (sensor.calibration_multiplier || 1) * (sensor.sensitivity || 1),
-                        threshold_min: sensor.threshold_min,
-                        threshold_max: sensor.threshold_max,
-                        trigger_ota: false
-                    });
+                    try {
+                        await apiService.updateSensor(device.id, sensor.id, {
+                            name: sensor.name,
+                            enabled: sensor.enabled,
+                            calibration_offset: sensor.calibration_offset,
+                            calibration_multiplier: (sensor.calibration_multiplier || 1) * (sensor.sensitivity || 1),
+                            threshold_min: sensor.threshold_min,
+                            threshold_max: sensor.threshold_max,
+                            trigger_ota: false
+                        });
+                        console.log(`Updated sensor ${sensor.id}`);
+                    } catch (error) {
+                        console.error(`Failed to update sensor ${sensor.id}:`, error);
+                        toast.error(t('deviceDetail.sensorManager.updateError', `Failed to update sensor ${sensor.name}: ${error.response?.data?.error || error.message}`));
+                        throw error;
+                    }
                 }
             }
 
@@ -154,7 +174,8 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
             onSave();
         } catch (error) {
             console.error('Failed to save sensors:', error);
-            toast.error(t('deviceDetail.sensorManager.saveError', 'Failed to save sensor configuration'));
+            const errorMessage = error.response?.data?.error || error.message || 'Unknown error';
+            toast.error(t('deviceDetail.sensorManager.saveError', `Failed to save sensor configuration: ${errorMessage}`));
         } finally {
             setIsLoading(false);
         }
@@ -240,11 +261,10 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                                         >
                                             <div className="flex items-center justify-between mb-2">
                                                 <h5 className="font-semibold text-gray-900">{sensorType.name}</h5>
-                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                    sensorType.pin_type === 'analog'
+                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${sensorType.pin_type === 'analog'
                                                         ? 'bg-green-100 text-green-800'
                                                         : 'bg-blue-100 text-blue-800'
-                                                }`}>
+                                                    }`}>
                                                     {sensorType.pin_type || 'digital'}
                                                 </span>
                                             </div>
@@ -288,19 +308,17 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                                 return (
                                     <div
                                         key={sensor.id}
-                                        className={`rounded-xl border-2 ${
-                                            hasPinConflict
+                                        className={`rounded-xl border-2 ${hasPinConflict
                                                 ? 'border-red-300 bg-red-50'
                                                 : 'border-gray-200 bg-white'
-                                        } shadow-sm hover:shadow-md transition-shadow`}
+                                            } shadow-sm hover:shadow-md transition-shadow`}
                                     >
                                         {/* Sensor Header */}
                                         <div className="p-5 bg-gradient-to-r from-gray-50 to-gray-100">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white ${
-                                                        hasPinConflict ? 'bg-red-500' : 'bg-indigo-600'
-                                                    }`}>
+                                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white ${hasPinConflict ? 'bg-red-500' : 'bg-indigo-600'
+                                                        }`}>
                                                         {sensor.pin}
                                                     </div>
                                                     <div>
@@ -351,9 +369,8 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                                                     <select
                                                         value={sensor.pin}
                                                         onChange={(e) => handlePinChange(sensor.id, e.target.value)}
-                                                        className={`w-full rounded-lg border ${
-                                                            hasPinConflict ? 'border-red-300' : 'border-gray-300'
-                                                        } px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200`}
+                                                        className={`w-full rounded-lg border ${hasPinConflict ? 'border-red-300' : 'border-gray-300'
+                                                            } px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200`}
                                                     >
                                                         {availablePins.map(pin => (
                                                             <option key={pin} value={pin}>

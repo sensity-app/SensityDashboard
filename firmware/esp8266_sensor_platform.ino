@@ -82,8 +82,10 @@ int sensorCount = 0;
 unsigned long lastHeartbeat = 0;
 unsigned long lastSensorRead = 0;
 unsigned long lastTelemetrySend = 0;
+unsigned long lastConsoleOutput = 0; // NEW: Track when we last printed sensor values
 unsigned long lastWiFiCheck = 0;
 const unsigned long WIFI_RECONNECT_INTERVAL = 15000; // 15 seconds
+const unsigned long CONSOLE_OUTPUT_INTERVAL = 5000;  // NEW: Print sensor values every 5 seconds
 WiFiClient wifiClient;
 #if USE_HTTPS
 WiFiClientSecure secureClient;
@@ -109,6 +111,7 @@ Ultrasonic *ultrasonic = nullptr;
 
 // Forward declarations
 void notifyOTAStatus(const String &status, int progress, const String &errorMessage = "");
+void printSensorValuesToConsole();
 
 void setup()
 {
@@ -167,18 +170,26 @@ void loop()
     // Only perform network operations if WiFi is connected
     if (WiFi.status() == WL_CONNECTED)
     {
-        // Read sensors at fast interval (1 second for real-time monitoring)
+        // Read sensors at fast interval (1 second for real-time threshold monitoring)
         if (millis() - lastSensorRead >= SENSOR_READ_INTERVAL_MS)
         {
-            readAndProcessSensors();
+            // Read sensors and check thresholds, but DON'T send telemetry yet
+            bool shouldSendTelemetry = (millis() - lastTelemetrySend >= TELEMETRY_SEND_INTERVAL_MS);
+            readAndProcessSensors(shouldSendTelemetry);
             lastSensorRead = millis();
+
+            // Update telemetry timestamp only if we actually sent it
+            if (shouldSendTelemetry)
+            {
+                lastTelemetrySend = millis();
+            }
         }
 
-        // Send batched telemetry data every 5 seconds
-        if (millis() - lastTelemetrySend >= TELEMETRY_SEND_INTERVAL_MS)
+        // Print sensor values to console every 5 seconds for debugging
+        if (millis() - lastConsoleOutput >= CONSOLE_OUTPUT_INTERVAL)
         {
-            // Telemetry is sent automatically by readAndProcessSensors when batch is ready
-            lastTelemetrySend = millis();
+            printSensorValuesToConsole();
+            lastConsoleOutput = millis();
         }
 
         // Send heartbeat at configured interval
@@ -442,12 +453,12 @@ float applyMedianFilter(int pin, bool isAnalog)
     return readings[2];
 }
 
-void readAndProcessSensors()
+void readAndProcessSensors(bool sendTelemetry = false)
 {
-    if (config.debug_mode)
+    if (config.debug_mode && sendTelemetry)
     {
         Serial.println("========================================");
-        Serial.println("Reading sensors...");
+        Serial.println("Reading sensors and sending telemetry...");
     }
 
     StaticJsonDocument<1024> telemetryDoc;
@@ -633,8 +644,8 @@ void readAndProcessSensors()
         }
     }
 
-    // Send telemetry data
-    if (sensorData.size() > 0)
+    // Send telemetry data only when scheduled (every 5 seconds)
+    if (sendTelemetry && sensorData.size() > 0)
     {
         if (config.debug_mode)
         {
@@ -643,6 +654,10 @@ void readAndProcessSensors()
             Serial.println(" sensors");
         }
         sendTelemetryData(telemetryDoc);
+    }
+    else if (config.debug_mode && !sendTelemetry)
+    {
+        Serial.println("Sensors read, waiting for next telemetry interval...");
     }
     else
     {
@@ -1073,6 +1088,106 @@ void notifyOTAStatus(const String &status, int progress, const String &errorMess
 
     http.POST(payload);
     http.end();
+}
+
+// Print sensor values to serial console for debugging
+void printSensorValuesToConsole()
+{
+    Serial.println("========================================");
+    Serial.println("📊 SENSOR VALUES (5-second snapshot)");
+    Serial.print("⏱️  Uptime: ");
+    Serial.print(millis() / 1000);
+    Serial.println(" seconds");
+    Serial.println("========================================");
+
+    bool hasSensors = false;
+    for (int i = 0; i < sensorCount; i++)
+    {
+        if (!sensors[i].enabled)
+        {
+            continue;
+        }
+
+        hasSensors = true;
+        float rawValue = 0;
+        float processedValue = 0;
+        bool hasReading = false;
+        String unit = "";
+
+        // Read sensor based on type
+        if (sensors[i].type == "light" || sensors[i].type == "photodiode")
+        {
+            rawValue = analogRead(sensors[i].pin);
+            processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+            hasReading = true;
+            unit = "%";
+        }
+        else if (sensors[i].type == "temperature")
+        {
+#if SENSOR_DHT_ENABLED
+            if (dht != nullptr)
+            {
+                rawValue = dht->readTemperature();
+                if (!isnan(rawValue))
+                {
+                    processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+                    hasReading = true;
+                    unit = "°C";
+                }
+            }
+#endif
+        }
+        else if (sensors[i].type == "humidity")
+        {
+#if SENSOR_DHT_ENABLED
+            if (dht != nullptr)
+            {
+                rawValue = dht->readHumidity();
+                if (!isnan(rawValue))
+                {
+                    processedValue = (rawValue * sensors[i].calibration_multiplier) + sensors[i].calibration_offset;
+                    hasReading = true;
+                    unit = "%";
+                }
+            }
+#endif
+        }
+        else if (sensors[i].type == "motion")
+        {
+            rawValue = digitalRead(sensors[i].pin);
+            processedValue = rawValue;
+            hasReading = true;
+            unit = rawValue ? "DETECTED" : "NONE";
+        }
+
+        if (hasReading)
+        {
+            Serial.print("  🔹 ");
+            Serial.print(sensors[i].name);
+            Serial.print(" (Pin ");
+            Serial.print(sensors[i].pin);
+            Serial.print(")");
+            Serial.println();
+            Serial.print("     Raw: ");
+            Serial.print(rawValue, 2);
+            Serial.print(" | Processed: ");
+            Serial.print(processedValue, 2);
+            Serial.print(" ");
+            Serial.println(unit);
+            Serial.print("     Thresholds: ");
+            Serial.print(sensors[i].threshold_min, 2);
+            Serial.print(" - ");
+            Serial.println(sensors[i].threshold_max, 2);
+        }
+    }
+
+    if (!hasSensors)
+    {
+        Serial.println("  ⚠️  No enabled sensors configured");
+    }
+
+    Serial.println("========================================");
+    Serial.println();
 }
 
 void sendAlarmEvent(int sensorIndex, float value)

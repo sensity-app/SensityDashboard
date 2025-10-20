@@ -565,7 +565,7 @@ const FirmwareBuilder = () => {
                                                 value={config.device_name}
                                                 onChange={(e) => handleConfigChange('device_name', e.target.value)}
                                                 className="input-field"
-                                                placeholder={getCopy('sections.device.fields.name.placeholder', 'e.g., Kitchen Sensor Hub')}
+                                                placeholder={getCopy('sections.device.fields.name.placeholder')}
                                             />
                                             <p className="text-xs text-gray-500 mt-1">{getCopy('sections.device.fields.name.helper', 'Choose a descriptive name for easy identification')}</p>
                                         </div>
@@ -580,7 +580,7 @@ const FirmwareBuilder = () => {
                                                     value={config.device_location}
                                                     onChange={(e) => handleConfigChange('device_location', e.target.value)}
                                                     className="input-field"
-                                                    placeholder={getCopy('sections.device.fields.location.placeholder', 'Enter or select location...')}
+                                                    placeholder={getCopy('sections.device.fields.location.placeholder')}
                                                     list="locations-list"
                                                 />
                                                 <datalist id="locations-list">
@@ -680,7 +680,7 @@ const FirmwareBuilder = () => {
                                                     value={config.wifi_ssid}
                                                     onChange={(e) => handleConfigChange('wifi_ssid', e.target.value)}
                                                     className="input-field"
-                                                    placeholder={getCopy('sections.network.wifi.fields.ssid.placeholder', 'Your WiFi network name')}
+                                                placeholder={getCopy('sections.network.wifi.fields.ssid.placeholder')}
                                                 />
                                             </div>
                                             <div className="form-group">
@@ -693,8 +693,8 @@ const FirmwareBuilder = () => {
                                                     onChange={(e) => handleConfigChange('wifi_password', e.target.value)}
                                                     className="input-field"
                                                     placeholder={config.open_wifi
-                                                        ? getCopy('sections.network.wifi.fields.password.placeholderOpen', 'No password required')
-                                                        : getCopy('sections.network.wifi.fields.password.placeholder', 'Your WiFi password')}
+                                                        ? getCopy('sections.network.wifi.fields.password.placeholderOpen')
+                                                        : getCopy('sections.network.wifi.fields.password.placeholder')}
                                                     disabled={config.open_wifi}
                                                 />
                                             </div>
@@ -985,7 +985,7 @@ const FirmwareBuilder = () => {
                                                                     <button
                                                                         onClick={() => removeSensor(sensor.id)}
                                                                         className="text-red-600 hover:text-red-800 p-1"
-                                                                        title="Remove sensor"
+                                                                        title={t('deviceDetail.sensorManager.remove')}
                                                                     >
                                                                         <X className="w-4 h-4" />
                                                                     </button>
@@ -1002,7 +1002,7 @@ const FirmwareBuilder = () => {
                                                                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 text-sm ${hasConflict ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                                                                                 }`}
                                                                         >
-                                                                            <option value="">Select Pin</option>
+                                                                            <option value="">{t('devices.selectPin')}</option>
                                                                             {availablePinsForSensor.map(pinOption => {
                                                                                 const pinValue = typeof pinOption === 'string' ? pinOption : pinOption.pin;
                                                                                 const pinDescription = pinMapping[pinValue] || 'Available';
@@ -1236,7 +1236,7 @@ const FirmwareBuilder = () => {
                                                     title="Flash firmware directly via Web Serial API"
                                                 >
                                                     <Zap className="w-5 h-5" />
-                                                    <span>Flash to Device</span>
+                                                    <span>{getCopy('actions.flash')}</span>
                                                 </button>
                                                 <button
                                                     onClick={buildFirmware}
@@ -1249,12 +1249,12 @@ const FirmwareBuilder = () => {
                                                     {loading ? (
                                                         <>
                                                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                            <span>Building...</span>
+                                                            <span>{getCopy('actions.building')}</span>
                                                         </>
                                                     ) : (
                                                         <>
                                                             <Download className="w-5 h-5" />
-                                                            <span>Download Firmware</span>
+                                                            <span>{getCopy('actions.download')}</span>
                                                         </>
                                                     )}
                                                 </button>
@@ -1272,11 +1272,11 @@ const FirmwareBuilder = () => {
                                                         Your custom firmware has been downloaded. The ZIP file contains:
                                                     </p>
                                                     <ul className="text-sm text-green-700 mt-2 ml-4 list-disc">
-                                                        <li>Arduino sketch file (.ino)</li>
-                                                        <li>Device configuration header</li>
-                                                        <li>Installation instructions</li>
-                                                        <li>Required libraries list</li>
-                                                        <li>Wiring diagram</li>
+                                                        <li>{getCopy('summary.items.ino')}</li>
+                                                        <li>{getCopy('summary.items.configHeader')}</li>
+                                                        <li>{getCopy('summary.items.instructions')}</li>
+                                                        <li>{getCopy('summary.items.libraries')}</li>
+                                                        <li>{getCopy('summary.items.wiring')}</li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -1290,7 +1290,7 @@ const FirmwareBuilder = () => {
                                             className="btn-secondary flex items-center space-x-2"
                                         >
                                             <ArrowLeft className="w-4 h-4" />
-                                            <span>Previous: Sensor Selection</span>
+                                            <span>{getCopy('navigation.prevSensors')}</span>
                                         </button>
                                         <div className="text-sm text-gray-600">
                                             Final step - Build your firmware above

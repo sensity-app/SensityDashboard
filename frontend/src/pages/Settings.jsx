@@ -968,11 +968,8 @@ function Settings() {
                                                                                 onChange={(e) => handleEnvVarChange(varName, e.target.value)}
                                                                                 placeholder={
                                                                                     isSensitive
-                                                                                        ? t('settings.environment.maskPlaceholder', '***MASKED***')
-                                                                                        : t('settings.environment.enterValue', {
-                                                                                            name: varName,
-                                                                                            defaultValue: `Enter ${varName}`
-                                                                                        })
+                                                                                        ? t('settings.environment.maskPlaceholder')
+                                                                                        : t('settings.environment.enterValue', { name: varName })
                                                                                 }
                                                                                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                                                                                 disabled={isSensitive && envVars[varName] === '***MASKED***'}
@@ -1166,7 +1163,7 @@ function Settings() {
                                         </label>
                                         <input
                                             type="text"
-                                            placeholder="smtp.gmail.com"
+                                            placeholder={t('settings.email.smtpHostPlaceholder', 'smtp.gmail.com')}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             disabled
                                         />
@@ -1178,7 +1175,7 @@ function Settings() {
                                         </label>
                                         <input
                                             type="number"
-                                            placeholder="587"
+                                            placeholder={t('settings.email.smtpPortPlaceholder', '587')}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             disabled
                                         />

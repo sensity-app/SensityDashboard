@@ -94,7 +94,7 @@ export const LoadingButton = ({
  *
  * Usage:
  * <LoadingCard loading={isLoading}>
- *   <p>Content here</p>
+ *   <p>content here</p>
  * </LoadingCard>
  */
 export const LoadingCard = ({ loading, children, height = '200px' }) => {

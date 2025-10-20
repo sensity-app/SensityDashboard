@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { Calendar, Download, Settings } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
     const [data, setData] = useState([]);
@@ -9,14 +10,15 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
     const [timeRange, setTimeRange] = useState('24h');
     const [aggregation, setAggregation] = useState('raw');
     const [chartType, setChartType] = useState('line');
+    const { t } = useTranslation();
 
-    const timeRanges = {
-        '1h': { label: '1 Hour', hours: 1 },
-        '6h': { label: '6 Hours', hours: 6 },
-        '24h': { label: '24 Hours', hours: 24 },
-        '7d': { label: '7 Days', hours: 168 },
-        '30d': { label: '30 Days', hours: 720 }
-    };
+    const timeRanges = useMemo(() => ({
+        '1h': { label: t('telemetry.timeRanges.1h', '1 Hour'), hours: 1 },
+        '6h': { label: t('telemetry.timeRanges.6h', '6 Hours'), hours: 6 },
+        '24h': { label: t('telemetry.timeRanges.24h', '24 Hours'), hours: 24 },
+        '7d': { label: t('telemetry.timeRanges.7d', '7 Days'), hours: 168 },
+        '30d': { label: t('telemetry.timeRanges.30d', '30 Days'), hours: 720 }
+    }), [t]);
 
     useEffect(() => {
         // Debounce the data loading to prevent rate limiting
@@ -67,7 +69,12 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
 
     const downloadData = () => {
         const csvContent = [
-            ['Timestamp', 'Value', 'Min Value', 'Max Value'].join(','),
+            [
+                t('telemetry.csv.timestamp', 'Timestamp'),
+                t('telemetry.csv.value', 'Value'),
+                t('telemetry.csv.minValue', 'Min Value'),
+                t('telemetry.csv.maxValue', 'Max Value')
+            ].join(','),
             ...(data || []).map(row => [
                 row.formattedTime,
                 row.value,
@@ -127,8 +134,12 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{sensorName} History</h3>
-                    <p className="text-sm text-gray-500">Pin {sensorPin} • {sensorUnit}</p>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                        {t('telemetry.historyTitle', { name: sensorName })}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                        {t('telemetry.sensorMeta', { pin: sensorPin, unit: sensorUnit })}
+                    </p>
                 </div>
 
                 <div className="flex space-x-2">
@@ -145,7 +156,9 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
             {/* Controls */}
             <div className="flex flex-wrap gap-4 mb-6">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Time Range</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('telemetry.controls.timeRange')}
+                    </label>
                     <select
                         value={timeRange}
                         onChange={(e) => setTimeRange(e.target.value)}
@@ -158,27 +171,31 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Chart Type</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('telemetry.controls.chartType')}
+                    </label>
                     <select
                         value={chartType}
                         onChange={(e) => setChartType(e.target.value)}
                         className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                     >
-                        <option value="line">Line Chart</option>
-                        <option value="area">Area Chart</option>
+                        <option value="line">{t('telemetry.controls.chartOptions.line')}</option>
+                        <option value="area">{t('telemetry.controls.chartOptions.area')}</option>
                     </select>
                 </div>
 
                 {timeRange !== '7d' && timeRange !== '30d' && (
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Data Points</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {t('telemetry.controls.dataPoints')}
+                        </label>
                         <select
                             value={aggregation}
                             onChange={(e) => setAggregation(e.target.value)}
                             className="border border-gray-300 rounded-md px-3 py-2 text-sm"
                         >
-                            <option value="raw">Raw Data</option>
-                            <option value="hourly">Hourly Average</option>
+                            <option value="raw">{t('telemetry.controls.aggregation.raw')}</option>
+                            <option value="hourly">{t('telemetry.controls.aggregation.hourly')}</option>
                         </select>
                     </div>
                 )}
@@ -192,7 +209,7 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                     </div>
                 ) : data.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-gray-500">
-                        No data available for the selected time range
+                        {t('telemetry.noData')}
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">

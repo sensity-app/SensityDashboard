@@ -792,7 +792,7 @@ function DeviceManagement() {
                                                                 onClick={() => setFilterGroup(group.id.toString())}
                                                                 className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
                                                                 style={{ backgroundColor: group.color, color: 'white' }}
-                                                                title={`Filter by group: ${group.name}`}
+                                                                title={t('devices.filterByGroup', { name: group.name })}
                                                             >
                                                                 {group.name}
                                                             </button>
@@ -813,7 +813,7 @@ function DeviceManagement() {
                                                                 onClick={() => setFilterTag(tag.id.toString())}
                                                                 className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
                                                                 style={{ backgroundColor: tag.color, color: 'white' }}
-                                                                title={`Filter by tag: ${tag.name}`}
+                                                                title={t('devices.filterByTag', { name: tag.name })}
                                                             >
                                                                 {tag.name}
                                                             </button>
@@ -918,7 +918,7 @@ function DeviceManagement() {
                                                                 onClick={() => setFilterGroup(group.id.toString())}
                                                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
                                                                 style={{ backgroundColor: group.color, color: 'white' }}
-                                                                title={`Filter by group: ${group.name}`}
+                                                                title={t('devices.filterByGroup', { name: group.name })}
                                                             >
                                                                 <Folder className="w-2.5 h-2.5 mr-0.5" />
                                                                 {group.name}
@@ -930,7 +930,7 @@ function DeviceManagement() {
                                                                 onClick={() => setFilterTag(tag.id.toString())}
                                                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
                                                                 style={{ backgroundColor: tag.color, color: 'white' }}
-                                                                title={`Filter by tag: ${tag.name}`}
+                                                                title={t('devices.filterByTag', { name: tag.name })}
                                                             >
                                                                 <Tag className="w-2.5 h-2.5 mr-0.5" />
                                                                 {tag.name}
@@ -955,7 +955,7 @@ function DeviceManagement() {
                                                         <button
                                                             onClick={() => handleOTAUpdate(device)}
                                                             className="btn-ghost p-1.5 text-orange-600 hover:bg-orange-50"
-                                                            title="OTA Update"
+                                                            title={t('devices.otaUpdateTitle')}
                                                         >
                                                             <Upload className="h-4 w-4" />
                                                         </button>
@@ -1055,7 +1055,7 @@ function DeviceManagement() {
                                                                 onClick={() => setFilterGroup(group.id.toString())}
                                                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
                                                                 style={{ backgroundColor: group.color, color: 'white' }}
-                                                                title={`Filter by group: ${group.name}`}
+                                                                title={t('devices.filterByGroup', { name: group.name })}
                                                             >
                                                                 <Folder className="w-2.5 h-2.5 mr-0.5" />
                                                                 {group.name}
@@ -1067,7 +1067,7 @@ function DeviceManagement() {
                                                                 onClick={() => setFilterTag(tag.id.toString())}
                                                                 className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium hover:opacity-80 transition-opacity"
                                                                 style={{ backgroundColor: tag.color, color: 'white' }}
-                                                                title={`Filter by tag: ${tag.name}`}
+                                                                title={t('devices.filterByTag', { name: tag.name })}
                                                             >
                                                                 <Tag className="w-2.5 h-2.5 mr-0.5" />
                                                                 {tag.name}
@@ -1104,7 +1104,7 @@ function DeviceManagement() {
                                                         <button
                                                             onClick={() => handleOTAUpdate(device)}
                                                             className="btn-ghost p-1.5 text-orange-600 hover:bg-orange-50"
-                                                            title="OTA Update"
+                                                            title={t('devices.otaUpdateTitle')}
                                                         >
                                                             <Upload className="h-4 w-4" />
                                                         </button>
@@ -1394,7 +1394,7 @@ function DeviceFormModal({ device, locations, onClose }) {
                             value={formData.name}
                             onChange={handleChange}
                             className="input-field"
-                            placeholder="Enter device name..."
+                            placeholder={t('devices.namePlaceholder')}
                             required
                         />
                     </div>
@@ -1448,7 +1448,7 @@ function DeviceFormModal({ device, locations, onClose }) {
                             onChange={handleChange}
                             rows="3"
                             className="input-field"
-                            placeholder="Optional description..."
+                            placeholder={t('devices.descriptionPlaceholder')}
                         />
                     </div>
 
@@ -1946,7 +1946,7 @@ function AddSensorForm({ onSave, onCancel, isLoading, availablePins, pinMapping,
                                 }`}
                             required
                         >
-                            <option value="">Select Pin</option>
+                            <option value="">{t('devices.selectPin')}</option>
                             {(selectedType.unit === 'boolean' ? availablePins.digital : availablePins.analog).map(pin => {
                                 const isUsed = usedPins[pin] && usedPins[pin].length > 0;
                                 const description = pinMapping[pin] || 'Available';
@@ -1978,7 +1978,7 @@ function AddSensorForm({ onSave, onCancel, isLoading, availablePins, pinMapping,
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             className="input w-full"
                             required
-                            placeholder={`${selectedType.label} 1`}
+                            placeholder={t('devices.sensorNamePlaceholder', { type: selectedType.label })}
                         />
                     </div>
                 </div>
@@ -2080,11 +2080,11 @@ function OTAUpdateModal({ device, onClose }) {
                             <span className="badge badge-primary text-xs">{formatDeviceType(device.device_type)}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Current Firmware:</span>
-                            <span className="font-mono text-xs text-gray-900">{device.firmware_version || 'Unknown'}</span>
+                            <span className="text-sm text-gray-600">{t('devices.currentFirmware')}</span>
+                            <span className="font-mono text-xs text-gray-900">{device.firmware_version || t('devices.unknownFirmware')}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Status:</span>
+                            <span className="text-sm text-gray-600">{t('devices.statusLabel')}</span>
                             <span className={`badge text-xs ${device.current_status === 'online' ? 'badge-success' : 'badge-warning'
                                 }`}>
                                 {formatStatusLabel(device.current_status || 'offline')}
@@ -2097,14 +2097,12 @@ function OTAUpdateModal({ device, onClose }) {
                         <div className="space-y-3">
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                 <p className="text-sm text-blue-800">
-                                    <strong>Note:</strong> The device will be sent a command to download and install the latest firmware from the server. Make sure the device is online and connected to the internet.
+                                    {t('devices.otaNote')}
                                 </p>
                             </div>
                             {device.current_status !== 'online' && (
                                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                    <p className="text-sm text-yellow-800">
-                                        <strong>Warning:</strong> The device appears to be offline. OTA update may fail.
-                                    </p>
+                                    <p className="text-sm text-yellow-800">{t('devices.otaWarning')}</p>
                                 </div>
                             )}
                         </div>
@@ -2115,7 +2113,7 @@ function OTAUpdateModal({ device, onClose }) {
                             <div className="flex items-center justify-center">
                                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
                             </div>
-                            <p className="text-center text-gray-600">Sending OTA update command...</p>
+                            <p className="text-center text-gray-600">{t('devices.sendingOta')}</p>
                             <div className="w-full bg-gray-200 rounded-full h-2">
                                 <div
                                     className="bg-orange-600 h-2 rounded-full transition-all duration-300"
@@ -2137,9 +2135,9 @@ function OTAUpdateModal({ device, onClose }) {
                                     </div>
                                 </div>
                                 <div className="flex-1">
-                                    <p className="font-medium text-green-900">OTA Update Initiated</p>
+                                    <p className="font-medium text-green-900">{t('devices.otaUpdateInitiated')}</p>
                                     <p className="text-sm text-green-700 mt-1">
-                                        The device will download and install the firmware. This may take a few minutes.
+                                        {t('devices.otaUpdateDescription')}
                                     </p>
                                 </div>
                             </div>
@@ -2155,7 +2153,7 @@ function OTAUpdateModal({ device, onClose }) {
                                     </div>
                                 </div>
                                 <div className="flex-1">
-                                    <p className="font-medium text-red-900">Update Failed</p>
+                                    <p className="font-medium text-red-900">{t('devices.updateFailed')}</p>
                                     <p className="text-sm text-red-700 mt-1">{errorMessage}</p>
                                 </div>
                             </div>
@@ -2170,7 +2168,7 @@ function OTAUpdateModal({ device, onClose }) {
                             className="btn-secondary"
                             disabled={otaStatus === 'uploading'}
                         >
-                            {otaStatus === 'success' || otaStatus === 'error' ? 'Close' : 'Cancel'}
+                            {t((otaStatus === 'success' || otaStatus === 'error') ? 'common.close' : 'common.cancel')}
                         </button>
                         {otaStatus === 'idle' && (
                             <button
@@ -2179,7 +2177,7 @@ function OTAUpdateModal({ device, onClose }) {
                                 className="btn-primary flex items-center space-x-2"
                             >
                                 <Upload className="w-4 h-4" />
-                                <span>Start OTA Update</span>
+                                <span>{t('devices.startOta')}</span>
                             </button>
                         )}
                         {otaStatus === 'error' && (
@@ -2189,7 +2187,7 @@ function OTAUpdateModal({ device, onClose }) {
                                 className="btn-primary flex items-center space-x-2"
                             >
                                 <RefreshCw className="w-4 h-4" />
-                                <span>Retry</span>
+                                <span>{t('common.retry')}</span>
                             </button>
                         )}
                     </div>

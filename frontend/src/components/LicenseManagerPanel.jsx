@@ -512,7 +512,7 @@ function LicenseManagerPanel() {
                                     rows={3}
                                     value={licenseKey}
                                     onChange={(e) => setLicenseKey(e.target.value)}
-                                    placeholder="XXXXX-XXXXX-XXXXX-XXXXX"
+                                    placeholder={t('license.keyPlaceholder', 'XXXXX-XXXXX-XXXXX-XXXXX')}
                                 />
                                 <p className="text-xs text-gray-500 mt-2">
                                     {t('license.keyHint', 'Paste the license key you received after purchase.')}

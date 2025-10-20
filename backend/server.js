@@ -42,6 +42,7 @@ const TelemetryProcessor = require('./src/services/telemetryProcessor');
 const MQTTService = require('./src/services/mqttService');
 const licenseService = require('./src/services/licenseService');
 const UserRateLimiter = require('./src/middleware/userRateLimit');
+const { auditLogger } = require('./src/middleware/auditMiddleware');
 const logger = require('./src/utils/logger');
 const db = require('./src/models/database');
 const {
@@ -98,6 +99,13 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Audit logging middleware - logs all API actions for security and compliance
+app.use(auditLogger({
+    skipPaths: ['/health', '/api/auth/setup-check', '/api/telemetry'],
+    skipMethods: [],
+    logGetRequests: false  // Don't log GET requests (too verbose)
+}));
+
 // Attach services to request object for use in routes
 app.use((req, res, next) => {
     req.telemetryProcessor = telemetryProcessor;
@@ -145,9 +153,11 @@ const protectedRoutes = [
     ['/api/threshold-calibration', thresholdCalibrationRoutes, 'analytics_advanced'],
     ['/api/security', securityRoutes, 'audit_logging'],
     ['/api/webhooks', webhookRoutes, 'custom_integrations'],
-    ['/api/rate-limits', rateLimitRoutes],
-    ['/api/audit-logs', auditLogsRoutes, 'audit_logging']
+    ['/api/rate-limits', rateLimitRoutes]
 ];
+
+// Audit logs route - accessible without license (security critical feature)
+app.use('/api/audit-logs', auditLogsRoutes);
 
 for (const [path, router, feature] of protectedRoutes) {
     if (feature) {

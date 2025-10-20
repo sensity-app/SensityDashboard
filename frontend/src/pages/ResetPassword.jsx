@@ -21,7 +21,7 @@ function ResetPassword() {
         if (resetToken) {
             setToken(resetToken);
         } else {
-            toast.error('Invalid reset link');
+            toast.error(t('resetPassword.errors.invalidLink'));
             navigate('/login');
         }
     }, [location, navigate]);
@@ -30,22 +30,22 @@ function ResetPassword() {
         e.preventDefault();
 
         if (!password) {
-            toast.error('Please enter a password');
+            toast.error(t('resetPassword.errors.passwordRequired'));
             return;
         }
 
         if (password.length < 6) {
-            toast.error('Password must be at least 6 characters');
+            toast.error(t('resetPassword.errors.passwordMinLength'));
             return;
         }
 
         if (password !== confirmPassword) {
-            toast.error('Passwords do not match');
+            toast.error(t('resetPassword.errors.passwordsMismatch'));
             return;
         }
 
         if (!token) {
-            toast.error('Invalid reset token');
+            toast.error(t('resetPassword.errors.invalidToken'));
             return;
         }
 
@@ -53,12 +53,12 @@ function ResetPassword() {
         try {
             await apiService.resetPassword(token, password);
             setPasswordReset(true);
-            toast.success('Password reset successfully!');
+            toast.success(t('resetPassword.messages.successToast'));
         } catch (error) {
             if (error.response?.status === 400) {
-                toast.error('Invalid or expired reset token');
+                toast.error(t('resetPassword.errors.invalidOrExpired'));
             } else {
-                toast.error('Failed to reset password. Please try again.');
+                toast.error(t('resetPassword.errors.generic'));
             }
         } finally {
             setLoading(false);
@@ -71,10 +71,10 @@ function ResetPassword() {
                 <div className="max-w-md w-full space-y-8">
                     <div>
                         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                            Password reset successful!
+                            {t('resetPassword.success.title')}
                         </h2>
                         <p className="mt-2 text-center text-sm text-gray-600">
-                            Your password has been updated successfully.
+                            {t('resetPassword.success.subtitle')}
                         </p>
                     </div>
 
@@ -83,16 +83,16 @@ function ResetPassword() {
                             <svg className="mx-auto h-12 w-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                             </svg>
-                            <h3 className="mt-2 text-lg font-medium text-gray-900">All set!</h3>
+                            <h3 className="mt-2 text-lg font-medium text-gray-900">{t('resetPassword.success.allSet')}</h3>
                             <p className="mt-2 text-sm text-gray-500">
-                                You can now log in with your new password.
+                                {t('resetPassword.success.description')}
                             </p>
                             <div className="mt-6">
                                 <Link
                                     to="/login"
                                     className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
-                                    Go to login
+                                    {t('resetPassword.success.cta')}
                                 </Link>
                             </div>
                         </div>
@@ -107,17 +107,17 @@ function ResetPassword() {
             <div className="max-w-md w-full space-y-8">
                 <div>
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        Reset your password
+                        {t('resetPassword.form.title')}
                     </h2>
                     <p className="mt-2 text-center text-sm text-gray-600">
-                        Enter your new password below
+                        {t('resetPassword.form.subtitle')}
                     </p>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                New Password
+                                {t('resetPassword.form.newPasswordLabel')}
                             </label>
                             <input
                                 id="password"
@@ -128,14 +128,14 @@ function ResetPassword() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                                placeholder="Enter new password"
+                                placeholder={t('resetPassword.form.newPasswordPlaceholder')}
                                 minLength="6"
                             />
                         </div>
 
                         <div>
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                                Confirm New Password
+                                {t('resetPassword.form.confirmPasswordLabel')}
                             </label>
                             <input
                                 id="confirmPassword"
@@ -146,7 +146,7 @@ function ResetPassword() {
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 className="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                                placeholder="Confirm new password"
+                                placeholder={t('resetPassword.form.confirmPasswordPlaceholder')}
                                 minLength="6"
                             />
                         </div>
@@ -164,7 +164,7 @@ function ResetPassword() {
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
                             ) : null}
-                            Reset password
+                            {t('resetPassword.form.submit')}
                         </button>
                     </div>
 
@@ -173,7 +173,7 @@ function ResetPassword() {
                             to="/login"
                             className="font-medium text-blue-600 hover:text-blue-500"
                         >
-                            Back to login
+                            {t('resetPassword.form.backToLogin')}
                         </Link>
                     </div>
                 </form>

@@ -357,7 +357,10 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                                                     >
                                                         {availablePins.map(pin => (
                                                             <option key={pin} value={pin}>
-                                                                {pin} {usedPins[pin]?.length > 0 && pin !== sensor.pin ? '(in use)' : ''}
+                                                                {pin}
+                                                                {usedPins[pin]?.length > 0 && pin !== sensor.pin && (
+                                                                    <> {t('deviceDetail.sensorManager.pinInUse', '(in use)')}</>
+                                                                )}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -372,7 +375,7 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                                                         value={sensor.name}
                                                         onChange={(e) => handleSensorChange(sensor.id, 'name', e.target.value)}
                                                         className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                                                        placeholder="e.g., Living Room Temperature"
+                                                        placeholder={t('deviceDetail.sensorManager.namePlaceholder', 'e.g., Living Room Temperature')}
                                                     />
                                                 </div>
                                             </div>
@@ -398,7 +401,7 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                                                             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                                                         />
                                                         <p className="text-xs text-gray-600 mt-1">
-                                                            Higher = more detail
+                                                            {t('deviceDetail.sensorManager.sensitivityHint', 'Higher = more detail')}
                                                         </p>
                                                     </div>
                                                     <div>

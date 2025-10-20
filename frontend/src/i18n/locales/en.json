@@ -19,6 +19,7 @@
     "upload": "Upload",
     "settings": "Settings",
     "saving": "Saving...",
+    "retry": "Retry",
     "dashboard": "Dashboard",
     "devices": "Devices",
     "alerts": "Alerts",
@@ -438,6 +439,10 @@
       "acknowledgeError": "Failed to acknowledge alert"
     }
   },
+  "sensorRules": {
+    "thresholdMaxLabel": "Max",
+    "thresholdMinLabel": "Min"
+  },
   "license": {
     "managementTitle": "License Management",
     "activateSuccess": "License activated successfully!",
@@ -513,6 +518,7 @@
     "changeTitle": "Change License",
     "activateTitle": "Activate License",
     "enterKeyLabel": "Enter your license key",
+    "keyPlaceholder": "XXXXX-XXXXX-XXXXX-XXXXX",
     "keyHint": "Paste the license key you received after purchase.",
     "blocker": {
       "title": "License Required",
@@ -674,7 +680,10 @@
       "configNote": "Configuration will be pushed to device on next heartbeat (~5 min)",
       "cancel": "Cancel",
       "save": "Save & Push Config",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "pinInUse": "(in use)",
+      "namePlaceholder": "e.g., Living Room Temperature",
+      "sensitivityHint": "Higher = more detail"
     }
   },
   "devices": {
@@ -725,7 +734,24 @@
     "nameRequired": "Device name is required",
     "viewDetails": "View Details",
     "noDevices": "No devices found",
-    "addFirstDevice": "Add your first IoT device to get started."
+    "addFirstDevice": "Add your first IoT device to get started.",
+    "namePlaceholder": "Enter device name...",
+    "descriptionPlaceholder": "Optional description...",
+    "selectPin": "Select Pin",
+    "sensorNamePlaceholder": "{{type}} 1",
+    "filterByGroup": "Filter by group: {{name}}",
+    "filterByTag": "Filter by tag: {{name}}",
+    "otaUpdateTitle": "OTA Update",
+    "otaNote": "The device will be sent a command to download and install the latest firmware from the server. Make sure the device is online and connected to the internet.",
+    "otaWarning": "The device appears to be offline. OTA update may fail.",
+    "startOta": "Start OTA Update",
+    "otaUpdateInitiated": "OTA Update Initiated",
+    "otaUpdateDescription": "The device will download and install the firmware. This may take a few minutes.",
+    "updateFailed": "Update Failed",
+    "sendingOta": "Sending OTA update command...",
+    "currentFirmware": "Current Firmware:",
+    "statusLabel": "Status:",
+    "unknownFirmware": "Unknown"
   },
   "deviceManagement": {
     "toast": {
@@ -1424,7 +1450,9 @@
       "notice": "Email settings are configured in the backend environment file (.env). Restart the application after making changes.",
       "smtpHost": "SMTP Host",
       "smtpPort": "SMTP Port",
-      "username": "Username"
+      "username": "Username",
+      "smtpHostPlaceholder": "smtp.gmail.com",
+      "smtpPortPlaceholder": "587"
     },
     "security": {
       "title": "Security Settings",
@@ -1660,5 +1688,263 @@
     "reset": "Reset to Default",
     "testing": "Testing...",
     "testConnection": "Test Connection"
+  },
+  "resetPassword": {
+    "errors": {
+      "invalidLink": "Invalid reset link",
+      "passwordRequired": "Please enter a password",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "passwordsMismatch": "Passwords do not match",
+      "invalidToken": "Invalid reset token",
+      "invalidOrExpired": "Invalid or expired reset token",
+      "generic": "Failed to reset password. Please try again."
+    },
+    "messages": {
+      "successToast": "Password reset successfully!"
+    },
+    "success": {
+      "title": "Password reset successful!",
+      "subtitle": "Your password has been updated successfully.",
+      "allSet": "All set!",
+      "description": "You can now log in with your new password.",
+      "cta": "Go to login"
+    },
+    "form": {
+      "title": "Reset your password",
+      "subtitle": "Enter your new password below",
+      "newPasswordLabel": "New Password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmPasswordLabel": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "submit": "Reset password",
+      "backToLogin": "Back to login"
+    }
+  },
+  "forgotPassword": {
+    "errors": {
+      "emailRequired": "Please enter your email address",
+      "sendFailed": "Failed to send password reset link. Please try again."
+    },
+    "messages": {
+      "emailSent": "Password reset link sent! Check your email."
+    },
+    "success": {
+      "title": "Check your email",
+      "subtitle": "We've sent a password reset link to <strong>{{email}}</strong>",
+      "heading": "Email sent!",
+      "description": "Click the link in your email to reset your password. The link will expire in 1 hour.",
+      "cta": "Back to login",
+      "retryPrompt": "Didn't receive the email?",
+      "retryAction": "Try again"
+    },
+    "form": {
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email address and we'll send you a link to reset your password.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Email address",
+      "submit": "Send reset link",
+      "backToLogin": "Back to login"
+    }
+  },
+  "sensorRuleEditor": {
+    "title": "Sensor Rules",
+    "subtitle": "{{name}} (Pin {{pin}})",
+    "toast": {
+      "updateSuccess": "Sensor rules updated successfully",
+      "updateError": "Failed to update sensor rules: {{message}}",
+      "validationError": "Please fill in all required fields with valid values"
+    },
+    "conditions": {
+      "greaterThan": {
+        "label": "Greater than",
+        "preview": "greater than"
+      },
+      "lessThan": {
+        "label": "Less than",
+        "preview": "less than"
+      },
+      "equals": {
+        "label": "Equals",
+        "preview": "equal to"
+      },
+      "notEquals": {
+        "label": "Not equals",
+        "preview": "not equal to"
+      },
+      "between": {
+        "label": "Between",
+        "preview": "between"
+      },
+      "outsideRange": {
+        "label": "Outside range",
+        "preview": "outside"
+      }
+    },
+    "severity": {
+      "low": {
+        "label": "Low",
+        "preview": "low"
+      },
+      "medium": {
+        "label": "Medium",
+        "preview": "medium"
+      },
+      "high": {
+        "label": "High",
+        "preview": "high"
+      },
+      "critical": {
+        "label": "Critical",
+        "preview": "critical"
+      }
+    },
+    "channels": {
+      "email": "Email",
+      "sms": "SMS",
+      "webhook": "Webhook",
+      "inApp": "In-app"
+    },
+    "fields": {
+      "namePlaceholder": "Rule name",
+      "condition": "Condition",
+      "value": "Value",
+      "valuePlaceholder": "Threshold value",
+      "severity": "Severity",
+      "channels": "Notification Channels"
+    },
+    "actions": {
+      "add": "Add New Rule",
+      "saving": "Saving...",
+      "save": "Save Rules"
+    },
+    "preview": "When {{sensorName}} is {{condition}} {{value}} {{unit}}, create a <severity></severity> alert."
+  },
+  "rateLimit": {
+    "title": "Rate Limit Management",
+    "subtitle": "Monitor and manage API rate limits across users and endpoints",
+    "confirmReset": "Are you sure you want to reset rate limit for user {{userId}}?",
+    "toast": {
+      "resetSuccess": "Rate limit reset successfully",
+      "resetError": "Failed to reset rate limit: {{message}}",
+      "updateSuccess": "Configuration updated successfully",
+      "updateError": "Failed to update configuration: {{message}}"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "unblock": "Unblock"
+    },
+    "stats": {
+      "blockedUsers": "Blocked Users",
+      "activeRateLimitedUsers": "Active Rate Limited Users",
+      "totalKeys": "Total Keys"
+    },
+    "blocked": {
+      "title": "Currently Blocked Users",
+      "userId": "User ID: {{id}}",
+      "blockedFor": "Blocked for: {{duration}}"
+    },
+    "tables": {
+      "roleTitle": "Role Rate Limits",
+      "endpointTitle": "Endpoint Rate Limits",
+      "headers": {
+        "role": "Role",
+        "points": "Points",
+        "duration": "Duration",
+        "block": "Block",
+        "endpoint": "Endpoint"
+      }
+    },
+    "guide": {
+      "title": "Configuration Guide",
+      "items": {
+        "points": {
+          "label": "Points:",
+          "description": "Number of requests allowed per window"
+        },
+        "duration": {
+          "label": "Duration:",
+          "description": "Time window in seconds (e.g., 900 = 15 minutes)"
+        },
+        "blockDuration": {
+          "label": "Block Duration:",
+          "description": "How long to block user after exceeding limit"
+        },
+        "editInstruction": "Click on any row to edit configuration (Admin only)",
+        "redisNote": "Rate limits are enforced using Redis for distributed applications"
+      }
+    }
+  },
+  "telemetry": {
+    "timeRanges": {
+      "1h": "1 Hour",
+      "6h": "6 Hours",
+      "24h": "24 Hours",
+      "7d": "7 Days",
+      "30d": "30 Days"
+    },
+    "csv": {
+      "timestamp": "Timestamp",
+      "value": "Value",
+      "minValue": "Min Value",
+      "maxValue": "Max Value"
+    },
+    "historyTitle": "{{name}} History",
+    "sensorMeta": "Pin {{pin}} • {{unit}}",
+    "controls": {
+      "timeRange": "Time Range",
+      "chartType": "Chart Type",
+      "chartOptions": {
+        "line": "Line Chart",
+        "area": "Area Chart"
+      },
+      "dataPoints": "Data Points",
+      "aggregation": {
+        "raw": "Raw Data",
+        "hourly": "Hourly Average"
+      }
+    },
+    "noData": "No data available for the selected time range"
+  },
+  "mobileMenu": {
+    "accessibility": {
+      "open": "Open menu",
+      "close": "Close menu"
+    }
+  },
+  "locations": {
+    "deviceMoved": "Device moved successfully",
+    "deviceMoveError": "Failed to move device",
+    "createSuccess": "Location created successfully",
+    "updateSuccess": "Location updated successfully",
+    "deleteSuccess": "Location deleted successfully",
+    "title": "Device Locations",
+    "description": "Manage physical locations where your devices are deployed",
+    "addLocation": "Add Location",
+    "editLocation": "Edit Location",
+    "name": "Location Name",
+    "namePlaceholder": "e.g. Main Office, Warehouse A",
+    "timezone": "Timezone",
+    "descriptionPlaceholder": "Optional description of this location",
+    "gpsTitle": "GPS Coordinates (Optional)",
+    "latitude": "Latitude",
+    "latitudePlaceholder": "e.g. 37.7749",
+    "longitude": "Longitude",
+    "longitudePlaceholder": "e.g. -122.4194",
+    "coordinates": "Coordinates",
+    "coordinatesHelp": "Coordinates help with mapping and location-based features",
+    "updating": "Updating...",
+    "creating": "Creating...",
+    "sectionTitle": "Locations",
+    "count_one": "{{count}} location",
+    "count_other": "{{count}} locations",
+    "noLocations": "No locations yet",
+    "noLocationsDesc": "Create your first location to organize your devices",
+    "devices": "Devices",
+    "viewDevices": "View Devices",
+    "noDevicesInLocation": "No devices in this location",
+    "moveDevice": "Move Device",
+    "currentLocation": "Current",
+    "selectNewLocation": "Select New Location",
+    "selectLocationError": "Please select a location"
   }
 }

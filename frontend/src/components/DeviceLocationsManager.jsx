@@ -308,7 +308,7 @@ function DeviceLocationsManager() {
                             <div className="glass p-4 rounded-xl">
                                 <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
                                     <Globe className="w-4 h-4 mr-2" />
-                                    GPS Coordinates (Optional)
+                                    {t('locations.gpsTitle', 'GPS Coordinates (Optional)')}
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="form-group">
@@ -325,7 +325,7 @@ function DeviceLocationsManager() {
                                             min="-90"
                                             max="90"
                                             className="input-field"
-                                            placeholder="e.g. 37.7749"
+                                            placeholder={t('locations.latitudePlaceholder', 'e.g. 37.7749')}
                                         />
                                     </div>
                                     <div className="form-group">
@@ -342,11 +342,13 @@ function DeviceLocationsManager() {
                                             min="-180"
                                             max="180"
                                             className="input-field"
-                                            placeholder="e.g. -122.4194"
+                                            placeholder={t('locations.longitudePlaceholder', 'e.g. -122.4194')}
                                         />
                                     </div>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2">Coordinates help with mapping and location-based features</p>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    {t('locations.coordinatesHelp', 'Coordinates help with mapping and location-based features')}
+                                </p>
                             </div>
 
                             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
@@ -366,7 +368,12 @@ function DeviceLocationsManager() {
                                     {(createLocationMutation.isLoading || updateLocationMutation.isLoading) ? (
                                         <>
                                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                            <span>{editingLocation ? 'Updating...' : 'Creating...'}</span>
+                                            <span>
+                                                {editingLocation
+                                                    ? t('locations.updating', 'Updating...')
+                                                    : t('locations.creating', 'Creating...')
+                                                }
+                                            </span>
                                         </>
                                     ) : (
                                         <>
@@ -391,9 +398,11 @@ function DeviceLocationsManager() {
                 <div className="card-header">
                     <h2 className="card-title">
                         <MapPin className="w-5 h-5 text-primary" />
-                        <span>Locations</span>
+                        <span>{t('locations.sectionTitle', 'Locations')}</span>
                     </h2>
-                    <span className="badge badge-primary">{locations.length} locations</span>
+                    <span className="badge badge-primary">
+                        {t('locations.count', { count: locations.length })}
+                    </span>
                 </div>
 
                 {locations.length === 0 ? (

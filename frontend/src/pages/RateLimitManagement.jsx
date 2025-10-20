@@ -12,12 +12,14 @@ import {
     Clock
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { apiService } from '../services/api';
 
 function RateLimitManagement() {
     const queryClient = useQueryClient();
     const [selectedRole, setSelectedRole] = useState(null);
     const [selectedEndpoint, setSelectedEndpoint] = useState(null);
+    const { t } = useTranslation();
 
     // Get rate limit statistics - NO auto-refresh
     const { data: stats, refetch: refetchStats } = useQuery(
@@ -51,12 +53,14 @@ function RateLimitManagement() {
         ({ userId, role, endpointType }) => apiService.resetRateLimit(userId, role, endpointType),
         {
             onSuccess: () => {
-                toast.success('Rate limit reset successfully');
+                toast.success(t('rateLimit.toast.resetSuccess'));
                 refetchBlocked();
                 refetchStats();
             },
             onError: (error) => {
-                toast.error(`Failed to reset rate limit: ${error.message}`);
+                toast.error(
+                    t('rateLimit.toast.resetError', { message: error.message || '' })
+                );
             }
         }
     );
@@ -72,17 +76,19 @@ function RateLimitManagement() {
         },
         {
             onSuccess: () => {
-                toast.success('Configuration updated successfully');
+                toast.success(t('rateLimit.toast.updateSuccess'));
                 refetchConfig();
             },
             onError: (error) => {
-                toast.error(`Failed to update configuration: ${error.message}`);
+                toast.error(
+                    t('rateLimit.toast.updateError', { message: error.message || '' })
+                );
             }
         }
     );
 
     const handleResetLimit = (userId, role = null, endpointType = null) => {
-        if (window.confirm(`Are you sure you want to reset rate limit for user ${userId}?`)) {
+        if (window.confirm(t('rateLimit.confirmReset', { userId }))) {
             resetMutation.mutate({ userId, role, endpointType });
         }
     };
@@ -100,10 +106,10 @@ function RateLimitManagement() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                         <Shield className="h-8 w-8 text-blue-600" />
-                        Rate Limit Management
+                        {t('rateLimit.title')}
                     </h1>
                     <p className="mt-1 text-sm text-gray-500">
-                        Monitor and manage API rate limits across users and endpoints
+                        {t('rateLimit.subtitle')}
                     </p>
                 </div>
                 <button
@@ -115,7 +121,7 @@ function RateLimitManagement() {
                     className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg"
                 >
                     <RefreshCw className="h-4 w-4" />
-                    Refresh
+                    {t('rateLimit.actions.refresh')}
                 </button>
             </div>
 
@@ -124,7 +130,7 @@ function RateLimitManagement() {
                 <div className="bg-white rounded-lg shadow p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-500">Blocked Users</p>
+                            <p className="text-sm text-gray-500">{t('rateLimit.stats.blockedUsers')}</p>
                             <p className="text-3xl font-bold text-red-600">
                                 {stats?.stats?.totalBlockedUsers || 0}
                             </p>
@@ -136,7 +142,7 @@ function RateLimitManagement() {
                 <div className="bg-white rounded-lg shadow p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-500">Active Rate Limited Users</p>
+                            <p className="text-sm text-gray-500">{t('rateLimit.stats.activeRateLimitedUsers')}</p>
                             <p className="text-3xl font-bold text-blue-600">
                                 {stats?.stats?.activeRateLimitedUsers || 0}
                             </p>
@@ -148,7 +154,7 @@ function RateLimitManagement() {
                 <div className="bg-white rounded-lg shadow p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-500">Total Keys</p>
+                            <p className="text-sm text-gray-500">{t('rateLimit.stats.totalKeys')}</p>
                             <p className="text-3xl font-bold text-green-600">
                                 {stats?.stats?.totalRateLimitKeys || 0}
                             </p>
@@ -164,7 +170,7 @@ function RateLimitManagement() {
                     <div className="px-6 py-4 border-b border-gray-200">
                         <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-red-500" />
-                            Currently Blocked Users
+                            {t('rateLimit.blocked.title')}
                         </h2>
                     </div>
                     <div className="divide-y divide-gray-200">
@@ -172,10 +178,12 @@ function RateLimitManagement() {
                             <div key={user.key} className="px-6 py-4 flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-900">
-                                        User ID: {user.userId}
+                                        {t('rateLimit.blocked.userId', { id: user.userId })}
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                        Blocked for: {formatTimeRemaining(user.blockedFor)}
+                                        {t('rateLimit.blocked.blockedFor', {
+                                            duration: formatTimeRemaining(user.blockedFor)
+                                        })}
                                     </p>
                                 </div>
                                 <button
@@ -183,7 +191,7 @@ function RateLimitManagement() {
                                     disabled={resetMutation.isLoading}
                                     className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
                                 >
-                                    Unblock
+                                    {t('rateLimit.actions.unblock')}
                                 </button>
                             </div>
                         ))}
@@ -198,17 +206,25 @@ function RateLimitManagement() {
                     <div className="px-6 py-4 border-b border-gray-200">
                         <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
                             <Users className="h-5 w-5 text-blue-500" />
-                            Role Rate Limits
+                            {t('rateLimit.tables.roleTitle')}
                         </h2>
                     </div>
                     <div className="p-6">
                         <table className="min-w-full">
                             <thead>
                                 <tr className="border-b">
-                                    <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2">Role</th>
-                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">Points</th>
-                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">Duration</th>
-                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">Block</th>
+                                    <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2">
+                                        {t('rateLimit.tables.headers.role')}
+                                    </th>
+                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">
+                                        {t('rateLimit.tables.headers.points')}
+                                    </th>
+                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">
+                                        {t('rateLimit.tables.headers.duration')}
+                                    </th>
+                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">
+                                        {t('rateLimit.tables.headers.block')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -234,17 +250,25 @@ function RateLimitManagement() {
                     <div className="px-6 py-4 border-b border-gray-200">
                         <h2 className="text-lg font-medium text-gray-900 flex items-center gap-2">
                             <Settings className="h-5 w-5 text-purple-500" />
-                            Endpoint Rate Limits
+                            {t('rateLimit.tables.endpointTitle')}
                         </h2>
                     </div>
                     <div className="p-6">
                         <table className="min-w-full">
                             <thead>
                                 <tr className="border-b">
-                                    <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2">Endpoint</th>
-                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">Points</th>
-                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">Duration</th>
-                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">Block</th>
+                                    <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2">
+                                        {t('rateLimit.tables.headers.endpoint')}
+                                    </th>
+                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">
+                                        {t('rateLimit.tables.headers.points')}
+                                    </th>
+                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">
+                                        {t('rateLimit.tables.headers.duration')}
+                                    </th>
+                                    <th className="text-right text-xs font-medium text-gray-500 uppercase pb-2">
+                                        {t('rateLimit.tables.headers.block')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -270,14 +294,23 @@ function RateLimitManagement() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                 <h3 className="text-sm font-medium text-blue-900 mb-2 flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    Configuration Guide
+                    {t('rateLimit.guide.title')}
                 </h3>
                 <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• <strong>Points:</strong> Number of requests allowed per window</li>
-                    <li>• <strong>Duration:</strong> Time window in seconds (e.g., 900 = 15 minutes)</li>
-                    <li>• <strong>Block Duration:</strong> How long to block user after exceeding limit</li>
-                    <li>• Click on any row to edit configuration (Admin only)</li>
-                    <li>• Rate limits are enforced using Redis for distributed applications</li>
+                    <li>
+                        • <strong>{t('rateLimit.guide.items.points.label')}</strong>{' '}
+                        {t('rateLimit.guide.items.points.description')}
+                    </li>
+                    <li>
+                        • <strong>{t('rateLimit.guide.items.duration.label')}</strong>{' '}
+                        {t('rateLimit.guide.items.duration.description')}
+                    </li>
+                    <li>
+                        • <strong>{t('rateLimit.guide.items.blockDuration.label')}</strong>{' '}
+                        {t('rateLimit.guide.items.blockDuration.description')}
+                    </li>
+                    <li>• {t('rateLimit.guide.items.editInstruction')}</li>
+                    <li>• {t('rateLimit.guide.items.redisNote')}</li>
                 </ul>
             </div>
         </div>

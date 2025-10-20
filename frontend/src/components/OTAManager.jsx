@@ -10,13 +10,17 @@ function OTAManager({ device, onClose }) {
     const { t } = useTranslation();
     const [selectedFirmware, setSelectedFirmware] = useState('');
     const [uploadingFirmware, setUploadingFirmware] = useState(false);
-    const [otaEnabled, setOtaEnabled] = useState(device?.ota_enabled ?? false);
+    // Initialize with undefined to indicate loading state, then sync when device loads
+    const [otaEnabled, setOtaEnabled] = useState(undefined);
     const queryClient = useQueryClient();
 
     // Sync otaEnabled state when device prop updates
     useEffect(() => {
-        setOtaEnabled(device?.ota_enabled ?? false);
-    }, [device?.ota_enabled]);
+        // Only update if device data is available
+        if (device !== undefined && device !== null) {
+            setOtaEnabled(device.ota_enabled ?? false);
+        }
+    }, [device, device?.ota_enabled]);
 
     // Get available firmware versions
     const { data: firmwareVersions = [] } = useQuery(
@@ -228,17 +232,21 @@ function OTAManager({ device, onClose }) {
                                 <div className="flex items-center gap-2">
                                     <button
                                         onClick={() => toggleOTAMutation.mutate(!otaEnabled)}
-                                        disabled={toggleOTAMutation.isLoading}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${otaEnabled ? 'bg-green-600' : 'bg-gray-200'
-                                            } ${toggleOTAMutation.isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                                        disabled={toggleOTAMutation.isLoading || otaEnabled === undefined}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                                            otaEnabled === undefined ? 'bg-gray-300' : otaEnabled ? 'bg-green-600' : 'bg-gray-200'
+                                            } ${toggleOTAMutation.isLoading || otaEnabled === undefined ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                                     >
                                         <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${otaEnabled ? 'translate-x-6' : 'translate-x-1'
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                otaEnabled === undefined ? 'translate-x-3' : otaEnabled ? 'translate-x-6' : 'translate-x-1'
                                                 }`}
                                         />
                                     </button>
-                                    <span className={`text-sm font-medium ${otaEnabled ? 'text-green-700' : 'text-gray-500'}`}>
-                                        {otaEnabled ? t('common.enabled') : t('common.disabled')}
+                                    <span className={`text-sm font-medium ${
+                                        otaEnabled === undefined ? 'text-gray-400' : otaEnabled ? 'text-green-700' : 'text-gray-500'
+                                    }`}>
+                                        {otaEnabled === undefined ? t('common.loading', 'Loading...') : otaEnabled ? t('common.enabled') : t('common.disabled')}
                                     </span>
                                 </div>
                             </div>
@@ -376,7 +384,7 @@ function OTAManager({ device, onClose }) {
                         </button>
                     </div>
 
-                    {!otaEnabled && (
+                    {otaEnabled === false && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                             <div className="flex">
                                 <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0" />

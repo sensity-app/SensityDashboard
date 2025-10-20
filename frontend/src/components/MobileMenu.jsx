@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import './MobileMenu.css';
 
 /**
@@ -15,14 +16,15 @@ import './MobileMenu.css';
  * Usage:
  * <MobileMenu>
  *   <nav>
- *     <a href="/dashboard">Dashboard</a>
- *     <a href="/devices">Devices</a>
+ *     <a href="/dashboard">dashboard</a>
+ *     <a href="/devices">devices</a>
  *   </nav>
  * </MobileMenu>
  */
 
 const MobileMenu = ({ children, className = '' }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const { t } = useTranslation();
 
     // Close menu on escape key
     useEffect(() => {
@@ -63,7 +65,7 @@ const MobileMenu = ({ children, className = '' }) => {
             <button
                 className="mobile-menu-button"
                 onClick={toggleMenu}
-                aria-label={isOpen ? 'Close menu' : 'Open menu'}
+                aria-label={isOpen ? t('mobileMenu.accessibility.close') : t('mobileMenu.accessibility.open')}
                 aria-expanded={isOpen}
             >
                 {isOpen ? (
@@ -97,7 +99,7 @@ const MobileMenu = ({ children, className = '' }) => {
  *
  * Usage:
  * <MobileMenuItem icon={<Home />} href="/dashboard">
- *   Dashboard
+ *   dashboard
  * </MobileMenuItem>
  */
 export const MobileMenuItem = ({ icon, href, onClick, children, active = false }) => {
@@ -130,7 +132,7 @@ export const MobileMenuItem = ({ icon, href, onClick, children, active = false }
  * Mobile Menu Section Component
  *
  * Usage:
- * <MobileMenuSection title="Navigation">
+ * <MobileMenuSection title={navigationLabel}>
  *   <MobileMenuItem>...</MobileMenuItem>
  * </MobileMenuSection>
  */
@@ -151,8 +153,8 @@ export const MobileMenuSection = ({ title, children }) => {
  * Usage:
  * <MobileMenuHeader
  *   logo="/logo.png"
- *   title="Sensity"
- *   subtitle="IoT Platform"
+ *   title={brandTitle}
+ *   subtitle={brandSubtitle}
  * />
  */
 export const MobileMenuHeader = ({ logo, title, subtitle }) => {

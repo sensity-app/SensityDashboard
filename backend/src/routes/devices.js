@@ -564,8 +564,8 @@ router.post('/:id/telemetry', [
 
                 if (deviceSensor.rows.length === 0) {
                     const sensorTypeName = SENSOR_TYPE_ALIASES[sensorData.type] || sensorData.type;
-                    // Auto-create device sensor if it doesn't exist (disabled by default)
-                    // User must explicitly enable sensors they want in device details
+                    // Auto-create device sensor if it doesn't exist (enabled by default)
+                    // Sensors sending telemetry are assumed to be configured in firmware
                     const sensorType = await db.query(
                         'SELECT id FROM sensor_types WHERE LOWER(name) = LOWER($1)',
                         [sensorTypeName]
@@ -574,12 +574,12 @@ router.post('/:id/telemetry', [
                     if (sensorType.rows.length > 0) {
                         const newSensor = await db.query(`
                             INSERT INTO device_sensors (device_id, sensor_type_id, pin, name, enabled)
-                            VALUES ($1, $2, $3, $4, false)
+                            VALUES ($1, $2, $3, $4, true)
                             RETURNING *
                         `, [id, sensorType.rows[0].id, mappedPin, sensorData.name || `${sensorData.type} Sensor`]);
 
                         deviceSensor.rows = [{ ...newSensor.rows[0], sensor_type_name: sensorData.type }];
-                        logger.info(`Auto-created disabled sensor: ${sensorData.type} on pin ${mappedPin} for device ${id} (needs manual enable)`);
+                        logger.info(`Auto-created enabled sensor: ${sensorData.type} on pin ${mappedPin} for device ${id}`);
                     } else {
                         logger.warn(`Unknown sensor type: ${sensorData.type} for device ${id}`);
                         continue;

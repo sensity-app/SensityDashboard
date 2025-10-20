@@ -257,11 +257,11 @@ function SensorRulesPage() {
                                         <div className="text-sm text-gray-900">
                                             <div className="flex items-center gap-2">
                                                 <TrendingUp className="h-4 w-4 text-red-500" />
-                                                <span>Max: {rule.threshold_max}</span>
+                                                <span>{t('sensorRules.thresholdMaxLabel')}: {rule.threshold_max}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <TrendingUp className="h-4 w-4 text-blue-500 transform rotate-180" />
-                                                <span>Min: {rule.threshold_min}</span>
+                                                <span>{t('sensorRules.thresholdMinLabel')}: {rule.threshold_min}</span>
                                             </div>
                                         </div>
                                     </td>

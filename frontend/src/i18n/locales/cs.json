@@ -19,6 +19,7 @@
     "upload": "Nahrát",
     "settings": "Nastavení",
     "saving": "Ukládám...",
+    "retry": "Zkusit znovu",
     "dashboard": "Přehled",
     "devices": "Zařízení",
     "alerts": "Upozornění",
@@ -458,6 +459,10 @@
       "acknowledgeError": "Upozornění se nepodařilo potvrdit"
     }
   },
+  "sensorRules": {
+    "thresholdMaxLabel": "Max",
+    "thresholdMinLabel": "Min"
+  },
   "license": {
     "managementTitle": "Správa licence",
     "activateSuccess": "Licence byla úspěšně aktivována!",
@@ -533,6 +538,7 @@
     "changeTitle": "Změnit licenci",
     "activateTitle": "Aktivovat licenci",
     "enterKeyLabel": "Zadejte licenční klíč",
+    "keyPlaceholder": "XXXXX-XXXXX-XXXXX-XXXXX",
     "keyHint": "Vložte licenční klíč, který jste obdrželi po nákupu.",
     "blocker": {
       "title": "Licence je vyžadována",
@@ -694,7 +700,10 @@
       "configNote": "Konfigurace bude odeslána na zařízení při dalším heartbeatu (~5 min)",
       "cancel": "Zrušit",
       "save": "Uložit a odeslat konfiguraci",
-      "saving": "Ukládám..."
+      "saving": "Ukládám...",
+      "pinInUse": "(obsazeno)",
+      "namePlaceholder": "např. Teplota obýváku",
+      "sensitivityHint": "Vyšší = detailnější"
     }
   },
   "devices": {
@@ -745,7 +754,24 @@
     "nameRequired": "Název zařízení je povinný",
     "viewDetails": "Zobrazit podrobnosti",
     "noDevices": "Nebyla nalezena žádná zařízení",
-    "addFirstDevice": "Přidejte své první IoT zařízení pro začátek."
+    "addFirstDevice": "Přidejte své první IoT zařízení pro začátek.",
+    "namePlaceholder": "Zadejte název zařízení...",
+    "descriptionPlaceholder": "Volitelný popis...",
+    "selectPin": "Vyberte pin",
+    "sensorNamePlaceholder": "{{type}} 1",
+    "filterByGroup": "Filtrovat podle skupiny: {{name}}",
+    "filterByTag": "Filtrovat podle štítku: {{name}}",
+    "otaUpdateTitle": "OTA aktualizace",
+    "otaNote": "Zařízení obdrží příkaz ke stažení a instalaci nejnovějšího firmwaru ze serveru. Ujistěte se, že je zařízení online a připojené k internetu.",
+    "otaWarning": "Zařízení je offline. OTA aktualizace může selhat.",
+    "startOta": "Spustit OTA aktualizaci",
+    "otaUpdateInitiated": "OTA aktualizace byla spuštěna",
+    "otaUpdateDescription": "Zařízení stáhne a nainstaluje firmware. Může to trvat několik minut.",
+    "updateFailed": "Aktualizace se nezdařila",
+    "sendingOta": "Odesílám příkaz k OTA aktualizaci...",
+    "currentFirmware": "Aktuální firmware:",
+    "statusLabel": "Stav:",
+    "unknownFirmware": "Neznámé"
   },
   "deviceManagement": {
     "toast": {
@@ -1153,7 +1179,9 @@
       "notice": "Nastavení e-mailu je nakonfigurováno v souboru prostředí backendu (.env). Po provedení změn restartujte aplikaci.",
       "smtpHost": "SMTP hostitel",
       "smtpPort": "SMTP port",
-      "username": "Uživatelské jméno"
+      "username": "Uživatelské jméno",
+      "smtpHostPlaceholder": "smtp.gmail.com",
+      "smtpPortPlaceholder": "587"
     },
     "security": {
       "title": "Bezpečnostní nastavení",
@@ -1651,5 +1679,265 @@
     "reset": "Obnovit výchozí",
     "testing": "Testuji...",
     "testConnection": "Otestovat připojení"
+  },
+  "resetPassword": {
+    "errors": {
+      "invalidLink": "Neplatný odkaz pro obnovení",
+      "passwordRequired": "Zadejte prosím heslo",
+      "passwordMinLength": "Heslo musí mít alespoň 6 znaků",
+      "passwordsMismatch": "Hesla se neshodují",
+      "invalidToken": "Neplatný token pro obnovení",
+      "invalidOrExpired": "Token pro obnovení je neplatný nebo vypršel",
+      "generic": "Heslo se nepodařilo obnovit. Zkuste to prosím znovu."
+    },
+    "messages": {
+      "successToast": "Heslo bylo úspěšně obnoveno!"
+    },
+    "success": {
+      "title": "Heslo bylo úspěšně obnovené!",
+      "subtitle": "Vaše heslo bylo úspěšně aktualizováno.",
+      "allSet": "Hotovo!",
+      "description": "Nyní se můžete přihlásit s novým heslem.",
+      "cta": "Přejít na přihlášení"
+    },
+    "form": {
+      "title": "Obnovte své heslo",
+      "subtitle": "Níže zadejte nové heslo",
+      "newPasswordLabel": "Nové heslo",
+      "newPasswordPlaceholder": "Zadejte nové heslo",
+      "confirmPasswordLabel": "Potvrzení nového hesla",
+      "confirmPasswordPlaceholder": "Potvrďte nové heslo",
+      "submit": "Obnovit heslo",
+      "backToLogin": "Zpět na přihlášení"
+    }
+  },
+  "forgotPassword": {
+    "errors": {
+      "emailRequired": "Zadejte prosím e-mailovou adresu",
+      "sendFailed": "Odeslání odkazu pro obnovení hesla se nezdařilo. Zkuste to prosím znovu."
+    },
+    "messages": {
+      "emailSent": "Odkaz pro obnovení hesla byl odeslán! Zkontrolujte svůj e-mail."
+    },
+    "success": {
+      "title": "Zkontrolujte svůj e-mail",
+      "subtitle": "Poslali jsme odkaz pro obnovení hesla na <strong>{{email}}</strong>",
+      "heading": "E-mail byl odeslán!",
+      "description": "Kliknutím na odkaz v e-mailu obnovíte heslo. Odkaz vyprší za 1 hodinu.",
+      "cta": "Zpět na přihlášení",
+      "retryPrompt": "Nedorazil e-mail?",
+      "retryAction": "Zkuste to znovu"
+    },
+    "form": {
+      "title": "Zapomněli jste heslo?",
+      "subtitle": "Zadejte svoji e-mailovou adresu a pošleme vám odkaz pro obnovení hesla.",
+      "emailLabel": "E-mailová adresa",
+      "emailPlaceholder": "E-mailová adresa",
+      "submit": "Odeslat odkaz",
+      "backToLogin": "Zpět na přihlášení"
+    }
+  },
+  "sensorRuleEditor": {
+    "title": "Pravidla senzorů",
+    "subtitle": "{{name}} (pin {{pin}})",
+    "toast": {
+      "updateSuccess": "Pravidla senzorů byla úspěšně aktualizována",
+      "updateError": "Pravidla senzorů se nepodařilo aktualizovat: {{message}}",
+      "validationError": "Vyplňte prosím všechna povinná pole platnými hodnotami"
+    },
+    "conditions": {
+      "greaterThan": {
+        "label": "Větší než",
+        "preview": "větší než"
+      },
+      "lessThan": {
+        "label": "Menší než",
+        "preview": "menší než"
+      },
+      "equals": {
+        "label": "Rovná se",
+        "preview": "rovná se"
+      },
+      "notEquals": {
+        "label": "Nerovná se",
+        "preview": "nerovná se"
+      },
+      "between": {
+        "label": "Mezi",
+        "preview": "mezi"
+      },
+      "outsideRange": {
+        "label": "Mimo rozsah",
+        "preview": "mimo rozsah"
+      }
+    },
+    "severity": {
+      "low": {
+        "label": "Nízká",
+        "preview": "nízká"
+      },
+      "medium": {
+        "label": "Střední",
+        "preview": "střední"
+      },
+      "high": {
+        "label": "Vysoká",
+        "preview": "vysoká"
+      },
+      "critical": {
+        "label": "Kritická",
+        "preview": "kritická"
+      }
+    },
+    "channels": {
+      "email": "E-mail",
+      "sms": "SMS",
+      "webhook": "Webhook",
+      "inApp": "V aplikaci"
+    },
+    "fields": {
+      "namePlaceholder": "Název pravidla",
+      "condition": "Podmínka",
+      "value": "Hodnota",
+      "valuePlaceholder": "Prahová hodnota",
+      "severity": "Závažnost",
+      "channels": "Notifikační kanály"
+    },
+    "actions": {
+      "add": "Přidat nové pravidlo",
+      "saving": "Ukládám...",
+      "save": "Uložit pravidla"
+    },
+    "preview": "Když je {{sensorName}} {{condition}} {{value}} {{unit}}, vytvoř upozornění se závažností <severity></severity>."
+  },
+  "rateLimit": {
+    "title": "Správa limitů",
+    "subtitle": "Sledujte a spravujte limity API pro uživatele a endpointy",
+    "confirmReset": "Opravdu chcete resetovat limit pro uživatele {{userId}}?",
+    "toast": {
+      "resetSuccess": "Limit byl úspěšně resetován",
+      "resetError": "Reset limitu se nezdařil: {{message}}",
+      "updateSuccess": "Konfigurace byla úspěšně aktualizována",
+      "updateError": "Aktualizace konfigurace se nezdařila: {{message}}"
+    },
+    "actions": {
+      "refresh": "Obnovit",
+      "unblock": "Odblokovat"
+    },
+    "stats": {
+      "blockedUsers": "Blokovaní uživatelé",
+      "activeRateLimitedUsers": "Aktivně omezení uživatelé",
+      "totalKeys": "Celkem klíčů"
+    },
+    "blocked": {
+      "title": "Aktuálně blokovaní uživatelé",
+      "userId": "ID uživatele: {{id}}",
+      "blockedFor": "Blokováno po dobu: {{duration}}"
+    },
+    "tables": {
+      "roleTitle": "Limity podle rolí",
+      "endpointTitle": "Limity endpointů",
+      "headers": {
+        "role": "Role",
+        "points": "Body",
+        "duration": "Interval",
+        "block": "Blokace",
+        "endpoint": "Endpoint"
+      }
+    },
+    "guide": {
+      "title": "Průvodce konfigurací",
+      "items": {
+        "points": {
+          "label": "Body:",
+          "description": "Počet požadavků povolených v rámci okna"
+        },
+        "duration": {
+          "label": "Interval:",
+          "description": "Časové okno v sekundách (např. 900 = 15 minut)"
+        },
+        "blockDuration": {
+          "label": "Blokace:",
+          "description": "Jak dlouho bude uživatel zablokován po překročení limitu"
+        },
+        "editInstruction": "Kliknutím na libovolný řádek upravíte konfiguraci (jen pro administrátory)",
+        "redisNote": "Limity jsou v distribuovaných aplikacích vynucovány pomocí Redis"
+      }
+    }
+  },
+  "telemetry": {
+    "timeRanges": {
+      "1h": "1 hodina",
+      "6h": "6 hodin",
+      "24h": "24 hodin",
+      "7d": "7 dní",
+      "30d": "30 dní"
+    },
+    "csv": {
+      "timestamp": "Čas",
+      "value": "Hodnota",
+      "minValue": "Minimální hodnota",
+      "maxValue": "Maximální hodnota"
+    },
+    "historyTitle": "Historie {{name}}",
+    "sensorMeta": "Pin {{pin}} • {{unit}}",
+    "controls": {
+      "timeRange": "Časové období",
+      "chartType": "Typ grafu",
+      "chartOptions": {
+        "line": "Liniový graf",
+        "area": "Plošný graf"
+      },
+      "dataPoints": "Datové body",
+      "aggregation": {
+        "raw": "Surová data",
+        "hourly": "Hodinový průměr"
+      }
+    },
+    "noData": "Pro zvolené období nejsou k dispozici žádná data"
+  },
+  "mobileMenu": {
+    "accessibility": {
+      "open": "Otevřít menu",
+      "close": "Zavřít menu"
+    }
+  },
+  "locations": {
+    "deviceMoved": "Zařízení bylo přesunuto",
+    "deviceMoveError": "Zařízení se nepodařilo přesunout",
+    "createSuccess": "Lokalita byla úspěšně vytvořena",
+    "updateSuccess": "Lokalita byla úspěšně aktualizována",
+    "deleteSuccess": "Lokalita byla úspěšně odstraněna",
+    "title": "Lokality zařízení",
+    "description": "Spravujte fyzická umístění, kde jsou nasazena vaše zařízení",
+    "addLocation": "Přidat lokalitu",
+    "editLocation": "Upravit lokalitu",
+    "name": "Název lokality",
+    "namePlaceholder": "např. Hlavní kancelář, Sklad A",
+    "timezone": "Časové pásmo",
+    "descriptionPlaceholder": "Volitelný popis této lokality",
+    "gpsTitle": "GPS souřadnice (volitelné)",
+    "latitude": "Zeměpisná šířka",
+    "latitudePlaceholder": "např. 37.7749",
+    "longitude": "Zeměpisná délka",
+    "longitudePlaceholder": "např. -122.4194",
+    "coordinates": "Souřadnice",
+    "coordinatesHelp": "Souřadnice pomáhají s mapou a funkcemi podle umístění",
+    "updating": "Aktualizuji...",
+    "creating": "Vytvářím...",
+    "sectionTitle": "Lokality",
+    "count_one": "{{count}} lokalita",
+    "count_few": "{{count}} lokality",
+    "count_many": "{{count}} lokalit",
+    "count_other": "{{count}} lokality",
+    "noLocations": "Žádné lokality",
+    "noLocationsDesc": "Vytvořte první lokalitu, abyste mohli zařízení uspořádat",
+    "devices": "Zařízení",
+    "viewDevices": "Zobrazit zařízení",
+    "noDevicesInLocation": "V této lokalitě nejsou žádná zařízení",
+    "moveDevice": "Přesunout zařízení",
+    "currentLocation": "Aktuální",
+    "selectNewLocation": "Vyberte novou lokalitu",
+    "selectLocationError": "Vyberte prosím lokalitu"
   }
 }

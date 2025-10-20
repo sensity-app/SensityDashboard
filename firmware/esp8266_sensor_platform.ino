@@ -112,6 +112,7 @@ Ultrasonic *ultrasonic = nullptr;
 // Forward declarations
 void notifyOTAStatus(const String &status, int progress, const String &errorMessage = "");
 void printSensorValuesToConsole();
+void readAndProcessSensors(bool sendTelemetry = false);
 
 void setup()
 {

@@ -19,7 +19,12 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
     };
 
     useEffect(() => {
-        loadHistoricalData();
+        // Debounce the data loading to prevent rate limiting
+        const timeoutId = setTimeout(() => {
+            loadHistoricalData();
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
     }, [deviceId, sensorPin, timeRange, aggregation]);
 
     const loadHistoricalData = async () => {

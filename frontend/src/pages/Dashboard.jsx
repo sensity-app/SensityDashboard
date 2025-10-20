@@ -69,6 +69,21 @@ function Dashboard() {
         }
     );
 
+    // Resolve alert mutation
+    const resolveAlertMutation = useMutation(
+        (alertId) => apiService.resolveAlert(alertId),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries('recent-alerts');
+                toast.success(t('dashboard.toast.resolveSuccess'));
+            },
+            onError: (error) => {
+                toast.error(t('dashboard.toast.resolveError'));
+                console.error('Failed to resolve alert:', error);
+            }
+        }
+    );
+
     // Data is already processed by select function
     const devices = devicesData || [];
     const alerts = alertsData || [];
@@ -96,6 +111,11 @@ function Dashboard() {
     const handleAcknowledgeAlert = async (alertId, event) => {
         event.stopPropagation();
         await acknowledgeAlertMutation.mutateAsync(alertId);
+    };
+
+    const handleResolveAlert = async (alertId, event) => {
+        event.stopPropagation();
+        await resolveAlertMutation.mutateAsync(alertId);
     };
 
     const resolveDeviceStatus = (device) => device?.current_status || device?.status || 'offline';
@@ -432,21 +452,42 @@ function Dashboard() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={(e) => handleAcknowledgeAlert(alert.id, e)}
-                                                disabled={acknowledgeAlertMutation.isLoading}
-                                                className="btn-success flex items-center space-x-2 px-4 py-2 text-sm disabled:opacity-50"
-                                                title={t('dashboard.acknowledgeTooltip')}
-                                            >
-                                                {acknowledgeAlertMutation.isLoading ? (
-                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                ) : (
-                                                    <>
-                                                        <Check className="w-4 h-4" />
-                                                        <span>{t('alerts.resolve')}</span>
-                                                    </>
+                                            <div className="flex flex-col gap-2">
+                                                {alert.status === 'active' && (
+                                                    <button
+                                                        onClick={(e) => handleAcknowledgeAlert(alert.id, e)}
+                                                        disabled={acknowledgeAlertMutation.isLoading}
+                                                        className="btn-secondary flex items-center space-x-2 px-4 py-2 text-sm disabled:opacity-50"
+                                                        title={t('alerts.acknowledge', 'Acknowledge')}
+                                                    >
+                                                        {acknowledgeAlertMutation.isLoading ? (
+                                                            <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+                                                        ) : (
+                                                            <>
+                                                                <Check className="w-4 h-4" />
+                                                                <span>{t('alerts.acknowledge', 'Acknowledge')}</span>
+                                                            </>
+                                                        )}
+                                                    </button>
                                                 )}
-                                            </button>
+                                                {(alert.status === 'active' || alert.status === 'acknowledged') && (
+                                                    <button
+                                                        onClick={(e) => handleResolveAlert(alert.id, e)}
+                                                        disabled={resolveAlertMutation.isLoading}
+                                                        className="btn-success flex items-center space-x-2 px-4 py-2 text-sm disabled:opacity-50"
+                                                        title={t('alerts.resolve', 'Resolve')}
+                                                    >
+                                                        {resolveAlertMutation.isLoading ? (
+                                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                        ) : (
+                                                            <>
+                                                                <Check className="w-4 h-4" />
+                                                                <span>{t('alerts.resolve', 'Resolve')}</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 );

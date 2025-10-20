@@ -136,8 +136,6 @@ export const apiService = {
     getAlerts: (filters = {}) => apiClient.get('/alerts', { params: filters }),
     getDeviceAlerts: (deviceId, limit = 10) =>
         apiClient.get(`/devices/${deviceId}/alerts`, { params: { limit } }),
-    acknowledgeAlert: (alertId) => apiClient.put(`/alerts/${alertId}/acknowledge`),
-    closeAlert: (alertId) => apiClient.put(`/alerts/${alertId}/close`),
 
     // OTA Updates
     getFirmwareVersions: (deviceType = 'esp8266') =>

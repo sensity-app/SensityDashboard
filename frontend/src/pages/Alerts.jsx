@@ -15,7 +15,8 @@ const severityBadgeClass = {
 };
 
 const statusBadgeClass = {
-    open: 'bg-red-100 text-red-700',
+    active: 'bg-red-100 text-red-700',
+    open: 'bg-red-100 text-red-700', // Keep for backward compatibility
     acknowledged: 'bg-yellow-100 text-yellow-700',
     resolved: 'bg-green-100 text-green-700'
 };
@@ -105,10 +106,12 @@ const AlertsPage = () => {
 
     const formatStatus = (status) => {
         if (!status) {
-            return t('alerts.open');
+            return t('alerts.active');
         }
         const normalized = status.toLowerCase();
-        return t(`alerts.${normalized}`, status);
+        // Map 'active' to 'open' for translation purposes
+        const translationKey = normalized === 'active' ? 'open' : normalized;
+        return t(`alerts.${translationKey}`, status);
     };
 
     const headingDescription = deviceId
@@ -200,7 +203,7 @@ const AlertsPage = () => {
                             <tbody className="divide-y divide-gray-200">
                                 {alerts.map((alert) => {
                                     const severity = alert.severity?.toLowerCase?.() || 'low';
-                                    const status = alert.status?.toLowerCase?.() || 'open';
+                                    const status = alert.status?.toLowerCase?.() || 'active';
                                     const triggeredAt = alert.triggered_at || alert.created_at;
 
                                     return (
@@ -235,7 +238,7 @@ const AlertsPage = () => {
                                             </td>
                                             <td className="px-4 py-3 text-sm">
                                                 <div className="flex items-center gap-2">
-                                                    {status === 'open' && (
+                                                    {status === 'active' && (
                                                         <button
                                                             onClick={(e) => {
                                                                 e.preventDefault();
@@ -248,7 +251,7 @@ const AlertsPage = () => {
                                                             {t('alerts.acknowledge', 'Acknowledge')}
                                                         </button>
                                                     )}
-                                                    {(status === 'open' || status === 'acknowledged') && (
+                                                    {(status === 'active' || status === 'acknowledged') && (
                                                         <button
                                                             onClick={(e) => {
                                                                 e.preventDefault();

@@ -218,8 +218,8 @@ export const apiService = {
         apiClient.get(`/alert-rules/evaluate/${ruleId}`, { params: { testValue } }),
 
     // Alert Management
-    acknowledgeAlert: (alertId, note) => apiClient.post(`/alerts/${alertId}/acknowledge`, { note }),
-    resolveAlert: (alertId, note) => apiClient.post(`/alerts/${alertId}/resolve`, { note }),
+    acknowledgeAlert: (alertId, note) => apiClient.put(`/alerts/${alertId}/acknowledge`, { notes: note }),
+    resolveAlert: (alertId, note) => apiClient.put(`/alerts/${alertId}/resolve`, { resolution_notes: note }),
 
     // Audit Logs
     getAuditLogs: (filters = {}) => apiClient.get('/audit-logs', { params: filters }),

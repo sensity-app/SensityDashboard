@@ -43,13 +43,19 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                 timeRange === '7d' || timeRange === '30d' ? 'hourly' : aggregation
             );
 
-            const formattedData = Array.isArray(response) ? response.map(point => ({
-                timestamp: new Date(point.timestamp).getTime(),
-                value: parseFloat(point.value),
-                min_value: point.min_value ? parseFloat(point.min_value) : undefined,
-                max_value: point.max_value ? parseFloat(point.max_value) : undefined,
-                formattedTime: new Date(point.timestamp).toLocaleString()
-            })) : [];
+            const formattedData = Array.isArray(response) ? response.map(point => {
+                const parsedValue = parseFloat(point.value);
+                const parsedMin = point.min_value ? parseFloat(point.min_value) : undefined;
+                const parsedMax = point.max_value ? parseFloat(point.max_value) : undefined;
+
+                return {
+                    timestamp: new Date(point.timestamp).getTime(),
+                    value: Number.isFinite(parsedValue) ? parsedValue : null,
+                    min_value: Number.isFinite(parsedMin) ? parsedMin : undefined,
+                    max_value: Number.isFinite(parsedMax) ? parsedMax : undefined,
+                    formattedTime: new Date(point.timestamp).toLocaleString()
+                };
+            }) : [];
 
             setData(formattedData);
         } catch (error) {
@@ -100,11 +106,18 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                 <p className="font-medium text-gray-900">
                     {new Date(label).toLocaleString()}
                 </p>
-                {payload.map((entry, index) => (
-                    <p key={index} className="text-sm" style={{ color: entry.color }}>
-                        {entry.name}: {entry.value?.toFixed(2)} {sensorUnit}
-                    </p>
-                ))}
+                {payload.map((entry, index) => {
+                    const value = entry.value;
+                    const formattedValue = value !== null && value !== undefined && Number.isFinite(value)
+                        ? value.toFixed(2)
+                        : '—';
+
+                    return (
+                        <p key={index} className="text-sm" style={{ color: entry.color }}>
+                            {entry.name}: {formattedValue} {sensorUnit}
+                        </p>
+                    );
+                })}
             </div>
         );
     };

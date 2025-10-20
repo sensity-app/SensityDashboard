@@ -663,7 +663,9 @@ function DeviceDetail() {
 
                                                 <div className="flex items-end gap-3">
                                                     <span className="text-3xl font-semibold text-gray-900">
-                                                        {display.value !== null && display.value !== undefined ? display.value.toFixed(2) : '—'}
+                                                        {display.value !== null && display.value !== undefined && Number.isFinite(display.value)
+                                                            ? display.value.toFixed(2)
+                                                            : '—'}
                                                     </span>
                                                     {display.unit && <span className="text-sm text-gray-500">{display.unit}</span>}
                                                 </div>

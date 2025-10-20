@@ -38,7 +38,13 @@ function DeviceDetail() {
         {
             enabled: !!id,
             refetchOnWindowFocus: false, // Disable auto-refresh
-            select: (data) => data.sensors || data || []
+            select: (data) => {
+                // Ensure we always return an array
+                if (!data) return [];
+                if (Array.isArray(data.sensors)) return data.sensors;
+                if (Array.isArray(data)) return data;
+                return [];
+            }
         }
     );
 
@@ -55,8 +61,13 @@ function DeviceDetail() {
             enabled: !!id,
             refetchOnWindowFocus: false, // Disable auto-refresh
             select: (data) => {
-                // Ensure we always return an array
+                // Ensure we always return an array of sensor stats
                 if (!data) return [];
+                // Backend returns { stats: { sensors: [...], alerts: {...}, device: {...} } }
+                if (data.stats?.sensors && Array.isArray(data.stats.sensors)) {
+                    return data.stats.sensors;
+                }
+                // Fallback for direct array
                 if (Array.isArray(data.stats)) return data.stats;
                 if (Array.isArray(data)) return data;
                 return [];
@@ -734,6 +745,7 @@ function DeviceDetail() {
             {showRuleEditor && selectedSensor && (
                 <SensorRuleEditor
                     sensor={selectedSensor}
+                    deviceId={id}
                     onClose={() => {
                         setShowRuleEditor(false);
                         setSelectedSensor(null);

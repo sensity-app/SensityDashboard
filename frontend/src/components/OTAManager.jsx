@@ -10,8 +10,13 @@ function OTAManager({ device, onClose }) {
     const { t } = useTranslation();
     const [selectedFirmware, setSelectedFirmware] = useState('');
     const [uploadingFirmware, setUploadingFirmware] = useState(false);
-    const [otaEnabled, setOtaEnabled] = useState(device.ota_enabled || false);
+    const [otaEnabled, setOtaEnabled] = useState(device?.ota_enabled ?? false);
     const queryClient = useQueryClient();
+
+    // Sync otaEnabled state when device prop updates
+    useEffect(() => {
+        setOtaEnabled(device?.ota_enabled ?? false);
+    }, [device?.ota_enabled]);
 
     // Get available firmware versions
     const { data: firmwareVersions = [] } = useQuery(
@@ -35,12 +40,14 @@ function OTAManager({ device, onClose }) {
         (enabled) => apiService.updateDeviceConfig(device.id, { ota_enabled: enabled }),
         {
             onSuccess: (data) => {
-                setOtaEnabled(data.config.ota_enabled);
-                toast.success(t('otaManager.toast.otaToggleSuccess'));
+                const newEnabled = data?.config?.ota_enabled ?? data?.ota_enabled ?? false;
+                setOtaEnabled(newEnabled);
+                toast.success(t('otaManager.toast.otaToggleSuccess', 'OTA setting updated successfully'));
                 queryClient.invalidateQueries(['device', device.id]);
             },
             onError: (error) => {
-                toast.error(t('otaManager.toast.otaToggleFailed', { message: error.message || t('common.error') }));
+                const message = error?.response?.data?.error || error?.message || t('common.error', 'An error occurred');
+                toast.error(t('otaManager.toast.otaToggleFailed', `Failed to update OTA setting: ${message}`));
             }
         }
     );

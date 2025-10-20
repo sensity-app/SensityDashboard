@@ -112,12 +112,9 @@ export const apiService = {
     deleteSensor: (deviceId, sensorId) => apiClient.delete(`/devices/${deviceId}/sensors/${sensorId}`),
     getSensorTypes: () => apiClient.get('/sensor-types'),
 
-    // Sensor Rules
-    getSensorRules: (sensorId) => apiClient.get(`/sensors/${sensorId}/rules`),
-    updateSensorRules: (sensorId, rules) => apiClient.put(`/sensors/${sensorId}/rules`, { rules }),
-    createSensorRule: (sensorId, ruleData) => apiClient.post(`/sensors/${sensorId}/rules`, ruleData),
-    updateSensorRule: (sensorId, ruleId, ruleData) => apiClient.put(`/sensors/${sensorId}/rules/${ruleId}`, ruleData),
-    deleteSensorRule: (sensorId, ruleId) => apiClient.delete(`/sensors/${sensorId}/rules/${ruleId}`),
+    // Sensor Rules - using correct device-based endpoints
+    getSensorRules: (deviceId, sensorId) => apiClient.get(`/devices/${deviceId}/sensors/${sensorId}/rules`),
+    createSensorRule: (deviceId, sensorId, ruleData) => apiClient.post(`/devices/${deviceId}/sensors/${sensorId}/rules`, ruleData),
     createOrUpdateSensorRule: (deviceId, sensorId, ruleData) => apiClient.post(`/devices/${deviceId}/sensors/${sensorId}/rules`, ruleData),
     getThresholdSuggestions: (deviceId, sensorId, days = 7) =>
         apiClient.get(`/devices/${deviceId}/sensors/${sensorId}/threshold-suggestions`, { params: { days } }),
@@ -291,9 +288,6 @@ export const apiService = {
     getSensorRule: (deviceId, sensorId, ruleId) => apiClient.get(`/devices/${deviceId}/sensors/${sensorId}/rules/${ruleId}`),
     updateSensorRule: (deviceId, sensorId, ruleId, ruleData) => apiClient.put(`/devices/${deviceId}/sensors/${sensorId}/rules/${ruleId}`, ruleData),
     deleteSensorRule: (deviceId, sensorId, ruleId) => apiClient.delete(`/devices/${deviceId}/sensors/${sensorId}/rules/${ruleId}`),
-    getSensorTypes: () => apiClient.get('/sensor-types'),
-    getDeviceSensors: (deviceId) => apiClient.get(`/devices/${deviceId}/sensors`),
-    getLocations: () => apiClient.get('/locations'),
 
     // License Management
     getLicenseStatus: () => apiClient.get('/license/status'),

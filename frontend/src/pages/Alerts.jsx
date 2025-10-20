@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useQuery } from 'react-query';
-import { AlertTriangle, Loader2, X } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { AlertTriangle, Loader2, X, Check, CheckCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 import { apiService } from '../services/api';
 
@@ -32,6 +33,7 @@ const formatDateTime = (value) => {
 
 const AlertsPage = () => {
     const { t } = useTranslation();
+    const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
     const deviceId = searchParams.get('device');
 
@@ -48,9 +50,50 @@ const AlertsPage = () => {
         () => apiService.getAlerts(queryFilters),
         {
             select: (response) => response?.alerts || response || [],
-            keepPreviousData: true
+            keepPreviousData: true,
+            refetchInterval: 30000 // Refresh every 30 seconds to show new events
         }
     );
+
+    // Mutation for acknowledging alerts
+    const acknowledgeMutation = useMutation(
+        ({ alertId, note }) => apiService.acknowledgeAlert(alertId, note),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(queryKey);
+                toast.success(t('alerts.acknowledgeSuccess', 'Alert acknowledged successfully'));
+            },
+            onError: (error) => {
+                toast.error(error?.response?.data?.error || t('alerts.acknowledgeError', 'Failed to acknowledge alert'));
+            }
+        }
+    );
+
+    // Mutation for resolving alerts
+    const resolveMutation = useMutation(
+        ({ alertId, note }) => apiService.resolveAlert(alertId, note),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(queryKey);
+                toast.success(t('alerts.resolveSuccess', 'Alert resolved successfully'));
+            },
+            onError: (error) => {
+                toast.error(error?.response?.data?.error || t('alerts.resolveError', 'Failed to resolve alert'));
+            }
+        }
+    );
+
+    const handleAcknowledge = (alertId) => {
+        if (window.confirm(t('alerts.confirmAcknowledge', 'Are you sure you want to acknowledge this alert?'))) {
+            acknowledgeMutation.mutate({ alertId, note: '' });
+        }
+    };
+
+    const handleResolve = (alertId) => {
+        if (window.confirm(t('alerts.confirmResolve', 'Are you sure you want to resolve this alert?'))) {
+            resolveMutation.mutate({ alertId, note: '' });
+        }
+    };
 
     const formatSeverity = (severity) => {
         if (!severity) {
@@ -149,6 +192,9 @@ const AlertsPage = () => {
                                     <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                                         {t('alerts.deviceColumn')}
                                     </th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                        {t('alerts.actions', 'Actions')}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -186,6 +232,39 @@ const AlertsPage = () => {
                                                 ) : (
                                                     '—'
                                                 )}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    {status === 'open' && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                handleAcknowledge(alert.id);
+                                                            }}
+                                                            className="inline-flex items-center gap-1 rounded-md bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700 hover:bg-yellow-200 transition-colors"
+                                                            disabled={acknowledgeMutation.isLoading}
+                                                        >
+                                                            <Check className="h-3 w-3" />
+                                                            {t('alerts.acknowledge', 'Acknowledge')}
+                                                        </button>
+                                                    )}
+                                                    {(status === 'open' || status === 'acknowledged') && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                handleResolve(alert.id);
+                                                            }}
+                                                            className="inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-200 transition-colors"
+                                                            disabled={resolveMutation.isLoading}
+                                                        >
+                                                            <CheckCircle className="h-3 w-3" />
+                                                            {t('alerts.resolve', 'Resolve')}
+                                                        </button>
+                                                    )}
+                                                    {status === 'resolved' && (
+                                                        <span className="text-xs text-gray-500">{t('alerts.noActions', 'No actions')}</span>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );

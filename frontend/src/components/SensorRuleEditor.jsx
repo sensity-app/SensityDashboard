@@ -4,20 +4,53 @@ import { X, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiService } from '../services/api';
 
-function SensorRuleEditor({ sensor, onClose }) {
+function SensorRuleEditor({ sensor, deviceId, onClose }) {
     const [rules, setRules] = useState(sensor.rules || []);
     const queryClient = useQueryClient();
 
     const saveRulesMutation = useMutation(
-        (updatedRules) => apiService.updateSensorRules(sensor.id, updatedRules),
+        async (updatedRules) => {
+            // Delete removed rules first
+            const currentRuleIds = new Set(updatedRules.filter(r => r.id).map(r => r.id));
+            const originalRuleIds = (sensor.rules || []).filter(r => r.id).map(r => r.id);
+            const removedRuleIds = originalRuleIds.filter(id => !currentRuleIds.has(id));
+
+            for (const ruleId of removedRuleIds) {
+                await apiService.deleteSensorRule(deviceId, sensor.id, ruleId);
+            }
+
+            // Create or update rules
+            const promises = updatedRules.map(rule => {
+                const ruleData = {
+                    rule_name: rule.rule_name,
+                    condition: rule.condition,
+                    threshold_value: parseFloat(rule.value),
+                    severity: rule.severity,
+                    enabled: rule.enabled,
+                    notification_channels: rule.notification_channels
+                };
+
+                if (rule.id) {
+                    // Update existing rule
+                    return apiService.updateSensorRule(deviceId, sensor.id, rule.id, ruleData);
+                } else {
+                    // Create new rule
+                    return apiService.createSensorRule(deviceId, sensor.id, ruleData);
+                }
+            });
+
+            return Promise.all(promises);
+        },
         {
             onSuccess: () => {
                 toast.success('Sensor rules updated successfully');
-                queryClient.invalidateQueries(['device-sensors']);
+                queryClient.invalidateQueries(['device-sensors', deviceId]);
+                queryClient.invalidateQueries(['device', deviceId]);
                 onClose();
             },
             onError: (error) => {
-                toast.error(`Failed to update sensor rules: ${error.message}`);
+                console.error('Save rules error:', error);
+                toast.error(`Failed to update sensor rules: ${error?.response?.data?.error || error.message}`);
             }
         }
     );

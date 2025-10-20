@@ -35,9 +35,17 @@ router.get('/', authenticateToken, async (req, res) => {
         const offset = pageNum ? (pageNum - 1) * limitNum : 0;
 
         let query = `
-            SELECT d.*, l.name as location_name
+            SELECT
+                d.*,
+                l.name as location_name,
+                dc.ota_enabled,
+                dc.armed,
+                dc.heartbeat_interval,
+                dc.debug_mode,
+                dc.config_version
             FROM devices d
             LEFT JOIN locations l ON d.location_id = l.id
+            LEFT JOIN device_configs dc ON d.id = dc.device_id
         `;
         const params = [];
         const conditions = [];
@@ -70,8 +78,8 @@ router.get('/', authenticateToken, async (req, res) => {
         let totalCount = 0;
         if (pageNum) {
             const countQuery = query.replace(
-                'SELECT d.*, l.name as location_name',
-                'SELECT COUNT(*) as total'
+                /SELECT[\s\S]*?FROM devices d/,
+                'SELECT COUNT(DISTINCT d.id) as total FROM devices d'
             );
             const countResult = await db.query(countQuery, params);
             totalCount = parseInt(countResult.rows[0].total);
@@ -148,9 +156,19 @@ router.get('/:id', [
 
         const { id } = req.params;
         const result = await db.query(`
-            SELECT d.*, l.name as location_name, l.timezone
+            SELECT
+                d.*,
+                l.name as location_name,
+                l.timezone,
+                dc.ota_enabled,
+                dc.armed,
+                dc.heartbeat_interval,
+                dc.debug_mode,
+                dc.config_version,
+                dc.updated_at as config_updated_at
             FROM devices d
             LEFT JOIN locations l ON d.location_id = l.id
+            LEFT JOIN device_configs dc ON d.id = dc.device_id
             WHERE d.id = $1
         `, [id]);
 

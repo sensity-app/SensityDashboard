@@ -125,109 +125,132 @@ function DeviceGroupsManager({ onClose }) {
 
     if (groupsLoading) {
         return (
-            <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
-                <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh]">
-                    <div className="p-6">
-                        <div className="animate-pulse space-y-4">
-                            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {[...Array(4)].map((_, i) => (
-                                    <div key={i} className="h-32 bg-gray-200 rounded"></div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6 space-y-6">
+                <div className="flex flex-col items-center justify-center p-16 space-y-4">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+                    <p className="text-gray-500">{t('common.loading', 'Loading groups...')}</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
-                {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <FolderPlus className="h-6 w-6 text-blue-600" />
-                        <h2 className="text-xl font-semibold text-gray-900">
-                            {t('deviceGroups.title', 'Device Groups Management')}
-                        </h2>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <button
-                            onClick={() => setShowCreateForm(true)}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center text-sm"
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            {t('deviceGroups.createGroup', 'Create Group')}
-                        </button>
-                        <button
-                            onClick={onClose || (() => window.history.back())}
-                            className="text-gray-400 hover:text-gray-600"
-                        >
-                            <X className="h-6 w-6" />
-                        </button>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6 space-y-6 animate-fade-in">
+            {/* Header */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+                        <FolderPlus className="h-8 w-8 text-indigo-600" />
+                        {t('deviceGroups.title', 'Device Groups')}
+                    </h1>
+                    <p className="mt-1 text-sm text-gray-500">
+                        {t('deviceGroups.subtitle', 'Organize and manage your device groups')}
+                    </p>
+                </div>
+                <button
+                    onClick={() => setShowCreateForm(true)}
+                    className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 hover:scale-105"
+                >
+                    <Plus className="h-5 w-5" />
+                    {t('deviceGroups.createGroup', 'Create Group')}
+                </button>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 shadow-lg">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-indigo-100">{t('deviceGroups.totalGroups', 'Total Groups')}</p>
+                            <p className="mt-2 text-3xl font-bold text-white">{groups.groups?.length || 0}</p>
+                        </div>
+                        <Folder className="h-12 w-12 text-indigo-200 opacity-80" />
                     </div>
                 </div>
 
-                <div className="flex flex-1 overflow-hidden">
-                    {/* Groups List */}
-                    <div className="w-1/2 border-r border-gray-200 overflow-y-auto">
-                        <div className="p-4">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">
-                                {t('deviceGroups.allGroups', 'All Groups')} ({groups.groups?.length || 0})
-                            </h3>
-
-                            {groups.groups?.length === 0 ? (
-                                <div className="text-center py-8">
-                                    <Folder className="mx-auto h-12 w-12 text-gray-400" />
-                                    <h4 className="mt-2 text-sm font-medium text-gray-900">
-                                        {t('deviceGroups.noGroups', 'No groups yet')}
-                                    </h4>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        {t('deviceGroups.createFirstGroup', 'Create your first device group to organize your devices.')}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {(groups.groups || []).map((group) => (
-                                        <GroupCard
-                                            key={group.id}
-                                            group={group}
-                                            isSelected={selectedGroup?.id === group.id}
-                                            onSelect={setSelectedGroup}
-                                            onEdit={() => setShowEditForm(group)}
-                                            onDelete={() => handleDeleteGroup(group)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-6 shadow-lg">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-green-100">{t('deviceGroups.totalDevices', 'Total Devices')}</p>
+                            <p className="mt-2 text-3xl font-bold text-white">
+                                {groups.groups?.reduce((sum, g) => sum + (g.device_count || 0), 0) || 0}
+                            </p>
                         </div>
+                        <Monitor className="h-12 w-12 text-green-200 opacity-80" />
                     </div>
+                </div>
 
-                    {/* Group Details */}
-                    <div className="w-1/2 overflow-y-auto">
-                        {selectedGroup ? (
-                            <GroupDetails
-                                group={selectedGroup}
-                                onAddDevice={() => setShowAddDeviceForm(selectedGroup)}
-                                onRemoveDevice={(deviceId) => removeDeviceMutation.mutate({
-                                    groupId: selectedGroup.id,
-                                    deviceId
-                                })}
-                            />
-                        ) : (
-                            <div className="p-8 text-center">
-                                <Users className="mx-auto h-12 w-12 text-gray-400" />
-                                <h4 className="mt-2 text-sm font-medium text-gray-900">
-                                    {t('deviceGroups.selectGroup', 'Select a group')}
-                                </h4>
-                                <p className="mt-1 text-sm text-gray-500">
-                                    {t('deviceGroups.selectGroupDescription', 'Choose a group from the left to view and manage its devices.')}
-                                </p>
-                            </div>
-                        )}
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 shadow-lg">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-purple-100">{t('deviceGroups.avgDevicesPerGroup', 'Avg per Group')}</p>
+                            <p className="mt-2 text-3xl font-bold text-white">
+                                {groups.groups?.length > 0
+                                    ? Math.round(groups.groups.reduce((sum, g) => sum + (g.device_count || 0), 0) / groups.groups.length)
+                                    : 0}
+                            </p>
+                        </div>
+                        <Users className="h-12 w-12 text-purple-200 opacity-80" />
                     </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Groups List */}
+                <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        {t('deviceGroups.allGroups', 'All Groups')}
+                    </h3>
+
+                    {groups.groups?.length === 0 ? (
+                        <div className="text-center py-12 bg-gray-50 rounded-lg">
+                            <Folder className="mx-auto h-16 w-16 text-gray-300" />
+                            <h4 className="mt-4 text-lg font-semibold text-gray-700">
+                                {t('deviceGroups.noGroups', 'No groups yet')}
+                            </h4>
+                            <p className="mt-2 text-sm text-gray-500">
+                                {t('deviceGroups.createFirstGroup', 'Create your first device group to organize your devices.')}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                            {(groups.groups || []).map((group) => (
+                                <GroupCard
+                                    key={group.id}
+                                    group={group}
+                                    isSelected={selectedGroup?.id === group.id}
+                                    onSelect={setSelectedGroup}
+                                    onEdit={() => setShowEditForm(group)}
+                                    onDelete={() => handleDeleteGroup(group)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Group Details */}
+                <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+                    {selectedGroup ? (
+                        <GroupDetails
+                            group={selectedGroup}
+                            onAddDevice={() => setShowAddDeviceForm(selectedGroup)}
+                            onRemoveDevice={(deviceId) => removeDeviceMutation.mutate({
+                                groupId: selectedGroup.id,
+                                deviceId
+                            })}
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-center py-16">
+                            <Users className="h-16 w-16 text-gray-300 mb-4" />
+                            <h4 className="text-lg font-semibold text-gray-700">
+                                {t('deviceGroups.selectGroup', 'Select a group')}
+                            </h4>
+                            <p className="mt-2 text-sm text-gray-500">
+                                {t('deviceGroups.selectGroupDescription', 'Choose a group from the left to view and manage its devices.')}
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -275,20 +298,20 @@ function GroupCard({ group, isSelected, onSelect, onEdit, onDelete }) {
 
     return (
         <div
-            className={`p-4 rounded-lg border cursor-pointer transition-all ${
+            className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 ${
                 isSelected
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                    ? 'border-indigo-500 bg-indigo-50 shadow-md scale-[1.02]'
+                    : 'border-gray-200 hover:border-indigo-300 bg-white hover:shadow-lg hover:scale-[1.01]'
             }`}
             onClick={() => onSelect(group)}
         >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-3">
                     <div
-                        className="w-4 h-4 rounded"
+                        className="w-6 h-6 rounded-lg shadow-sm"
                         style={{ backgroundColor: group.color }}
                     ></div>
-                    <h4 className="font-medium text-gray-900">{group.name}</h4>
+                    <h4 className="font-semibold text-gray-900">{group.name}</h4>
                 </div>
                 <div className="flex items-center space-x-1">
                     <button
@@ -296,7 +319,7 @@ function GroupCard({ group, isSelected, onSelect, onEdit, onDelete }) {
                             e.stopPropagation();
                             onEdit();
                         }}
-                        className="p-1 text-gray-400 hover:text-gray-600"
+                        className="p-2 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                     >
                         <Edit className="h-4 w-4" />
                     </button>
@@ -305,7 +328,7 @@ function GroupCard({ group, isSelected, onSelect, onEdit, onDelete }) {
                             e.stopPropagation();
                             onDelete();
                         }}
-                        className="p-1 text-gray-400 hover:text-red-600"
+                        className="p-2 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                     >
                         <Trash2 className="h-4 w-4" />
                     </button>
@@ -313,16 +336,21 @@ function GroupCard({ group, isSelected, onSelect, onEdit, onDelete }) {
             </div>
 
             {group.description && (
-                <p className="text-sm text-gray-600 mb-2">{group.description}</p>
+                <p className="text-sm text-gray-600 mb-3">{group.description}</p>
             )}
 
-            <div className="flex items-center justify-between text-sm text-gray-500">
-                <span>
-                    {group.device_count} {t('deviceGroups.devices', 'devices')}
-                </span>
-                <span>
-                    {t('common.createdBy', 'Created by')} {group.created_by_email || 'Unknown'}
-                </span>
+            <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-1.5">
+                    <Monitor className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium text-gray-700">
+                        {group.device_count} {t('deviceGroups.devices', 'devices')}
+                    </span>
+                </div>
+                {group.created_by_email && (
+                    <span className="text-xs text-gray-500 truncate max-w-[150px]">
+                        {group.created_by_email}
+                    </span>
+                )}
             </div>
         </div>
     );
@@ -340,15 +368,9 @@ function GroupDetails({ group, onAddDevice, onRemoveDevice }) {
 
     if (isLoading) {
         return (
-            <div className="p-6">
-                <div className="animate-pulse space-y-4">
-                    <div className="h-6 bg-gray-200 rounded w-1/3"></div>
-                    <div className="space-y-3">
-                        {[...Array(3)].map((_, i) => (
-                            <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                        ))}
-                    </div>
-                </div>
+            <div className="flex flex-col items-center justify-center p-16 space-y-4">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+                <p className="text-gray-500">{t('common.loading', 'Loading...')}</p>
             </div>
         );
     }
@@ -356,73 +378,83 @@ function GroupDetails({ group, onAddDevice, onRemoveDevice }) {
     const devices = groupDetails?.group?.devices || [];
 
     return (
-        <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <div className="flex items-center space-x-3 mb-2">
-                        <div
-                            className="w-6 h-6 rounded"
-                            style={{ backgroundColor: group.color }}
-                        ></div>
-                        <h3 className="text-lg font-medium text-gray-900">{group.name}</h3>
+        <div className="space-y-6 max-h-[600px] overflow-y-auto">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                    <div
+                        className="w-8 h-8 rounded-lg shadow-sm"
+                        style={{ backgroundColor: group.color }}
+                    ></div>
+                    <div>
+                        <h3 className="text-lg font-semibold text-gray-900">{group.name}</h3>
+                        {group.description && (
+                            <p className="text-sm text-gray-600 mt-1">{group.description}</p>
+                        )}
                     </div>
-                    {group.description && (
-                        <p className="text-gray-600">{group.description}</p>
-                    )}
                 </div>
                 <button
                     onClick={onAddDevice}
-                    className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 flex items-center"
+                    className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-green-600 to-green-700 px-3 py-2 text-sm font-semibold text-white shadow-md hover:from-green-700 hover:to-green-800 transition-all duration-200 hover:scale-105"
                 >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-4 w-4" />
                     {t('deviceGroups.addDevice', 'Add Device')}
                 </button>
             </div>
 
-            <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">
+            <div>
+                <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Monitor className="h-4 w-4 text-gray-500" />
                     {t('deviceGroups.devicesInGroup', 'Devices in Group')} ({devices.length})
                 </h4>
 
                 {devices.length === 0 ? (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                        <Monitor className="mx-auto h-8 w-8 text-gray-400" />
-                        <p className="mt-2 text-sm text-gray-500">
+                    <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl">
+                        <Monitor className="mx-auto h-16 w-16 text-gray-300" />
+                        <p className="mt-4 text-sm font-medium text-gray-700">
                             {t('deviceGroups.noDevicesInGroup', 'No devices in this group yet.')}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                            {t('deviceGroups.clickAddDevice', 'Click "Add Device" to get started')}
                         </p>
                     </div>
                 ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         {(devices || []).map((device) => (
                             <div
                                 key={device.id}
-                                className="flex items-center justify-between p-3 bg-gray-50 rounded border"
+                                className="flex items-center justify-between p-4 bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200"
                             >
                                 <div className="flex items-center space-x-3">
-                                    <div className={`w-3 h-3 rounded-full ${
+                                    <div className={`w-3 h-3 rounded-full shadow-sm ${
                                         device.current_status === 'online' ? 'bg-green-500' :
                                         device.current_status === 'alarm' ? 'bg-red-500' : 'bg-gray-400'
                                     }`}></div>
                                     <div>
-                                        <h5 className="font-medium text-gray-900">{device.name}</h5>
-                                        <p className="text-sm text-gray-500">
-                                            ID: {device.id} • {device.location_name || 'No location'}
+                                        <h5 className="font-semibold text-gray-900">{device.name}</h5>
+                                        <p className="text-xs text-gray-500 font-mono">
+                                            {device.id}
                                         </p>
+                                        {device.location_name && (
+                                            <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                                <Monitor className="h-3 w-3" />
+                                                {device.location_name}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="flex items-center space-x-2">
-                                    <span className={`px-2 py-1 text-xs rounded-full ${
-                                        device.current_status === 'online' ? 'bg-green-100 text-green-800' :
-                                        device.current_status === 'alarm' ? 'bg-red-100 text-red-800' :
-                                        'bg-gray-100 text-gray-800'
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-3 py-1 text-xs font-semibold rounded-full shadow-sm ${
+                                        device.current_status === 'online' ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' :
+                                        device.current_status === 'alarm' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' :
+                                        'bg-gradient-to-r from-gray-400 to-gray-500 text-white'
                                     }`}>
-                                        {device.current_status?.toUpperCase()}
+                                        {device.current_status?.toUpperCase() || 'UNKNOWN'}
                                     </span>
 
                                     <button
                                         onClick={() => onRemoveDevice(device.id)}
-                                        className="p-1 text-gray-400 hover:text-red-600"
+                                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                                         title={t('deviceGroups.removeFromGroup', 'Remove from group')}
                                     >
                                         <X className="h-4 w-4" />
@@ -456,10 +488,10 @@ function GroupForm({ group, onSubmit, onClose, isLoading }) {
     ];
 
     return (
-        <div className="fixed inset-0 z-60 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center animate-fade-in">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50">
+                    <h3 className="text-xl font-semibold text-gray-900">
                         {group ? t('deviceGroups.editGroup', 'Edit Group') : t('deviceGroups.createGroup', 'Create Group')}
                     </h3>
                 </div>
@@ -519,21 +551,24 @@ function GroupForm({ group, onSubmit, onClose, isLoading }) {
                         </div>
                     </div>
 
-                    <div className="flex justify-end space-x-3 pt-4">
+                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 mt-6">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                         >
                             {t('common.cancel', 'Cancel')}
                         </button>
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 transition-all shadow-md font-medium"
                         >
                             {isLoading ? (
-                                t('common.saving', 'Saving...')
+                                <span className="flex items-center gap-2">
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                    {t('common.saving', 'Saving...')}
+                                </span>
                             ) : group ? (
                                 t('common.save', 'Save')
                             ) : (
@@ -568,15 +603,21 @@ function AddDeviceToGroupForm({ group, devices, onSubmit, onClose, isLoading }) 
     };
 
     return (
-        <div className="fixed inset-0 z-60 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="text-lg font-medium text-gray-900">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center animate-fade-in">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+                    <h3 className="text-xl font-semibold text-gray-900">
                         {t('deviceGroups.addDeviceToGroup', 'Add Device to Group')}
                     </h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                        {group.name}
-                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                        <div
+                            className="w-4 h-4 rounded shadow-sm"
+                            style={{ backgroundColor: group.color }}
+                        ></div>
+                        <p className="text-sm text-gray-600 font-medium">
+                            {group.name}
+                        </p>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6">
@@ -611,23 +652,29 @@ function AddDeviceToGroupForm({ group, devices, onSubmit, onClose, isLoading }) 
                         )}
                     </div>
 
-                    <div className="flex justify-end space-x-3">
+                    <div className="flex justify-end space-x-3 border-t border-gray-200 pt-4">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                         >
                             {t('common.cancel', 'Cancel')}
                         </button>
                         <button
                             type="submit"
                             disabled={isLoading || !selectedDeviceId || availableDevices.length === 0}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                            className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 disabled:opacity-50 transition-all shadow-md font-medium"
                         >
                             {isLoading ? (
-                                t('common.adding', 'Adding...')
+                                <span className="flex items-center gap-2">
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                    {t('common.adding', 'Adding...')}
+                                </span>
                             ) : (
-                                t('deviceGroups.addDevice', 'Add Device')
+                                <span className="flex items-center gap-2">
+                                    <Plus className="h-4 w-4" />
+                                    {t('deviceGroups.addDevice', 'Add Device')}
+                                </span>
                             )}
                         </button>
                     </div>

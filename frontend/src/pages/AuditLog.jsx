@@ -36,7 +36,8 @@ const AuditLogPage = () => {
     );
 
     // Fetch users for filtering
-    const { data: users = [] } = useQuery('users', apiService.getUsers);
+    const { data: usersData } = useQuery('users', apiService.getUsers);
+    const users = Array.isArray(usersData) ? usersData : (usersData?.users || []);
 
     const getActionColor = (action) => {
         const colors = {

@@ -24,6 +24,80 @@ router.get('/sensor-types', authenticateToken, async (req, res) => {
     }
 });
 
+// GET /api/devices/:id/sensors/:sensorId/recommended-thresholds - Get recommended thresholds based on historic data
+router.get('/:id/sensors/:sensorId/recommended-thresholds',
+    authenticateToken,
+    async (req, res) => {
+        try {
+            const { id, sensorId } = req.params;
+            const { days = 7 } = req.query;
+
+            // Get historical data for the sensor
+            const telemetryResult = await db.query(`
+                SELECT processed_value
+                FROM telemetry
+                WHERE device_id = $1
+                  AND device_sensor_id = $2
+                  AND timestamp > CURRENT_TIMESTAMP - INTERVAL '${parseInt(days)} days'
+                ORDER BY timestamp DESC
+                LIMIT 10000
+            `, [id, sensorId]);
+
+            if (telemetryResult.rows.length === 0) {
+                return res.json({
+                    recommended_min: null,
+                    recommended_max: null,
+                    note: 'No historical data available. Using default values.'
+                });
+            }
+
+            // Calculate statistics
+            const values = telemetryResult.rows.map(r => parseFloat(r.processed_value));
+            const sorted = values.sort((a, b) => a - b);
+            const count = sorted.length;
+
+            const mean = sorted.reduce((a, b) => a + b, 0) / count;
+            const variance = sorted.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / count;
+            const stdDev = Math.sqrt(variance);
+
+            // Calculate percentiles for outlier detection
+            const p5 = sorted[Math.floor(count * 0.05)];
+            const p95 = sorted[Math.floor(count * 0.95)];
+
+            // Recommended thresholds: Use 3 standard deviations or percentile-based method
+            // Whichever is more conservative (to reduce false positives)
+            const method1_min = mean - (3 * stdDev);
+            const method1_max = mean + (3 * stdDev);
+
+            const method2_min = p5 - (p95 - p5) * 0.2; // 20% below P5
+            const method2_max = p95 + (p95 - p5) * 0.2; // 20% above P95
+
+            const recommended_min = Math.min(method1_min, method2_min);
+            const recommended_max = Math.max(method1_max, method2_max);
+
+            res.json({
+                recommended_min: Math.max(0, recommended_min), // Don't go below 0
+                recommended_max,
+                stats: {
+                    data_points: count,
+                    mean,
+                    std_dev: stdDev,
+                    min: sorted[0],
+                    max: sorted[count - 1],
+                    p5,
+                    p95,
+                    days_analyzed: days
+                },
+                note: `Based on ${count} readings over last ${days} days. Using 3-sigma rule and percentile method for anomaly detection.`
+            });
+
+        } catch (error) {
+            logger.error('Get recommended thresholds error:', error);
+            res.status(500).json({ error: 'Failed to calculate recommended thresholds' });
+        }
+    }
+);
+
 // GET /api/devices - Get all devices (with pagination)
 router.get('/', authenticateToken, async (req, res) => {
     try {
@@ -406,28 +480,55 @@ router.post('/:id/telemetry', [
         const { id } = req.params;
         const { sensors, uptime, free_heap, wifi_rssi } = req.body;
 
-        // Extract IP address (handle IPv6-mapped IPv4 addresses)
-        let telemetryIp = req.ip;
+        // Extract IP address - prefer X-Forwarded-For for local network IP (private IP)
+        // Priority: X-Forwarded-For (device's local IP) > req.ip (may be public)
+        let telemetryIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+
+        // Handle IPv6-mapped IPv4 addresses
         if (telemetryIp && telemetryIp.startsWith('::ffff:')) {
             telemetryIp = telemetryIp.substring(7);
         }
-        // If localhost, try to get actual IP
-        if (telemetryIp === '::1' || telemetryIp === '::' || telemetryIp === 'localhost') {
-            const requestIp = req.connection?.remoteAddress || req.socket?.remoteAddress;
-            if (requestIp && requestIp !== '::1' && requestIp !== '::ffff:127.0.0.1') {
-                telemetryIp = requestIp.startsWith('::ffff:') ? requestIp.substring(7) : requestIp;
+
+        // Validate it's a private IP (10.x.x.x, 172.16-31.x.x, 192.168.x.x)
+        const isPrivateIP = (ip) => {
+            if (!ip) return false;
+            return ip.startsWith('192.168.') ||
+                   ip.startsWith('10.') ||
+                   /^172\.(1[6-9]|2[0-9]|3[01])\./.test(ip);
+        };
+
+        // If we got a public IP, try to preserve the existing private IP from database
+        if (!isPrivateIP(telemetryIp)) {
+            try {
+                const deviceCheck = await db.query('SELECT ip_address FROM devices WHERE id = $1', [id]);
+                if (deviceCheck.rows.length > 0 && deviceCheck.rows[0].ip_address && isPrivateIP(deviceCheck.rows[0].ip_address)) {
+                    // Keep existing private IP
+                    telemetryIp = deviceCheck.rows[0].ip_address;
+                    logger.info(`Preserving private IP ${telemetryIp} for device ${id} (ignoring public IP)`);
+                }
+            } catch (error) {
+                logger.warn('Failed to check existing IP:', error.message);
             }
         }
 
-        // Update device last heartbeat
+        // Calculate health metrics
+        const memoryUsagePercent = free_heap ? Math.max(0, Math.min(100, 100 - (free_heap / 81920 * 100))) : null;
+        const wifiQualityPercent = wifi_rssi ? Math.max(0, Math.min(100, 2 * (wifi_rssi + 100))) : null;
+
+        // Update device last heartbeat and health metrics
         await db.query(`
             UPDATE devices
             SET last_heartbeat = CURRENT_TIMESTAMP,
                 status = 'online',
+                current_status = 'online',
                 uptime_seconds = COALESCE($1, uptime_seconds),
-                ip_address = $2
-            WHERE id = $3
-        `, [uptime, telemetryIp, id]);
+                ip_address = $2,
+                free_heap_bytes = COALESCE($3, free_heap_bytes),
+                wifi_signal_strength = COALESCE($4, wifi_signal_strength),
+                memory_usage_percent = COALESCE($5, memory_usage_percent),
+                wifi_quality_percent = COALESCE($6, wifi_quality_percent)
+            WHERE id = $7
+        `, [uptime, telemetryIp, free_heap, wifi_rssi, memoryUsagePercent, wifiQualityPercent, id]);
 
         // Process telemetry data using TelemetryProcessor service from request
         const telemetryProcessor = req.telemetryProcessor;
@@ -725,48 +826,73 @@ router.post('/:id/threshold-alert', [
         const { id } = req.params;
         const { sensor_pin, sensor_name, sensor_type, value, alert_type, threshold_min, threshold_max } = req.body;
 
-        // Check cooldown - don't send alert if one was sent recently (default 5 minutes)
-        const ALERT_COOLDOWN_MINUTES = parseInt(process.env.THRESHOLD_ALERT_COOLDOWN_MIN || '5');
+        // Check cooldown - don't send alert if one was sent recently (default 10 seconds for firmware alerts)
+        const ALERT_COOLDOWN_SECONDS = parseInt(process.env.THRESHOLD_ALERT_COOLDOWN_SEC || '10');
 
         const recentAlertCheck = await db.query(`
             SELECT id, triggered_at
             FROM alerts
-            WHERE device_id = $1 
+            WHERE device_id = $1
             AND alert_type = 'threshold_crossing'
             AND message LIKE $2
-            AND triggered_at > CURRENT_TIMESTAMP - INTERVAL '${ALERT_COOLDOWN_MINUTES} minutes'
+            AND triggered_at > CURRENT_TIMESTAMP - INTERVAL '${ALERT_COOLDOWN_SECONDS} seconds'
             ORDER BY triggered_at DESC
             LIMIT 1
         `, [id, `%${sensor_name}%${alert_type}%`]);
 
         if (recentAlertCheck.rows.length > 0) {
             const lastAlert = recentAlertCheck.rows[0];
-            const minutesSinceAlert = Math.floor((Date.now() - new Date(lastAlert.triggered_at)) / 60000);
-            logger.info(`Threshold alert for ${id}/${sensor_name} suppressed - last alert ${minutesSinceAlert}min ago (cooldown: ${ALERT_COOLDOWN_MINUTES}min)`);
+            const secondsSinceAlert = Math.floor((Date.now() - new Date(lastAlert.triggered_at)) / 1000);
+            logger.info(`Threshold alert for ${id}/${sensor_name} suppressed - last alert ${secondsSinceAlert}s ago (cooldown: ${ALERT_COOLDOWN_SECONDS}s)`);
 
             return res.json({
                 message: 'Alert received but suppressed due to cooldown',
-                cooldown_remaining_minutes: ALERT_COOLDOWN_MINUTES - minutesSinceAlert
+                cooldown_remaining_seconds: ALERT_COOLDOWN_SECONDS - secondsSinceAlert
             });
+        }
+
+        // Optional: Check if sensor rules exist for this sensor
+        // If REQUIRE_SENSOR_RULES env var is set to 'true', only create alerts if rules exist
+        const requireRules = process.env.REQUIRE_SENSOR_RULES === 'true';
+
+        if (requireRules) {
+            const rulesCheck = await db.query(`
+                SELECT sr.id
+                FROM sensor_rules sr
+                INNER JOIN device_sensors ds ON sr.device_sensor_id = ds.id
+                WHERE ds.device_id = $1
+                AND ds.pin = $2
+                AND sr.enabled = true
+                LIMIT 1
+            `, [id, sensor_pin]);
+
+            if (rulesCheck.rows.length === 0) {
+                logger.info(`Threshold alert for ${id}/${sensor_name} suppressed - no enabled rules configured`);
+                return res.json({
+                    message: 'Alert received but suppressed - no sensor rules configured',
+                    note: 'Configure sensor rules in the UI to receive threshold crossing alerts'
+                });
+            }
         }
 
         // Create alert
         const alertMessage = `${sensor_name} ${alert_type === 'above_max' ? 'exceeded maximum' : 'fell below minimum'} threshold (value: ${value.toFixed(2)})`;
 
         const alertResult = await db.query(`
-            INSERT INTO alerts (device_id, alert_type, severity, message, triggered_at)
-            VALUES ($1, 'threshold_crossing', 'medium', $2, CURRENT_TIMESTAMP)
+            INSERT INTO alerts (device_id, alert_type, severity, message, sensor_pin, sensor_value, triggered_at)
+            VALUES ($1, 'threshold_crossing', 'medium', $2, $3, $4, CURRENT_TIMESTAMP)
             RETURNING id
-        `, [id, alertMessage]);
+        `, [id, alertMessage, sensor_pin, value]);
 
         const alertId = alertResult.rows[0].id;
 
         logger.warn(`Threshold alert from device ${id}: ${alertMessage}`);
 
-        // Send email notification (async, don't wait)
+        // Send email and WhatsApp notifications (async, don't wait)
         setImmediate(async () => {
             try {
                 const emailService = require('../services/emailService');
+                const whatsappService = require('../services/whatsappService');
 
                 // Get device info
                 const deviceResult = await db.query(`
@@ -782,10 +908,10 @@ router.post('/:id/threshold-alert', [
 
                 // Get notification recipients for this device/location
                 const recipientsResult = await db.query(`
-                    SELECT DISTINCT u.email, u.name
+                    SELECT DISTINCT u.email, u.name, u.whatsapp_number, u.whatsapp_notifications_enabled
                     FROM users u
                     WHERE u.role IN ('admin', 'operator')
-                    AND u.email IS NOT NULL
+                    AND (u.email IS NOT NULL OR u.whatsapp_number IS NOT NULL)
                 `);
 
                 if (recipientsResult.rows.length === 0) {
@@ -793,9 +919,7 @@ router.post('/:id/threshold-alert', [
                     return;
                 }
 
-                const recipients = recipientsResult.rows.map(r => r.email);
-
-                await emailService.sendThresholdAlert(device, {
+                const alertData = {
                     sensor_name,
                     sensor_type: sensor_type || 'Unknown',
                     sensor_pin,
@@ -803,12 +927,32 @@ router.post('/:id/threshold-alert', [
                     alert_type,
                     threshold_min,
                     threshold_max,
-                    alert_id: alertId
-                }, recipients);
+                    alert_id: alertId,
+                    message: alertMessage
+                };
 
-                logger.info(`Threshold alert email sent to ${recipients.length} recipient(s)`);
-            } catch (emailError) {
-                logger.error('Failed to send threshold alert email:', emailError);
+                // Send email notifications
+                const emailRecipients = recipientsResult.rows
+                    .filter(r => r.email)
+                    .map(r => r.email);
+
+                if (emailRecipients.length > 0) {
+                    await emailService.sendThresholdAlert(device, alertData, emailRecipients);
+                    logger.info(`Threshold alert email sent to ${emailRecipients.length} recipient(s)`);
+                }
+
+                // Send WhatsApp notifications
+                const whatsappRecipients = recipientsResult.rows
+                    .filter(r => r.whatsapp_notifications_enabled && r.whatsapp_number);
+
+                if (whatsappRecipients.length > 0) {
+                    const whatsappResults = await whatsappService.sendThresholdAlert(device, alertData, whatsappRecipients);
+                    const successCount = whatsappResults.filter(r => r.success).length;
+                    logger.info(`Threshold alert WhatsApp sent to ${successCount}/${whatsappRecipients.length} recipient(s)`);
+                }
+
+            } catch (error) {
+                logger.error('Failed to send threshold alert notifications:', error);
             }
         });
 

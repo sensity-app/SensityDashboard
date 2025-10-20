@@ -16,7 +16,9 @@ import {
     Eye,
     Check,
     Tag,
-    Settings
+    Settings,
+    Cpu,
+    FileText
 } from 'lucide-react';
 
 import { apiService } from '../services/api';
@@ -388,9 +390,9 @@ function Dashboard() {
                         </h2>
                         <div className="flex items-center space-x-2">
                             <span className="badge badge-error">{alerts.filter(a => a.status === 'active').length} {t('alerts.unresolvedBadge')}</span>
-                            <Link to="/devices" className="btn-secondary px-4 py-2 text-sm">
+                            <Link to="/alerts" className="btn-secondary px-4 py-2 text-sm">
                                 <Eye className="w-4 h-4 mr-1" />
-                                {t('dashboard.viewDevices')}
+                                {t('dashboard.viewAllAlerts', 'View All Alerts')}
                             </Link>
                         </div>
                     </div>
@@ -417,7 +419,7 @@ function Dashboard() {
                                                     }`} />
                                                 </div>
                                                 <div className="flex-1">
-                                                    <div className="flex items-center space-x-2 mb-2">
+                                                    <div className="flex items-center flex-wrap gap-2 mb-2">
                                                         <span className={`badge ${
                                                             alert.severity === 'critical' ? 'badge-error' :
                                                             alert.severity === 'high' ? 'badge-warning' : 'badge-warning'
@@ -425,6 +427,18 @@ function Dashboard() {
                                                             {formatSeverityLabel(alert.severity)}
                                                         </span>
                                                         <span className="badge badge-error">{t('alerts.unresolvedBadge')}</span>
+                                                        {alert.alert_type === 'threshold_crossing' && (
+                                                            <span className="inline-flex items-center gap-1 rounded-md bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                                <Cpu className="h-3 w-3" />
+                                                                {t('alerts.firmwareDetected', 'Device-detected')}
+                                                            </span>
+                                                        )}
+                                                        {alert.alert_type === 'RULE_VIOLATION' && (
+                                                            <span className="inline-flex items-center gap-1 rounded-md bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
+                                                                <FileText className="h-3 w-3" />
+                                                                {t('alerts.ruleTriggered', 'Rule-triggered')}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <div className="mb-2">
                                                         <h3 className="text-base font-semibold text-gray-900 mb-1">
@@ -495,7 +509,7 @@ function Dashboard() {
                         </div>
                         {alerts.filter(a => a.status === 'active').length > 5 && (
                             <div className="mt-4 text-center">
-                                <Link to="/devices" className="btn-ghost">
+                                <Link to="/alerts" className="btn-ghost">
                                     {t('dashboard.viewAll')} {alerts.filter(a => a.status === 'active').length} {t('alerts.unresolved')}
                                 </Link>
                             </div>

@@ -157,17 +157,28 @@ const DeviceHealthDashboard = () => {
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                         </div>
                     ) : healthError ? (
-                        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                            <p className="text-red-800">{t('deviceHealth.loadError')}</p>
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                            <p className="text-yellow-800 font-medium">{t('deviceHealth.noDataYet', 'No health data available yet')}</p>
+                            <p className="text-yellow-700 text-sm mt-2">
+                                {t('deviceHealth.waitingForTelemetry', 'Waiting for device to send telemetry data. This usually happens within a few minutes.')}
+                            </p>
+                            <ul className="mt-3 text-sm text-yellow-700 list-disc list-inside space-y-1">
+                                <li>{t('deviceHealth.checkOnline', 'Verify device is online and connected')}</li>
+                                <li>{t('deviceHealth.checkHeartbeat', 'Check device last heartbeat timestamp')}</li>
+                                <li>{t('deviceHealth.waitMinutes', 'Wait 2-5 minutes for first telemetry')}</li>
+                            </ul>
                         </div>
                     ) : deviceHealth ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             {/* Overall Score */}
-                            <div className={`${getHealthScoreBgColor(deviceHealth.overall_score)} rounded-lg p-4`}>
+                            <div className={`${deviceHealth.overall_score ? getHealthScoreBgColor(deviceHealth.overall_score) : 'bg-gray-50'} rounded-lg p-4`}>
                                 <h3 className="text-sm font-medium text-gray-700">{t('deviceHealth.overallScore')}</h3>
-                                <p className={`text-2xl font-bold ${getHealthScoreColor(deviceHealth.overall_score)}`}>
-                                    {deviceHealth.overall_score}/100
+                                <p className={`text-2xl font-bold ${deviceHealth.overall_score ? getHealthScoreColor(deviceHealth.overall_score) : 'text-gray-500'}`}>
+                                    {deviceHealth.overall_score ? `${deviceHealth.overall_score}/100` : '—'}
                                 </p>
+                                {!deviceHealth.overall_score && (
+                                    <p className="text-xs text-gray-500 mt-1">{t('deviceHealth.noData', 'No data')}</p>
+                                )}
                             </div>
                             {/* Uptime */}
                             <div className="bg-green-50 rounded-lg p-4">

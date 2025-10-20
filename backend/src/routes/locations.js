@@ -78,10 +78,24 @@ router.get('/:id', [
 // POST /api/locations - Create new location
 router.post('/', [
     body('name').notEmpty().isLength({ min: 1, max: 255 }),
-    body('description').optional().isLength({ max: 1000 }),
-    body('timezone').optional().isLength({ max: 50 }),
-    body('latitude').optional().isFloat({ min: -90, max: 90 }),
-    body('longitude').optional().isFloat({ min: -180, max: 180 })
+    body('description').optional({ nullable: true }).isLength({ max: 1000 }),
+    body('timezone').optional({ nullable: true }).isLength({ max: 50 }),
+    body('latitude').optional({ nullable: true }).custom((value) => {
+        if (value === null || value === undefined || value === '') return true;
+        const num = parseFloat(value);
+        if (isNaN(num) || num < -90 || num > 90) {
+            throw new Error('Latitude must be between -90 and 90');
+        }
+        return true;
+    }),
+    body('longitude').optional({ nullable: true }).custom((value) => {
+        if (value === null || value === undefined || value === '') return true;
+        const num = parseFloat(value);
+        if (isNaN(num) || num < -180 || num > 180) {
+            throw new Error('Longitude must be between -180 and 180');
+        }
+        return true;
+    })
 ], authenticateToken, requireRole(['admin', 'operator']), async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -126,10 +140,24 @@ router.post('/', [
 router.put('/:id', [
     param('id').isInt({ min: 1 }),
     body('name').optional().notEmpty().isLength({ min: 1, max: 255 }),
-    body('description').optional().isLength({ max: 1000 }),
-    body('timezone').optional().isLength({ max: 50 }),
-    body('latitude').optional().isFloat({ min: -90, max: 90 }),
-    body('longitude').optional().isFloat({ min: -180, max: 180 })
+    body('description').optional({ nullable: true }).isLength({ max: 1000 }),
+    body('timezone').optional({ nullable: true }).isLength({ max: 50 }),
+    body('latitude').optional({ nullable: true }).custom((value) => {
+        if (value === null || value === undefined || value === '') return true;
+        const num = parseFloat(value);
+        if (isNaN(num) || num < -90 || num > 90) {
+            throw new Error('Latitude must be between -90 and 90');
+        }
+        return true;
+    }),
+    body('longitude').optional({ nullable: true }).custom((value) => {
+        if (value === null || value === undefined || value === '') return true;
+        const num = parseFloat(value);
+        if (isNaN(num) || num < -180 || num > 180) {
+            throw new Error('Longitude must be between -180 and 180');
+        }
+        return true;
+    })
 ], authenticateToken, requireRole(['admin', 'operator']), async (req, res) => {
     try {
         const errors = validationResult(req);

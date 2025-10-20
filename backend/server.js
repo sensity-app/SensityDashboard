@@ -34,6 +34,7 @@ const securityRoutes = require('./src/routes/security');
 const webhookRoutes = require('./src/routes/webhooks');
 const licenseRoutes = require('./src/routes/license');
 const sensorRulesRoutes = require('./src/routes/sensorRules');
+const auditLogsRoutes = require('./src/routes/auditLogs');
 
 const WebSocketService = require('./src/services/websocketService');
 const AlertEscalationService = require('./src/services/alertEscalationService');
@@ -144,7 +145,8 @@ const protectedRoutes = [
     ['/api/threshold-calibration', thresholdCalibrationRoutes, 'analytics_advanced'],
     ['/api/security', securityRoutes, 'audit_logging'],
     ['/api/webhooks', webhookRoutes, 'custom_integrations'],
-    ['/api/rate-limits', rateLimitRoutes]
+    ['/api/rate-limits', rateLimitRoutes],
+    ['/api/audit-logs', auditLogsRoutes, 'audit_logging']
 ];
 
 for (const [path, router, feature] of protectedRoutes) {

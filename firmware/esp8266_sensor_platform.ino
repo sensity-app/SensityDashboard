@@ -110,9 +110,22 @@ Ultrasonic *ultrasonic = nullptr;
 #endif
 
 // Forward declarations
+void loadConfiguration();
+void saveConfiguration();
+void initializeSensors();
+void connectToWiFi();
+void checkForFirmwareUpdate();
+void sendHeartbeat();
+void handleOTAUpdates();
+void readAndProcessSensors(bool sendTelemetry = false);
+void sendTelemetryData(const JsonDocument &telemetryDoc);
+void parseServerResponse(const String &response);
+void updateSensorConfiguration(JsonArray sensorConfigs);
+void performOTAUpdate(const String &firmwareUrl, const String &expectedChecksum);
 void notifyOTAStatus(const String &status, int progress, const String &errorMessage = "");
 void printSensorValuesToConsole();
-void readAndProcessSensors(bool sendTelemetry = false);
+void sendAlarmEvent(int sensorIndex, float value);
+void sendImmediateThresholdAlert(int sensorIndex, float value, const String &alertType);
 
 void setup()
 {
@@ -454,7 +467,7 @@ float applyMedianFilter(int pin, bool isAnalog)
     return readings[2];
 }
 
-void readAndProcessSensors(bool sendTelemetry = false)
+void readAndProcessSensors(bool sendTelemetry)
 {
     if (config.debug_mode && sendTelemetry)
     {
@@ -624,14 +637,6 @@ void readAndProcessSensors(bool sendTelemetry = false)
                 sendImmediateThresholdAlert(i, processedValue, alertType);
             }
 #endif
-
-            // Standard alarm check (for compatibility)
-            if (config.armed &&
-                (processedValue < sensors[i].threshold_min ||
-                 processedValue > sensors[i].threshold_max))
-            {
-                sendAlarmEvent(i, processedValue);
-            }
 
             if (config.debug_mode)
             {

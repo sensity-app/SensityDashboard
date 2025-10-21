@@ -334,12 +334,20 @@ function CreateRuleModal({ rule, devices, locations, onClose, onSuccess }) {
     const [severity, setSeverity] = useState(rule?.severity || 'medium');
     const [enabled, setEnabled] = useState(rule?.enabled !== false);
     const [ruleName, setRuleName] = useState(rule?.rule_name || '');
+    const [showRecommendations, setShowRecommendations] = useState(false);
 
     // Fetch sensors for selected entity
     const { data: sensors = [] } = useQuery(
         ['device-sensors', selectedEntity],
         () => selectedEntity && scope === 'device' ? apiService.getDeviceSensors(selectedEntity) : Promise.resolve([]),
         { enabled: !!selectedEntity && scope === 'device' }
+    );
+
+    // Fetch threshold recommendations
+    const { data: recommendations, isLoading: loadingRecommendations, refetch: fetchRecommendations } = useQuery(
+        ['threshold-suggestions', selectedEntity, selectedSensor],
+        () => apiService.getThresholdSuggestions(selectedEntity, selectedSensor, { days: 30 }),
+        { enabled: false } // Only fetch when user clicks
     );
 
     const saveMutation = useMutation(
@@ -372,6 +380,21 @@ function CreateRuleModal({ rule, devices, locations, onClose, onSuccess }) {
             enabled,
             rule_name: ruleName || `${selectedSensor} Threshold`
         });
+    };
+
+    const handleLoadRecommendations = () => {
+        setShowRecommendations(true);
+        fetchRecommendations();
+    };
+
+    const handleApplyRecommendations = () => {
+        if (recommendations?.suggested_min !== undefined) {
+            setThresholdMin(recommendations.suggested_min.toFixed(2));
+        }
+        if (recommendations?.suggested_max !== undefined) {
+            setThresholdMax(recommendations.suggested_max.toFixed(2));
+        }
+        toast.success('Recommended thresholds applied');
     };
 
     return (
@@ -495,6 +518,121 @@ function CreateRuleModal({ rule, devices, locations, onClose, onSuccess }) {
                             />
                         </div>
                     </div>
+
+                    {/* Threshold Recommendations */}
+                    {scope === 'device' && selectedSensor && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <h4 className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                    <TrendingUp className="h-4 w-4 text-blue-600" />
+                                    Recommended Thresholds
+                                </h4>
+                                {!showRecommendations && (
+                                    <button
+                                        type="button"
+                                        onClick={handleLoadRecommendations}
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors"
+                                    >
+                                        <Target className="h-3 w-3" />
+                                        Load Suggestions
+                                    </button>
+                                )}
+                            </div>
+
+                            {loadingRecommendations && (
+                                <div className="flex items-center justify-center py-4">
+                                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                                    <span className="ml-2 text-sm text-gray-600">Analyzing historical data...</span>
+                                </div>
+                            )}
+
+                            {showRecommendations && recommendations && !loadingRecommendations && (
+                                <div className="space-y-3">
+                                    <p className="text-xs text-gray-600">
+                                        Based on {recommendations.data_points || 0} readings from the last {recommendations.period_days || 30} days
+                                    </p>
+
+                                    {recommendations.data_points > 0 ? (
+                                        <>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-white rounded-lg p-3 border border-blue-200">
+                                                    <div className="text-xs text-gray-600 mb-1">Suggested Min</div>
+                                                    <div className="text-lg font-bold text-blue-900">
+                                                        {recommendations.suggested_min?.toFixed(2) ?? 'N/A'}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        Range: {recommendations.min?.toFixed(2)} - {recommendations.avg?.toFixed(2)}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white rounded-lg p-3 border border-blue-200">
+                                                    <div className="text-xs text-gray-600 mb-1">Suggested Max</div>
+                                                    <div className="text-lg font-bold text-blue-900">
+                                                        {recommendations.suggested_max?.toFixed(2) ?? 'N/A'}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        Range: {recommendations.avg?.toFixed(2)} - {recommendations.max?.toFixed(2)}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-white rounded-lg p-3 border border-blue-200">
+                                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                                    <div>
+                                                        <span className="text-gray-600">Min:</span>{' '}
+                                                        <span className="font-semibold">{recommendations.min?.toFixed(2)}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-600">Avg:</span>{' '}
+                                                        <span className="font-semibold">{recommendations.avg?.toFixed(2)}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-600">Max:</span>{' '}
+                                                        <span className="font-semibold">{recommendations.max?.toFixed(2)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleApplyRecommendations}
+                                                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                                            >
+                                                <Target className="h-4 w-4" />
+                                                Apply Recommended Thresholds
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                            <div className="flex items-start gap-2">
+                                                <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                                                <div className="text-sm text-yellow-800">
+                                                    <p className="font-medium">Not enough data</p>
+                                                    <p className="text-xs mt-1">
+                                                        No historical readings available for this sensor in the last 30 days.
+                                                        Collect more data before using recommendations.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {showRecommendations && !recommendations && !loadingRecommendations && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                    <div className="flex items-start gap-2">
+                                        <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+                                        <div className="text-sm text-red-800">
+                                            <p className="font-medium">Failed to load recommendations</p>
+                                            <p className="text-xs mt-1">
+                                                Unable to fetch threshold suggestions. Try again later.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>

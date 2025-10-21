@@ -287,6 +287,15 @@ export const apiService = {
     updateSensorRule: (deviceId, sensorId, ruleId, ruleData) => apiClient.put(`/devices/${deviceId}/sensors/${sensorId}/rules/${ruleId}`, ruleData),
     deleteSensorRule: (deviceId, sensorId, ruleId) => apiClient.delete(`/devices/${deviceId}/sensors/${sensorId}/rules/${ruleId}`),
 
+    // Notification Templates
+    getNotificationTemplates: (filters = {}) => apiClient.get('/notification-templates', { params: filters }),
+    getNotificationTemplate: (templateId) => apiClient.get(`/notification-templates/${templateId}`),
+    createNotificationTemplate: (templateData) => apiClient.post('/notification-templates', templateData),
+    updateNotificationTemplate: (templateId, templateData) => apiClient.put(`/notification-templates/${templateId}`, templateData),
+    deleteNotificationTemplate: (templateId) => apiClient.delete(`/notification-templates/${templateId}`),
+    testNotificationTemplate: (templateId, variables) => apiClient.post(`/notification-templates/${templateId}/test`, { variables }),
+    getTemplateVariables: () => apiClient.get('/notification-templates/variables/list'),
+
     // License Management
     getLicenseStatus: () => apiClient.get('/license/status'),
     getLicenseInfo: () => apiClient.get('/license/info'),

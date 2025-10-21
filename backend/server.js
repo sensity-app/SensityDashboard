@@ -35,6 +35,7 @@ const webhookRoutes = require('./src/routes/webhooks');
 const licenseRoutes = require('./src/routes/license');
 const sensorRulesRoutes = require('./src/routes/sensorRules');
 const auditLogsRoutes = require('./src/routes/auditLogs');
+const notificationTemplatesRoutes = require('./src/routes/notificationTemplates');
 
 const WebSocketService = require('./src/services/websocketService');
 const AlertEscalationService = require('./src/services/alertEscalationService');
@@ -153,7 +154,8 @@ const protectedRoutes = [
     ['/api/threshold-calibration', thresholdCalibrationRoutes, 'analytics_advanced'],
     ['/api/security', securityRoutes, 'audit_logging'],
     ['/api/webhooks', webhookRoutes, 'custom_integrations'],
-    ['/api/rate-limits', rateLimitRoutes]
+    ['/api/rate-limits', rateLimitRoutes],
+    ['/api/notification-templates', notificationTemplatesRoutes, 'custom_integrations']
 ];
 
 // Audit logs route - accessible without license (security critical feature)

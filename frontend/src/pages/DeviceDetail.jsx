@@ -24,6 +24,15 @@ function DeviceDetail() {
     const [editingSensor, setEditingSensor] = useState(null);
     const [renamingSensorId, setRenamingSensorId] = useState(null);
     const [newSensorName, setNewSensorName] = useState('');
+    const [isRenamingDevice, setIsRenamingDevice] = useState(false);
+    const [newDeviceName, setNewDeviceName] = useState('');
+    const [showDeviceSettings, setShowDeviceSettings] = useState(false);
+    const [deviceConfig, setDeviceConfig] = useState({
+        heartbeat_interval: 60,
+        armed: false,
+        ota_enabled: true,
+        debug_mode: false
+    });
 
     const { data: device, isLoading } = useQuery(
         ['device', id],
@@ -139,6 +148,33 @@ function DeviceDetail() {
         }
     );
 
+    const updateDeviceMutation = useMutation(
+        ({ deviceId, payload }) => apiService.updateDevice(deviceId, payload),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['device', id]);
+                toast.success(t('deviceDetail.deviceUpdated', 'Device updated successfully'));
+            },
+            onError: (error) => {
+                toast.error(error?.response?.data?.error || t('deviceDetail.deviceUpdateFailed', 'Failed to update device'));
+            }
+        }
+    );
+
+    const updateDeviceConfigMutation = useMutation(
+        ({ deviceId, config }) => apiService.updateDeviceConfig(deviceId, config),
+        {
+            onSuccess: () => {
+                queryClient.invalidateQueries(['device', id]);
+                toast.success(t('deviceDetail.configUpdated', 'Configuration updated. Device will receive changes on next heartbeat.'));
+                setShowDeviceSettings(false);
+            },
+            onError: (error) => {
+                toast.error(error?.response?.data?.error || t('deviceDetail.configUpdateFailed', 'Failed to update configuration'));
+            }
+        }
+    );
+
     const handleStartRename = (sensor) => {
         setRenamingSensorId(sensor.id);
         setNewSensorName(sensor.name || '');
@@ -163,6 +199,56 @@ function DeviceDetail() {
             });
             setRenamingSensorId(null);
             setNewSensorName('');
+        } catch (error) {
+            // Error already handled in mutation
+        }
+    };
+
+    const handleStartDeviceRename = () => {
+        setIsRenamingDevice(true);
+        setNewDeviceName(device?.name || '');
+    };
+
+    const handleCancelDeviceRename = () => {
+        setIsRenamingDevice(false);
+        setNewDeviceName('');
+    };
+
+    const handleSaveDeviceRename = async () => {
+        if (!newDeviceName.trim()) {
+            toast.error(t('deviceDetail.deviceNameRequired', 'Device name cannot be empty'));
+            return;
+        }
+
+        try {
+            await updateDeviceMutation.mutateAsync({
+                deviceId: id,
+                payload: { name: newDeviceName.trim() }
+            });
+            setIsRenamingDevice(false);
+            setNewDeviceName('');
+        } catch (error) {
+            // Error already handled in mutation
+        }
+    };
+
+    const handleOpenDeviceSettings = () => {
+        // Load current config from device
+        setDeviceConfig({
+            heartbeat_interval: device?.heartbeat_interval || 60,
+            armed: device?.armed || false,
+            ota_enabled: device?.ota_enabled !== false,
+            debug_mode: device?.debug_mode || false
+        });
+        setShowDeviceSettings(true);
+    };
+
+    const handleSaveDeviceConfig = async () => {
+        try {
+            await updateDeviceConfigMutation.mutateAsync({
+                deviceId: id,
+                config: deviceConfig
+            });
         } catch (error) {
             // Error already handled in mutation
         }
@@ -446,9 +532,49 @@ function DeviceDetail() {
                                 <div className="flex-shrink-0">
                                     {getStatusIcon(device.status)}
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                     <p className="uppercase text-xs tracking-[0.3em] text-indigo-100">{t('deviceDetail.eyebrow')}</p>
-                                    <h1 className="text-3xl font-semibold text-white">{device.name}</h1>
+                                    {isRenamingDevice ? (
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <input
+                                                type="text"
+                                                value={newDeviceName}
+                                                onChange={(e) => setNewDeviceName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleSaveDeviceRename();
+                                                    if (e.key === 'Escape') handleCancelDeviceRename();
+                                                }}
+                                                className="text-2xl font-semibold bg-white/20 text-white border-2 border-white/50 rounded px-3 py-1 focus:outline-none focus:border-white"
+                                                placeholder={t('deviceDetail.deviceNamePlaceholder', 'Device name')}
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={handleSaveDeviceRename}
+                                                className="p-2 bg-green-500 hover:bg-green-600 text-white rounded"
+                                                title={t('deviceDetail.save', 'Save')}
+                                            >
+                                                <Check className="h-5 w-5" />
+                                            </button>
+                                            <button
+                                                onClick={handleCancelDeviceRename}
+                                                className="p-2 bg-red-500 hover:bg-red-600 text-white rounded"
+                                                title={t('deviceDetail.cancel', 'Cancel')}
+                                            >
+                                                <X className="h-5 w-5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <h1 className="text-3xl font-semibold text-white">{device.name}</h1>
+                                            <button
+                                                onClick={handleStartDeviceRename}
+                                                className="p-1 hover:bg-white/20 rounded transition-colors"
+                                                title={t('deviceDetail.rename', 'Rename device')}
+                                            >
+                                                <Edit2 className="h-5 w-5 text-white/80 hover:text-white" />
+                                            </button>
+                                        </div>
+                                    )}
                                     <p className="text-indigo-100">{device.location_name || t('deviceDetail.unassigned')}</p>
                                 </div>
                             </div>
@@ -473,6 +599,13 @@ function DeviceDetail() {
                                 >
                                     <AlertTriangle className="h-4 w-4" />
                                     {t('deviceDetail.manageRules')}
+                                </button>
+                                <button
+                                    onClick={handleOpenDeviceSettings}
+                                    className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+                                >
+                                    <Settings className="h-4 w-4" />
+                                    {t('deviceDetail.deviceSettings', 'Device Settings')}
                                 </button>
                                 <button
                                     onClick={() => setShowOTAManager(true)}
@@ -938,6 +1071,169 @@ function DeviceDetail() {
                     }}
                 />
             )}
+
+            {showDeviceSettings && (
+                <DeviceSettingsModal
+                    device={device}
+                    config={deviceConfig}
+                    onConfigChange={setDeviceConfig}
+                    onClose={() => setShowDeviceSettings(false)}
+                    onSave={handleSaveDeviceConfig}
+                    isLoading={updateDeviceConfigMutation.isLoading}
+                />
+            )}
+        </div>
+    );
+}
+
+function DeviceSettingsModal({ device, config, onConfigChange, onClose, onSave, isLoading }) {
+    const { t } = useTranslation();
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="max-w-2xl w-full bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-t-xl">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-2xl font-bold">{t('deviceDetail.deviceSettings', 'Device Settings')}</h2>
+                            <p className="text-sm text-indigo-100 mt-1">
+                                {device?.name} ({device?.id})
+                            </p>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+                        >
+                            <X className="h-6 w-6" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                    {/* Heartbeat Interval */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t('deviceDetail.heartbeatInterval', 'Heartbeat Interval')}
+                        </label>
+                        <div className="flex items-center gap-4">
+                            <input
+                                type="number"
+                                min="10"
+                                max="3600"
+                                value={config.heartbeat_interval}
+                                onChange={(e) => onConfigChange({ ...config, heartbeat_interval: parseInt(e.target.value) })}
+                                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                            />
+                            <span className="text-gray-600">{t('deviceDetail.seconds', 'seconds')}</span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-500">
+                            {t('deviceDetail.heartbeatHelp', 'How often the device sends status updates (10-3600 seconds). Lower = more real-time, higher = less network usage.')}
+                        </p>
+                        <div className="mt-2 text-xs text-gray-400">
+                            <strong>{t('deviceDetail.recommended', 'Recommended')}:</strong> 30-300 seconds
+                        </div>
+                    </div>
+
+                    {/* Armed Status */}
+                    <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                        <input
+                            type="checkbox"
+                            id="armed"
+                            checked={config.armed}
+                            onChange={(e) => onConfigChange({ ...config, armed: e.target.checked })}
+                            className="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div className="flex-1">
+                            <label htmlFor="armed" className="block font-medium text-gray-900 cursor-pointer">
+                                {t('deviceDetail.armedStatus', 'Armed Status')}
+                            </label>
+                            <p className="mt-1 text-sm text-gray-600">
+                                {t('deviceDetail.armedHelp', 'When armed, the device will send alerts when thresholds are crossed. When disarmed, threshold checking is disabled.')}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* OTA Enabled */}
+                    <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                        <input
+                            type="checkbox"
+                            id="ota_enabled"
+                            checked={config.ota_enabled}
+                            onChange={(e) => onConfigChange({ ...config, ota_enabled: e.target.checked })}
+                            className="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div className="flex-1">
+                            <label htmlFor="ota_enabled" className="block font-medium text-gray-900 cursor-pointer">
+                                {t('deviceDetail.otaEnabled', 'OTA Updates Enabled')}
+                            </label>
+                            <p className="mt-1 text-sm text-gray-600">
+                                {t('deviceDetail.otaHelp', 'Allow Over-The-Air firmware updates. Recommended to keep enabled for remote updates.')}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Debug Mode */}
+                    <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                        <input
+                            type="checkbox"
+                            id="debug_mode"
+                            checked={config.debug_mode}
+                            onChange={(e) => onConfigChange({ ...config, debug_mode: e.target.checked })}
+                            className="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div className="flex-1">
+                            <label htmlFor="debug_mode" className="block font-medium text-gray-900 cursor-pointer">
+                                {t('deviceDetail.debugMode', 'Debug Mode')}
+                            </label>
+                            <p className="mt-1 text-sm text-gray-600">
+                                {t('deviceDetail.debugHelp', 'Enable verbose logging in serial monitor. Useful for troubleshooting but increases serial output.')}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Info Box */}
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                        <div className="flex items-start gap-3">
+                            <Activity className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <h4 className="font-medium text-blue-900">
+                                    {t('deviceDetail.configUpdateInfo', 'Configuration Update')}
+                                </h4>
+                                <p className="mt-1 text-sm text-blue-700">
+                                    {t('deviceDetail.configUpdateInfoText', 'Changes will be sent to the device on its next heartbeat (within {interval} seconds). The device will apply the new configuration automatically.', { interval: config.heartbeat_interval })}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="sticky bottom-0 bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end gap-3 border-t">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                        disabled={isLoading}
+                    >
+                        {t('common.cancel', 'Cancel')}
+                    </button>
+                    <button
+                        onClick={onSave}
+                        disabled={isLoading}
+                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                        {isLoading ? (
+                            <>
+                                <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                {t('common.saving', 'Saving...')}
+                            </>
+                        ) : (
+                            <>
+                                <Save className="h-4 w-4" />
+                                {t('common.save', 'Save Configuration')}
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

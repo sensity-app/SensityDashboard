@@ -12,17 +12,53 @@ const SerialMonitor = () => {
     const [baudRate, setBaudRate] = useState(115200);
     const [autoScroll, setAutoScroll] = useState(true);
     const [showTimestamp, setShowTimestamp] = useState(true);
+    const [isUserScrolling, setIsUserScrolling] = useState(false);
+    const [monitoringStartTime, setMonitoringStartTime] = useState(null);
     const logRef = useRef(null);
+    const scrollTimeoutRef = useRef(null);
 
+    // Auto-scroll only when enabled and user is not manually scrolling
     useEffect(() => {
-        if (autoScroll && logRef.current) {
+        if (autoScroll && !isUserScrolling && logRef.current) {
             logRef.current.scrollTop = logRef.current.scrollHeight;
         }
-    }, [log, autoScroll]);
+    }, [log.length, autoScroll, isUserScrolling]); // Only depend on log length, not the entire array
 
     const addLog = (message, type = 'device') => {
         const timestamp = new Date().toLocaleTimeString();
-        setLog(prev => [...prev, { message, type, timestamp }]);
+        const fullTimestamp = new Date();
+
+        // Only add logs that are after monitoring started (if timestamp filtering is enabled)
+        if (monitoringStartTime && fullTimestamp < monitoringStartTime) {
+            return; // Skip logs from before monitoring started
+        }
+
+        setLog(prev => [...prev, { message, type, timestamp, fullTimestamp }]);
+    };
+
+    // Detect user scrolling
+    const handleScroll = () => {
+        if (!logRef.current) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = logRef.current;
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+
+        // Clear existing timeout
+        if (scrollTimeoutRef.current) {
+            clearTimeout(scrollTimeoutRef.current);
+        }
+
+        // If user is not at bottom, disable auto-scroll temporarily
+        if (!isAtBottom) {
+            setIsUserScrolling(true);
+
+            // Re-enable auto-scroll after 3 seconds of no scrolling
+            scrollTimeoutRef.current = setTimeout(() => {
+                setIsUserScrolling(false);
+            }, 3000);
+        } else {
+            setIsUserScrolling(false);
+        }
     };
 
     const connectToDevice = async () => {
@@ -56,12 +92,19 @@ const SerialMonitor = () => {
         if (!port || isMonitoring) return;
 
         try {
+            // Clear existing logs to start fresh
+            setLog([]);
+
             await port.open({ baudRate: baudRate });
             setIsMonitoring(true);
+
+            // Set monitoring start time to filter old logs
+            setMonitoringStartTime(new Date());
+
             addLog(t('serialMonitor.log.monitorStarted', { baudRate }), 'info');
 
             const textDecoder = new TextDecoderStream();
-            const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+            port.readable.pipeTo(textDecoder.writable);
             const newReader = textDecoder.readable.getReader();
             setReader(newReader);
 
@@ -120,6 +163,7 @@ const SerialMonitor = () => {
 
     const clearLog = () => {
         setLog([]);
+        setIsUserScrolling(false);
     };
 
     const downloadLog = () => {
@@ -278,6 +322,7 @@ const SerialMonitor = () => {
                 {/* Log Display */}
                 <div
                     ref={logRef}
+                    onScroll={handleScroll}
                     className="bg-black text-green-400 font-mono text-sm p-4 h-[600px] overflow-y-auto"
                     style={{ fontFamily: 'Consolas, Monaco, "Courier New", monospace' }}
                 >

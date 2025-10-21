@@ -721,6 +721,8 @@ router.post('/:id/heartbeat', [
                 ds.enabled,
                 ds.calibration_offset,
                 ds.calibration_multiplier,
+                ds.threshold_min,
+                ds.threshold_max,
                 st.name as sensor_type
             FROM device_sensors ds
             JOIN sensor_types st ON ds.sensor_type_id = st.id
@@ -728,31 +730,9 @@ router.post('/:id/heartbeat', [
             ORDER BY ds.pin
         `, [id]);
 
-        // Get sensor rules (thresholds) for each sensor
-        const rulesResult = await db.query(`
-            SELECT
-                device_sensor_id,
-                threshold_min,
-                threshold_max,
-                enabled
-            FROM sensor_rules
-            WHERE device_sensor_id = ANY(SELECT id FROM device_sensors WHERE device_id = $1)
-            AND rule_type = 'threshold'
-            AND enabled = true
-            ORDER BY device_sensor_id
-        `, [id]);
-
-        // Create a map of sensor rules by sensor ID
-        const rulesMap = {};
-        rulesResult.rows.forEach(rule => {
-            if (!rulesMap[rule.device_sensor_id]) {
-                rulesMap[rule.device_sensor_id] = rule;
-            }
-        });
-
         // Build sensor configuration array with thresholds
+        // Thresholds are now stored directly on device_sensors table
         const sensorConfig = sensorsResult.rows.map(sensor => {
-            const rules = rulesMap[sensor.sensor_id];
             return {
                 pin: sensor.pin,
                 type: sensor.sensor_type,
@@ -760,8 +740,8 @@ router.post('/:id/heartbeat', [
                 enabled: sensor.enabled,
                 calibration_offset: sensor.calibration_offset || 0,
                 calibration_multiplier: sensor.calibration_multiplier || 1,
-                threshold_min: rules?.threshold_min || 0,
-                threshold_max: rules?.threshold_max || 0
+                threshold_min: sensor.threshold_min != null ? sensor.threshold_min : 0,
+                threshold_max: sensor.threshold_max != null ? sensor.threshold_max : 0
             };
         });
 
@@ -1688,7 +1668,7 @@ router.post('/:id/sensors', authenticateToken, async (req, res) => {
 router.put('/:deviceId/sensors/:sensorId', authenticateToken, async (req, res) => {
     try {
         const { deviceId, sensorId } = req.params;
-        const { name, calibration_offset, calibration_multiplier, enabled, trigger_ota } = req.body;
+        const { name, calibration_offset, calibration_multiplier, enabled, trigger_ota, threshold_min, threshold_max } = req.body;
 
         const result = await db.query(`
             UPDATE device_sensors
@@ -1696,10 +1676,12 @@ router.put('/:deviceId/sensors/:sensorId', authenticateToken, async (req, res) =
                 calibration_offset = COALESCE($2, calibration_offset),
                 calibration_multiplier = COALESCE($3, calibration_multiplier),
                 enabled = COALESCE($4, enabled),
+                threshold_min = COALESCE($5, threshold_min),
+                threshold_max = COALESCE($6, threshold_max),
                 updated_at = CURRENT_TIMESTAMP
-            WHERE id = $5 AND device_id = $6
+            WHERE id = $7 AND device_id = $8
             RETURNING *
-        `, [name, calibration_offset, calibration_multiplier, enabled, sensorId, deviceId]);
+        `, [name, calibration_offset, calibration_multiplier, enabled, threshold_min, threshold_max, sensorId, deviceId]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Sensor not found' });

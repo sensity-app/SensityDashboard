@@ -477,13 +477,58 @@ class AuditService {
 
             const result = await db.query(query, params);
 
-            // Get total count
+            // Get total count - rebuild query without LIMIT/OFFSET
             let countQuery = `SELECT COUNT(*) FROM audit_logs WHERE 1=1`;
-            const countParams = params.slice(0, -2); // Remove limit and offset
+            const countParams = [];
+            let countParamCount = 1;
 
-            if (userId) countQuery += ` AND user_id = $1`;
-            if (deviceId) countQuery += ` AND device_id = $${countParams.length > 0 ? countParams.length + 1 : 1}`;
-            // ... add other filters
+            if (userId) {
+                countQuery += ` AND user_id = $${countParamCount}`;
+                countParams.push(userId);
+                countParamCount++;
+            }
+
+            if (deviceId) {
+                countQuery += ` AND device_id = $${countParamCount}`;
+                countParams.push(deviceId);
+                countParamCount++;
+            }
+
+            if (actionType) {
+                countQuery += ` AND action_type = $${countParamCount}`;
+                countParams.push(actionType);
+                countParamCount++;
+            }
+
+            if (actionCategory) {
+                countQuery += ` AND action_category = $${countParamCount}`;
+                countParams.push(actionCategory);
+                countParamCount++;
+            }
+
+            if (actionResult) {
+                countQuery += ` AND action_result = $${countParamCount}`;
+                countParams.push(actionResult);
+                countParamCount++;
+            }
+
+            if (startDate) {
+                countQuery += ` AND created_at >= $${countParamCount}`;
+                countParams.push(startDate);
+                countParamCount++;
+            }
+
+            if (endDate) {
+                countQuery += ` AND created_at <= $${countParamCount}`;
+                countParams.push(endDate);
+                countParamCount++;
+            }
+
+            if (searchTerm) {
+                countQuery += ` AND (user_email ILIKE $${countParamCount} OR resource_name ILIKE $${countParamCount} OR action_type ILIKE $${countParamCount})`;
+                countParams.push(`%${searchTerm}%`);
+                countParamCount++;
+            }
 
             const countResult = await db.query(countQuery, countParams);
             const total = parseInt(countResult.rows[0].count);

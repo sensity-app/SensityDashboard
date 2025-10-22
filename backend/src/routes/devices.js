@@ -516,7 +516,7 @@ router.post('/:id/telemetry', [
         const wifiQualityPercent = wifi_rssi ? Math.max(0, Math.min(100, 2 * (wifi_rssi + 100))) : null;
 
         // Update device last heartbeat and health metrics
-        await db.query(`
+        const updateResult = await db.query(`
             UPDATE devices
             SET last_heartbeat = CURRENT_TIMESTAMP,
                 status = 'online',
@@ -529,6 +529,12 @@ router.post('/:id/telemetry', [
                 wifi_quality_percent = COALESCE($6, wifi_quality_percent)
             WHERE id = $7
         `, [uptime, telemetryIp, free_heap, wifi_rssi, memoryUsagePercent, wifiQualityPercent, id]);
+
+        // Check if device exists
+        if (updateResult.rowCount === 0) {
+            logger.error(`Device not found: ${id}`);
+            return res.status(404).json({ error: 'Device not found', device_id: id });
+        }
 
         // Process telemetry data using TelemetryProcessor service from request
         const telemetryProcessor = req.telemetryProcessor;
@@ -648,8 +654,17 @@ router.post('/:id/telemetry', [
 
         res.json({ message: 'Telemetry received successfully' });
     } catch (error) {
-        logger.error('Telemetry error:', error);
-        res.status(500).json({ error: 'Failed to process telemetry' });
+        logger.error('Telemetry error:', {
+            message: error.message,
+            stack: error.stack,
+            device_id: req.params.id,
+            sensors: req.body.sensors?.length || 0
+        });
+        res.status(500).json({
+            error: 'Failed to process telemetry',
+            message: error.message,
+            device_id: req.params.id
+        });
     }
 });
 

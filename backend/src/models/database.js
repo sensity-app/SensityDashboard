@@ -746,6 +746,151 @@ const runMigrations = async () => {
 
                 CREATE INDEX IF NOT EXISTS idx_local_license_info_status ON local_license_info(status);
             `
+        },
+        {
+            name: '006_add_audit_logs',
+            sql: `
+                -- Audit Logs table - stores all user and system actions
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    user_email VARCHAR(255),
+                    user_role VARCHAR(20),
+                    device_id VARCHAR(50) REFERENCES devices(id) ON DELETE SET NULL,
+                    device_name VARCHAR(255),
+                    action_type VARCHAR(100) NOT NULL,
+                    action_category VARCHAR(50) NOT NULL,
+                    action_result VARCHAR(20) NOT NULL DEFAULT 'success',
+                    resource_type VARCHAR(50),
+                    resource_id VARCHAR(255),
+                    resource_name VARCHAR(255),
+                    changes JSONB,
+                    metadata JSONB,
+                    ip_address INET,
+                    user_agent TEXT,
+                    request_method VARCHAR(10),
+                    request_url VARCHAR(500),
+                    error_message TEXT,
+                    error_code VARCHAR(50),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP
+                );
+
+                -- Session Audit table
+                CREATE TABLE IF NOT EXISTS session_audit (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                    user_email VARCHAR(255),
+                    session_token VARCHAR(255),
+                    session_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    session_end TIMESTAMP,
+                    session_duration INTEGER,
+                    ip_address INET,
+                    user_agent TEXT,
+                    browser VARCHAR(100),
+                    os VARCHAR(100),
+                    device_type VARCHAR(50),
+                    last_activity TIMESTAMP,
+                    actions_count INTEGER DEFAULT 0,
+                    logout_type VARCHAR(50),
+                    logout_reason TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                -- Failed Login Attempts table
+                CREATE TABLE IF NOT EXISTS failed_login_attempts (
+                    id BIGSERIAL PRIMARY KEY,
+                    email VARCHAR(255) NOT NULL,
+                    ip_address INET NOT NULL,
+                    user_agent TEXT,
+                    failure_reason VARCHAR(100),
+                    password_hash_attempted VARCHAR(255),
+                    country VARCHAR(2),
+                    city VARCHAR(100),
+                    attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    consecutive_failures INTEGER DEFAULT 1,
+                    account_locked BOOLEAN DEFAULT false
+                );
+
+                -- Data Export Audit table
+                CREATE TABLE IF NOT EXISTS data_export_audit (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    user_email VARCHAR(255),
+                    export_type VARCHAR(50) NOT NULL,
+                    export_format VARCHAR(20),
+                    filters JSONB,
+                    record_count INTEGER,
+                    file_size_bytes BIGINT,
+                    ip_address INET,
+                    user_agent TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                -- Config Change Audit table
+                CREATE TABLE IF NOT EXISTS config_change_audit (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    user_email VARCHAR(255),
+                    config_category VARCHAR(100) NOT NULL,
+                    config_key VARCHAR(255) NOT NULL,
+                    old_value TEXT,
+                    new_value TEXT,
+                    change_reason TEXT,
+                    ip_address INET,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+
+                -- Device Command Audit table
+                CREATE TABLE IF NOT EXISTS device_command_audit (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    device_id VARCHAR(50) REFERENCES devices(id) ON DELETE SET NULL,
+                    command_type VARCHAR(100) NOT NULL,
+                    command_data JSONB,
+                    status VARCHAR(50) DEFAULT 'pending',
+                    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    acknowledged_at TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    duration_seconds INTEGER,
+                    device_response JSONB,
+                    error_message TEXT,
+                    ip_address INET
+                );
+
+                -- Indexes for performance
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_device_id ON audit_logs(device_id);
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_action_category ON audit_logs(action_category);
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_audit_logs_expires_at ON audit_logs(expires_at);
+                CREATE INDEX IF NOT EXISTS idx_session_audit_user_id ON session_audit(user_id);
+                CREATE INDEX IF NOT EXISTS idx_failed_login_attempts_email ON failed_login_attempts(email);
+                CREATE INDEX IF NOT EXISTS idx_failed_login_attempts_ip ON failed_login_attempts(ip_address);
+                CREATE INDEX IF NOT EXISTS idx_data_export_audit_user_id ON data_export_audit(user_id);
+                CREATE INDEX IF NOT EXISTS idx_config_change_audit_user_id ON config_change_audit(user_id);
+                CREATE INDEX IF NOT EXISTS idx_device_command_audit_device_id ON device_command_audit(device_id);
+
+                -- Function to cleanup old audit logs
+                CREATE OR REPLACE FUNCTION cleanup_old_audit_logs()
+                RETURNS INTEGER AS $$
+                DECLARE
+                    deleted_count INTEGER;
+                BEGIN
+                    -- Delete audit logs older than retention period (90 days default)
+                    DELETE FROM audit_logs
+                    WHERE expires_at IS NOT NULL AND expires_at < NOW();
+
+                    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+
+                    -- Also delete very old logs without explicit expiration (1 year)
+                    DELETE FROM audit_logs
+                    WHERE expires_at IS NULL AND created_at < NOW() - INTERVAL '1 year';
+
+                    RETURN deleted_count;
+                END;
+                $$ LANGUAGE plpgsql;
+            `
         }
     ];
 

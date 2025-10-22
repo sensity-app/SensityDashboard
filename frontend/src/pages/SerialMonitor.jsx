@@ -48,17 +48,13 @@ const SerialMonitor = () => {
             clearTimeout(scrollTimeoutRef.current);
         }
 
-        // Only update state if it actually changed
+        // If user scrolls up, disable auto-scroll
         if (!isAtBottom && !isUserScrolling) {
             setIsUserScrolling(true);
         }
 
-        // Re-enable auto-scroll after 3 seconds of no scrolling
-        if (!isAtBottom) {
-            scrollTimeoutRef.current = setTimeout(() => {
-                setIsUserScrolling(false);
-            }, 3000);
-        } else if (isUserScrolling) {
+        // Only re-enable auto-scroll if user scrolls back to bottom
+        if (isAtBottom && isUserScrolling) {
             setIsUserScrolling(false);
         }
     }, [isUserScrolling]);

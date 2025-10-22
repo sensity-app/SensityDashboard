@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Usb, Play, Square, Trash2, Download, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -36,8 +36,8 @@ const SerialMonitor = () => {
         setLog(prev => [...prev, { message, type, timestamp, fullTimestamp }]);
     };
 
-    // Detect user scrolling
-    const handleScroll = () => {
+    // Detect user scrolling with debouncing to prevent excessive re-renders
+    const handleScroll = useCallback(() => {
         if (!logRef.current) return;
 
         const { scrollTop, scrollHeight, clientHeight } = logRef.current;
@@ -48,18 +48,20 @@ const SerialMonitor = () => {
             clearTimeout(scrollTimeoutRef.current);
         }
 
-        // If user is not at bottom, disable auto-scroll temporarily
-        if (!isAtBottom) {
+        // Only update state if it actually changed
+        if (!isAtBottom && !isUserScrolling) {
             setIsUserScrolling(true);
+        }
 
-            // Re-enable auto-scroll after 3 seconds of no scrolling
+        // Re-enable auto-scroll after 3 seconds of no scrolling
+        if (!isAtBottom) {
             scrollTimeoutRef.current = setTimeout(() => {
                 setIsUserScrolling(false);
             }, 3000);
-        } else {
+        } else if (isUserScrolling) {
             setIsUserScrolling(false);
         }
-    };
+    }, [isUserScrolling]);
 
     const connectToDevice = async () => {
         try {

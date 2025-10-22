@@ -23,12 +23,14 @@ import {
     GitBranch,
     RotateCcw,
     Clock,
-    Key
+    Key,
+    MessageSquare
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { apiService } from '../services/api';
 import LicenseManagerPanel from '../components/LicenseManagerPanel';
+import NotificationTemplates from './NotificationTemplates';
 
 function Settings() {
     const { t } = useTranslation();
@@ -106,28 +108,6 @@ function Settings() {
             navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
         }
     }, [activeTab, location.pathname, location.search, navigate]);
-
-    // Load settings from localStorage on mount as fallback
-    useEffect(() => {
-        const savedSettings = localStorage.getItem('appSettings');
-        if (savedSettings) {
-            try {
-                const parsed = JSON.parse(savedSettings);
-                if (parsed.system) {
-                    setSystemSettings(prev => ({ ...prev, ...parsed.system }));
-                }
-                if (parsed.branding) {
-                    setBrandingSettings(prev => ({ ...prev, ...parsed.branding }));
-                    // Apply saved branding
-                    if (parsed.branding.primaryColor) {
-                        document.documentElement.style.setProperty('--primary-color', parsed.branding.primaryColor);
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading settings from localStorage:', error);
-            }
-        }
-    }, []);
 
     // Query settings
     const { data: settingsData, isLoading: settingsLoading } = useQuery(
@@ -259,9 +239,6 @@ function Settings() {
             }
         };
 
-        // Also save to localStorage as fallback
-        localStorage.setItem('appSettings', JSON.stringify(allSettings));
-
         // Apply branding changes to the page
         if (brandingSettings.primaryColor) {
             document.documentElement.style.setProperty('--primary-color', brandingSettings.primaryColor);
@@ -382,6 +359,7 @@ function Settings() {
         { id: 'license', label: t('settings.tabs.license', 'License'), icon: Key },
         { id: 'platform', label: t('settings.tabs.platform', 'Platform Update'), icon: RotateCcw },
         { id: 'branding', label: t('settings.tabs.branding', 'Branding'), icon: Image },
+        { id: 'notifications', label: t('settings.tabs.notifications', 'Notification Templates'), icon: MessageSquare },
         { id: 'environment', label: t('settings.tabs.environment', 'Environment'), icon: Code },
         { id: 'database', label: t('settings.tabs.database', 'Database'), icon: Database },
         { id: 'email', label: t('settings.tabs.email', 'Email'), icon: Mail },
@@ -1258,6 +1236,13 @@ function Settings() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Notification Templates Tab */}
+                        {activeTab === 'notifications' && (
+                            <div className="p-6">
+                                <NotificationTemplates />
                             </div>
                         )}
 

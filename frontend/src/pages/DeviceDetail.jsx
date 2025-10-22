@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
-import { Wifi, WifiOff, AlertTriangle, Zap, Clock, Activity, Signal, TrendingUp, Plus, Trash2, Save, Settings, Edit2, Check, X } from 'lucide-react';
+import { Wifi, WifiOff, AlertTriangle, Zap, Clock, Activity, Signal, TrendingUp, Plus, Trash2, Save, Settings, Edit2, Check, X, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiService } from '../services/api';
 import { websocketService } from '../services/websocket';

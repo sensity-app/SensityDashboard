@@ -23,7 +23,6 @@ import AlertsPage from './pages/Alerts';
 import SensorRules from './pages/SensorRules';
 import AlertsEnhanced from './pages/AlertsEnhanced';
 import AuditLog from './pages/AuditLog';
-import NotificationTemplates from './pages/NotificationTemplates';
 
 import LanguageSelector from './components/LanguageSelector';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
@@ -433,7 +432,6 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                     { path: '/users', label: t('nav.userManagement', 'Users'), icon: '👥' },
                     { path: '/audit-log', label: t('nav.auditLog', 'Audit Log'), icon: '🔍', feature: 'audit_logging' },
                     { path: '/settings', label: t('nav.settings', 'Settings'), icon: '⚙️' },
-                    { path: '/notification-templates', label: t('nav.notificationTemplates', 'Notification Templates'), icon: '📧', feature: 'custom_integrations' },
                     { path: '/protocol-settings', label: t('nav.protocolSettings', 'Protocol Settings'), icon: '🔌', feature: 'custom_integrations' }
                 ]
             });
@@ -901,14 +899,6 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                         <>
                             <Route path="/users" element={<UserManagement />} />
                             <Route path="/settings" element={<Settings />} />
-                            <Route
-                                path="/notification-templates"
-                                element={
-                                    <FeatureGate feature="custom_integrations">
-                                        <NotificationTemplates />
-                                    </FeatureGate>
-                                }
-                            />
                             <Route
                                 path="/protocol-settings"
                                 element={

@@ -8,7 +8,7 @@ const AuditLogPage = () => {
     const { t } = useTranslation();
     const [actionFilter, setActionFilter] = useState('all');
     const [userFilter, setUserFilter] = useState('all');
-    const [dateRange, setDateRange] = useState('7d'); // 24h, 7d, 30d, all
+    const [dateRange, setDateRange] = useState('all'); // Changed default to 'all' to show all logs
     const [searchTerm, setSearchTerm] = useState('');
 
     // Fetch audit logs
@@ -127,15 +127,15 @@ const AuditLogPage = () => {
     };
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6 space-y-6 animate-fade-in">
             {/* Header */}
-            <div className="mb-6 flex justify-between items-center">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
                         <Shield className="h-8 w-8 text-indigo-600" />
                         {t('audit.title', 'Audit Log')}
                     </h1>
-                    <p className="text-gray-500 mt-1">
+                    <p className="mt-1 text-sm text-gray-500">
                         {t('audit.subtitle', 'Track user actions and system changes')}
                     </p>
                 </div>
@@ -149,22 +149,34 @@ const AuditLogPage = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                    <div className="text-sm font-medium text-gray-500">{t('audit.totalActions', 'Total Actions')}</div>
-                    <div className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                    <div className="relative z-10">
+                        <p className="text-sm font-medium opacity-90">{t('audit.totalActions', 'Total Actions')}</p>
+                        <p className="mt-2 text-3xl font-bold">{stats.total}</p>
+                    </div>
+                    <Shield className="absolute right-4 top-4 h-12 w-12 opacity-20" />
                 </div>
-                <div className="bg-white rounded-lg shadow-sm p-4 border border-blue-200">
-                    <div className="text-sm font-medium text-blue-600">{t('audit.logins', 'Logins')}</div>
-                    <div className="text-2xl font-bold text-blue-700 mt-1">{stats.logins}</div>
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                    <div className="relative z-10">
+                        <p className="text-sm font-medium opacity-90">{t('audit.logins', 'Logins')}</p>
+                        <p className="mt-2 text-3xl font-bold">{stats.logins}</p>
+                    </div>
+                    <User className="absolute right-4 top-4 h-12 w-12 opacity-20" />
                 </div>
-                <div className="bg-white rounded-lg shadow-sm p-4 border border-green-200">
-                    <div className="text-sm font-medium text-green-600">{t('audit.deviceChanges', 'Device Changes')}</div>
-                    <div className="text-2xl font-bold text-green-700 mt-1">{stats.deviceChanges}</div>
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                    <div className="relative z-10">
+                        <p className="text-sm font-medium opacity-90">{t('audit.deviceChanges', 'Device Changes')}</p>
+                        <p className="mt-2 text-3xl font-bold">{stats.deviceChanges}</p>
+                    </div>
+                    <Activity className="absolute right-4 top-4 h-12 w-12 opacity-20" />
                 </div>
-                <div className="bg-white rounded-lg shadow-sm p-4 border border-purple-200">
-                    <div className="text-sm font-medium text-purple-600">{t('audit.alertActions', 'Alert Actions')}</div>
-                    <div className="text-2xl font-bold text-purple-700 mt-1">{stats.alertActions}</div>
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                    <div className="relative z-10">
+                        <p className="text-sm font-medium opacity-90">{t('audit.alertActions', 'Alert Actions')}</p>
+                        <p className="mt-2 text-3xl font-bold">{stats.alertActions}</p>
+                    </div>
+                    <Filter className="absolute right-4 top-4 h-12 w-12 opacity-20" />
                 </div>
             </div>
 
@@ -249,9 +261,38 @@ const AuditLogPage = () => {
                         <p className="text-gray-500 mt-2">{t('common.loading', 'Loading...')}</p>
                     </div>
                 ) : filteredLogs.length === 0 ? (
-                    <div className="p-8 text-center">
-                        <Activity className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-500">{t('audit.noLogs', 'No audit logs found')}</p>
+                    <div className="p-12 text-center">
+                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                            <Activity className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                            {t('audit.noLogs', 'No audit logs found')}
+                        </h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Audit logs will appear here when users perform actions like:
+                        </p>
+                        <div className="max-w-md mx-auto text-left bg-gray-50 rounded-lg p-4">
+                            <ul className="space-y-2 text-sm text-gray-600">
+                                <li className="flex items-center gap-2">
+                                    <span className="text-blue-600">🔐</span> Login/Logout
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <span className="text-green-600">📱</span> Creating/updating/deleting devices
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <span className="text-yellow-600">🔔</span> Acknowledging/resolving alerts
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <span className="text-purple-600">👤</span> User management actions
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <span className="text-indigo-600">⚙️</span> System settings changes
+                                </li>
+                            </ul>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-4">
+                            Try changing the date range filter to "All Time" to see historical logs
+                        </p>
                     </div>
                 ) : (
                     <table className="min-w-full divide-y divide-gray-200">

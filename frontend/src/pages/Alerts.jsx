@@ -145,12 +145,12 @@ const AlertsPage = () => {
         : t('alerts.alertList');
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6 space-y-6 animate-fade-in">
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-gray-900">{t('alerts.title')}</h1>
-                    <p className="text-sm text-gray-500">{headingDescription}</p>
+                    <h1 className="text-3xl font-bold text-gray-900">{t('alerts.title')}</h1>
+                    <p className="mt-1 text-sm text-gray-500">{headingDescription}</p>
                 </div>
                 <div className="flex items-center gap-2">
                     {deviceId && (

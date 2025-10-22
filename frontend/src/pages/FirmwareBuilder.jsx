@@ -565,7 +565,7 @@ const FirmwareBuilder = () => {
                                                 value={config.device_name}
                                                 onChange={(e) => handleConfigChange('device_name', e.target.value)}
                                                 className="input-field"
-                                                placeholder={getCopy('sections.device.fields.name.placeholder')}
+                                                placeholder={getCopy('sections.device.fields.name.placeholder', 'e.g., Kitchen Sensor Hub')}
                                             />
                                             <p className="text-xs text-gray-500 mt-1">{getCopy('sections.device.fields.name.helper', 'Choose a descriptive name for easy identification')}</p>
                                         </div>
@@ -580,7 +580,7 @@ const FirmwareBuilder = () => {
                                                     value={config.device_location}
                                                     onChange={(e) => handleConfigChange('device_location', e.target.value)}
                                                     className="input-field"
-                                                    placeholder={getCopy('sections.device.fields.location.placeholder')}
+                                                    placeholder={getCopy('sections.device.fields.location.placeholder', 'Enter or select location...')}
                                                     list="locations-list"
                                                 />
                                                 <datalist id="locations-list">
@@ -680,7 +680,7 @@ const FirmwareBuilder = () => {
                                                     value={config.wifi_ssid}
                                                     onChange={(e) => handleConfigChange('wifi_ssid', e.target.value)}
                                                     className="input-field"
-                                                placeholder={getCopy('sections.network.wifi.fields.ssid.placeholder')}
+                                                    placeholder={getCopy('sections.network.wifi.fields.ssid.placeholder', 'Your WiFi network name')}
                                                 />
                                             </div>
                                             <div className="form-group">
@@ -693,8 +693,8 @@ const FirmwareBuilder = () => {
                                                     onChange={(e) => handleConfigChange('wifi_password', e.target.value)}
                                                     className="input-field"
                                                     placeholder={config.open_wifi
-                                                        ? getCopy('sections.network.wifi.fields.password.placeholderOpen')
-                                                        : getCopy('sections.network.wifi.fields.password.placeholder')}
+                                                        ? getCopy('sections.network.wifi.fields.password.placeholderOpen', 'No password required')
+                                                        : getCopy('sections.network.wifi.fields.password.placeholder', 'Your WiFi password')}
                                                     disabled={config.open_wifi}
                                                 />
                                             </div>
@@ -729,13 +729,13 @@ const FirmwareBuilder = () => {
                                             <label className="form-label">
                                                 {getCopy('sections.network.server.fields.url.label', 'Server URL *')}
                                             </label>
-                                            <input
-                                                type="url"
-                                                value={config.server_url}
-                                                onChange={(e) => handleConfigChange('server_url', e.target.value)}
-                                                className="input-field"
-                                                placeholder={getCopy('sections.network.server.fields.url.placeholder', 'https://your-server.com')}
-                                            />
+                                                <input
+                                                    type="url"
+                                                    value={config.server_url}
+                                                    onChange={(e) => handleConfigChange('server_url', e.target.value)}
+                                                    className="input-field"
+                                                    placeholder={getCopy('sections.network.server.fields.url.placeholder', 'https://your-server.com')}
+                                                />
                                             <p className="text-xs text-gray-500 mt-1">
                                                 {getCopy('sections.network.server.fields.url.helper', 'The device will connect to this server to send data')}
                                             </p>

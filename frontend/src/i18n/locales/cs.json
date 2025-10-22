@@ -94,24 +94,170 @@
     "language": "Jazyk"
   },
   "settings": {
-    "appearance": "Vzhled",
-    "theme": "Téma",
-    "dark": "Tmavý",
-    "light": "Světlý",
-    "auto": "Automaticky",
-    "advanced": "Pokročilá nastavení",
-    "apiSettings": "Nastavení API",
-    "databaseSettings": "Nastavení databáze",
-    "cacheSettings": "Nastavení mezipaměti",
-    "securitySettings": "Nastavení zabezpečení",
-    "loggingSettings": "Nastavení logování",
-    "dateFormat": "Formát data",
-    "timeFormat": "Formát času",
-    "settingsSaved": "Nastavení byla uložena",
-    "settingsReset": "Nastavení byla obnovena na výchozí",
-    "languageChanged": "Jazyk byl změněn",
-    "languageUpdateFailed": "Změna jazyka se nezdařila",
-    "import": "Importovat"
+    "title": "Systémová nastavení",
+    "subtitle": "Nakonfigurujte nastavení vaší IoT platformy a systémové preference",
+    "save": "Uložit nastavení",
+    "saveSuccess": "Nastavení byla úspěšně uložena",
+    "saveError": "Nepodařilo se uložit nastavení",
+    "saving": "Ukládám...",
+    "backupSuccess": "Záloha databáze byla úspěšně stažena",
+    "backupError": "Nepodařilo se vytvořit zálohu databáze",
+    "tabs": {
+      "system": "Systém",
+      "platform": "Aktualizace platformy",
+      "branding": "Brandování",
+      "environment": "Prostředí",
+      "database": "Databáze",
+      "email": "E-mail",
+      "security": "Bezpečnost"
+    },
+    "system": {
+      "title": "Informace o systému",
+      "status": "Stav systému",
+      "running": "Běží",
+      "uptime": "Doba provozu",
+      "version": "Verze",
+      "nodeVersion": "Verze Node.js",
+      "unknown": "Neznámý",
+      "siteName": "Název webu",
+      "adminEmail": "Administrátorský e-mail",
+      "maintenanceMode": "Režim údržby"
+    },
+    "branding": {
+      "title": "Přizpůsobení značky",
+      "companyInfo": "Informace o společnosti",
+      "companyName": "Název společnosti",
+      "logoManagement": "Správa loga",
+      "companyLogo": "Logo společnosti",
+      "favicon": "Favicon",
+      "colorScheme": "Barevné schéma",
+      "primaryColor": "Primární barva",
+      "accentColor": "Akcentová barva",
+      "preview": "Náhled",
+      "toast": {
+        "invalidImage": "Vyberte prosím platný obrázek",
+        "imageTooLarge": "Soubor obrázku musí být menší než 2 MB",
+        "logoUploaded": "Logo bylo úspěšně nahráno",
+        "logoUploadFailed": "Logo se nepodařilo nahrát",
+        "logoRemoved": "Logo bylo odstraněno",
+        "logoRemoveFailed": "Logo se nepodařilo odstranit"
+      }
+    },
+    "environment": {
+      "title": "Proměnné prostředí",
+      "errorCount": "{{count}} {{count, plural, one{chyba} few{chyby} other{chyb}}}",
+      "warningCount": "{{count}} {{count, plural, one{varování} few{varování} other{varování}}}",
+      "emptyTitle": "Nebyly nalezeny žádné proměnné prostředí",
+      "emptyDescription1": ".env soubor neexistuje nebo je prázdný. Proměnné prostředí se používají pro konfiguraci aplikace, například připojení k databázi, API klíče a další citlivé údaje.",
+      "emptyDescription2": "Proměnné prostředí můžete vytvořit níže a automaticky se uloží do souboru .env.",
+      "errorsTitle": "Chyby",
+      "warningsTitle": "Varování",
+      "addTitle": "Přidat proměnné prostředí",
+      "namePlaceholder": "Název proměnné (např. DB_HOST)",
+      "valuePlaceholder": "Hodnota",
+      "addButton": "Přidat",
+      "hint": "Stiskněte Tab pro naformátování názvu proměnné nebo Enter pro přidání proměnné",
+      "sensitive": "Citlivé",
+      "maskPlaceholder": "Hodnota skryta (klikněte na oko pro zobrazení)",
+      "enterValue": "Zadejte hodnotu pro {{name}}",
+      "otherVariables": "Ostatní proměnné",
+      "restartNotice": "Změny mohou vyžadovat restart serveru",
+      "save": "Uložit proměnné prostředí",
+      "saveSuccess": "{{restartRequired, select, true{Proměnné prostředí byly uloženy. Je vyžadován restart serveru.} false{Proměnné prostředí byly uloženy.}}}",
+      "saveError": "Nepodařilo se uložit proměnné prostředí"
+    },
+    "database": {
+      "title": "Správa databáze",
+      "info": "Informace o databázi",
+      "type": "Typ",
+      "status": "Stav",
+      "backup": "Zálohování a obnovení",
+      "createBackup": "Vytvořit zálohu",
+      "backupDescription": "Stáhnout kompletní zálohu databáze včetně všech zařízení, uživatelů, upozornění a telemetrických dat.",
+      "retention": "Uchování dat",
+      "backupRetention": "Uchování záloh (dny)",
+      "logRetention": "Uchování logů (dny)"
+    },
+    "email": {
+      "title": "Konfigurace e-mailu",
+      "notice": "Nastavení e-mailu je nakonfigurováno v souboru prostředí backendu (.env). Po provedení změn restartujte aplikaci.",
+      "smtpHost": "SMTP hostitel",
+      "smtpPort": "SMTP port",
+      "username": "Uživatelské jméno",
+      "smtpHostPlaceholder": "smtp.gmail.com",
+      "smtpPortPlaceholder": "587"
+    },
+    "security": {
+      "title": "Bezpečnostní nastavení",
+      "authentication": "Autentizace",
+      "authDescription": "Konfigurace autentizace a nastavení relace",
+      "forceHttps": "Vynutit HTTPS",
+      "strongPasswords": "Vyžadovat silná hesla",
+      "sessions": "Správa relací",
+      "sessionTimeout": "Časový limit relace (hodiny)"
+    },
+    "update": {
+      "title": "Aktualizace platformy",
+      "currentVersion": {
+        "title": "Aktuální verze",
+        "commit": "Commit",
+        "branch": "Větev",
+        "author": "Autor",
+        "date": "Datum",
+        "unknown": "neznámé",
+        "refresh": "Obnovit informace o verzi",
+        "branchLabel": "Větev",
+        "dateLabel": "Datum sestavení",
+        "commitLabel": "Commit"
+      },
+      "availability": {
+        "title": "Aktualizace platformy",
+        "available": "Je dostupná aktualizace",
+        "behindBy": "K dispozici je {{count}} nov{{count, plural, one{ý commit} few{é commity} other{ých commitů}}}",
+        "currentLabel": "Aktuální",
+        "remoteLabel": "Vzdálený",
+        "scriptLabel": "Skript",
+        "important": "Důležité:",
+        "warning1": "Proces aktualizace restartuje celý systém",
+        "warning2": "Všichni uživatelé budou dočasně odpojeni",
+        "warning3": "Aktualizace může trvat několik minut",
+        "warning4": "Ujistěte se, že neprobíhají kritické operace",
+        "updating": "Aktualizuji...",
+        "updateButton": "Aktualizovat platformu"
+      },
+      "upToDate": {
+        "title": "Systém je aktuální",
+        "runningLatest": "Běží poslední verze",
+        "commitLabel": "Commit",
+        "synchronized": "Vaše platforma je synchronizována se vzdáleným repozitářem.",
+        "instructionsTitle": "Jak povolit aktualizace platformy:",
+        "instruction1": "Vytvořte",
+        "instruction1Suffix": "skript",
+        "instruction2": "Nastavte spustitelný příznak a umístěte jej do systémového PATH",
+        "instruction3Prefix": "Nebo vytvořte",
+        "instruction3Suffix": "v adresáři projektu"
+      },
+      "progress": {
+        "title": "Průběh aktualizace",
+        "progressLabel": "Průběh",
+        "currentStep": "Aktuální krok:",
+        "initializing": "Inicializace...",
+        "duration": "Doba:",
+        "failed": "Aktualizace selhala",
+        "logsTitle": "Log aktualizace",
+        "hideLogs": "Skrýt log",
+        "showLogs": "Zobrazit log ({{count}})",
+        "logSummary": "... zobrazeno posledních 20 záznamů z celkových {{total}}"
+      },
+      "messages": {
+        "failed": "Aktualizace selhala",
+        "complete": "Aktualizace platformy byla úspěšně dokončena!",
+        "started": "Aktualizace platformy byla spuštěna! Sledujte průběh níže.",
+        "startError": "Nepodařilo se spustit aktualizaci platformy",
+        "scriptMissing": "Aktualizační skript není v systému k dispozici",
+        "confirm": "Opravdu chcete aktualizovat platformu? Dojde k restartu systému a může to trvat několik minut. Ujistěte se, že neprobíhají kritické operace."
+      }
+    }
   },
   "silentMode": {
     "title": "Tichý režim upozornění",
@@ -670,7 +816,10 @@
     "toast": {
       "sensorUpdated": "Senzor byl úspěšně aktualizován",
       "otaQueued": "Konfigurace bude na zařízení použita při nejbližší synchronizaci.",
-      "sensorUpdateFailed": "Aktualizace senzoru se nezdařila: {{message}}"
+      "sensorUpdateFailed": "Aktualizace senzoru se nezdařila: {{message}}",
+      "otaRebuildStarted": "Přestavba firmwaru spuštěna!",
+      "otaRebuildSensors": "Nakonfigurované senzory: {{count}}",
+      "otaRebuildError": "Nepodařilo se spustit přestavbu firmwaru"
     },
     "modal": {
       "title": "Upravit senzor: {{name}}",
@@ -682,7 +831,9 @@
       "triggerOtaHint": "Zařízení přijme novou konfiguraci při příští synchronizaci.",
       "cancel": "Zrušit",
       "save": "Uložit změny",
-      "saving": "Ukládám…"
+      "saving": "Ukládám…",
+      "noteLabel": "Poznámka:",
+      "changeSensorHint": "Chcete-li změnit typ senzoru nebo pin, použijte tlačítko „Spravovat senzory“."
     },
     "sensorManager": {
       "title": "Správa senzorů",
@@ -704,6 +855,16 @@
       "pinInUse": "(obsazeno)",
       "namePlaceholder": "např. Teplota obýváku",
       "sensitivityHint": "Vyšší = detailnější"
+    },
+    "otaMenu": {
+      "manualTitle": "Ruční OTA aktualizace",
+      "manualSubtitle": "Nahrajte soubor firmwaru a odešlete jej",
+      "rebuildConfirm": "Tímto se znovu sestaví firmware s aktuální konfigurací zařízení a odešle se přes OTA. Zařízení se automaticky restartuje s novým firmwarem. Pokračovat?",
+      "tooltipOffline": "Zařízení musí být online pro OTA přestavbu",
+      "tooltipReady": "Znovu sestavte firmware a odešlete jej přes OTA",
+      "rebuildLoading": "Probíhá přestavba...",
+      "rebuildTitle": "Přestavět a aktualizovat OTA",
+      "rebuildSubtitle": "Automatická přestavba s aktuální konfigurací"
     }
   },
   "devices": {
@@ -771,7 +932,11 @@
     "sendingOta": "Odesílám příkaz k OTA aktualizaci...",
     "currentFirmware": "Aktuální firmware:",
     "statusLabel": "Stav:",
-    "unknownFirmware": "Neznámé"
+    "unknownFirmware": "Neznámé",
+    "types": {
+      "arduino": "Arduino",
+      "raspberryPi": "Raspberry Pi"
+    }
   },
   "deviceManagement": {
     "toast": {
@@ -927,34 +1092,35 @@
     "unresolvedBadge": "nevyřízeno"
   },
   "telemetry": {
-    "title": "Telemetrie",
-    "historicalData": "Historická data",
-    "realTimeData": "Data v reálném čase",
-    "timeRange": "Časové rozpětí",
-    "aggregation": "Agregace",
-    "raw": "Surová data",
-    "hourly": "Hodinově",
-    "daily": "Denně",
-    "weekly": "Týdně",
-    "monthly": "Měsíčně",
-    "export": "Exportovat data",
-    "chart": "Graf",
-    "table": "Tabulka",
-    "statistics": "Statistiky",
-    "average": "Průměr",
-    "minimum": "Minimum",
-    "maximum": "Maximum",
-    "count": "Počet",
-    "dataPoints": "Datové body",
-    "noData": "Žádná telemetrická data k dispozici",
-    "lastHour": "Poslední hodina",
-    "last6Hours": "Posledních 6 hodin",
-    "last24Hours": "Posledních 24 hodin",
-    "last7Days": "Posledních 7 dní",
-    "last30Days": "Posledních 30 dní",
-    "customRange": "Vlastní rozpětí",
-    "startDate": "Datum začátku",
-    "endDate": "Datum konce"
+    "timeRanges": {
+      "1h": "1 hodina",
+      "6h": "6 hodin",
+      "24h": "24 hodin",
+      "7d": "7 dní",
+      "30d": "30 dní"
+    },
+    "csv": {
+      "timestamp": "Čas",
+      "value": "Hodnota",
+      "minValue": "Minimální hodnota",
+      "maxValue": "Maximální hodnota"
+    },
+    "historyTitle": "Historie {{name}}",
+    "sensorMeta": "Pin {{pin}} • {{unit}}",
+    "controls": {
+      "timeRange": "Časové období",
+      "chartType": "Typ grafu",
+      "chartOptions": {
+        "line": "Liniový graf",
+        "area": "Plošný graf"
+      },
+      "dataPoints": "Datové body",
+      "aggregation": {
+        "raw": "Surová data",
+        "hourly": "Hodinový průměr"
+      }
+    },
+    "noData": "Pro zvolené období nejsou k dispozici žádná data"
   },
   "ota": {
     "title": "OTA Aktualizace",
@@ -1087,172 +1253,6 @@
     "disabledWarning": {
       "title": "OTA aktualizace jsou zakázány",
       "body": "Toto zařízení má OTA aktualizace zakázané. Aktualizace bude vynucena a může trvat déle."
-    }
-  },
-  "settings": {
-    "title": "Systémová nastavení",
-    "subtitle": "Nakonfigurujte nastavení vaší IoT platformy a systémové preference",
-    "save": "Uložit nastavení",
-    "saveSuccess": "Nastavení byla úspěšně uložena",
-    "saveError": "Nepodařilo se uložit nastavení",
-    "saving": "Ukládám...",
-    "backupSuccess": "Záloha databáze byla úspěšně stažena",
-    "backupError": "Nepodařilo se vytvořit zálohu databáze",
-    "tabs": {
-      "system": "Systém",
-      "platform": "Aktualizace platformy",
-      "branding": "Brandování",
-      "environment": "Prostředí",
-      "database": "Databáze",
-      "email": "E-mail",
-      "security": "Bezpečnost"
-    },
-    "system": {
-      "title": "Informace o systému",
-      "status": "Stav systému",
-      "running": "Běží",
-      "uptime": "Doba provozu",
-      "version": "Verze",
-      "nodeVersion": "Verze Node.js",
-      "unknown": "Neznámý",
-      "siteName": "Název webu",
-      "adminEmail": "Administrátorský e-mail",
-      "maintenanceMode": "Režim údržby"
-    },
-    "branding": {
-      "title": "Přizpůsobení značky",
-      "companyInfo": "Informace o společnosti",
-      "companyName": "Název společnosti",
-      "logoManagement": "Správa loga",
-      "companyLogo": "Logo společnosti",
-      "favicon": "Favicon",
-      "colorScheme": "Barevné schéma",
-      "primaryColor": "Primární barva",
-      "accentColor": "Akcentová barva",
-      "preview": "Náhled",
-      "toast": {
-        "invalidImage": "Vyberte prosím platný obrázek",
-        "imageTooLarge": "Soubor obrázku musí být menší než 2 MB",
-        "logoUploaded": "Logo bylo úspěšně nahráno",
-        "logoUploadFailed": "Logo se nepodařilo nahrát",
-        "logoRemoved": "Logo bylo odstraněno",
-        "logoRemoveFailed": "Logo se nepodařilo odstranit"
-      }
-    },
-    "environment": {
-      "title": "Proměnné prostředí",
-      "errorCount": "{{count}} {{count, plural, one{chyba} few{chyby} other{chyb}}}",
-      "warningCount": "{{count}} {{count, plural, one{varování} few{varování} other{varování}}}",
-      "emptyTitle": "Nebyly nalezeny žádné proměnné prostředí",
-      "emptyDescription1": ".env soubor neexistuje nebo je prázdný. Proměnné prostředí se používají pro konfiguraci aplikace, například připojení k databázi, API klíče a další citlivé údaje.",
-      "emptyDescription2": "Proměnné prostředí můžete vytvořit níže a automaticky se uloží do souboru .env.",
-      "errorsTitle": "Chyby",
-      "warningsTitle": "Varování",
-      "addTitle": "Přidat proměnné prostředí",
-      "namePlaceholder": "Název proměnné (např. DB_HOST)",
-      "valuePlaceholder": "Hodnota",
-      "addButton": "Přidat",
-      "hint": "Stiskněte Tab pro formátování názvu nebo Enter pro přidání proměnné",
-      "sensitive": "Citlivé",
-      "maskPlaceholder": "***MASKED***",
-      "enterValue": "Zadejte {{name}}",
-      "otherVariables": "Ostatní proměnné",
-      "restartNotice": "Změny mohou vyžadovat restart serveru",
-      "save": "Uložit proměnné prostředí",
-      "saveSuccess": "{{restartRequired, select, true{Proměnné prostředí byly uloženy. Je vyžadován restart serveru.} false{Proměnné prostředí byly uloženy.}}}",
-      "saveError": "Nepodařilo se uložit proměnné prostředí"
-    },
-    "database": {
-      "title": "Správa databáze",
-      "info": "Informace o databázi",
-      "type": "Typ",
-      "status": "Stav",
-      "backup": "Zálohování a obnovení",
-      "createBackup": "Vytvořit zálohu",
-      "backupDescription": "Stáhnout kompletní zálohu databáze včetně všech zařízení, uživatelů, upozornění a telemetrických dat.",
-      "retention": "Uchování dat",
-      "backupRetention": "Uchování záloh (dny)",
-      "logRetention": "Uchování logů (dny)"
-    },
-    "email": {
-      "title": "Konfigurace e-mailu",
-      "notice": "Nastavení e-mailu je nakonfigurováno v souboru prostředí backendu (.env). Po provedení změn restartujte aplikaci.",
-      "smtpHost": "SMTP hostitel",
-      "smtpPort": "SMTP port",
-      "username": "Uživatelské jméno",
-      "smtpHostPlaceholder": "smtp.gmail.com",
-      "smtpPortPlaceholder": "587"
-    },
-    "security": {
-      "title": "Bezpečnostní nastavení",
-      "authentication": "Autentizace",
-      "authDescription": "Konfigurace autentizace a nastavení relace",
-      "forceHttps": "Vynutit HTTPS",
-      "strongPasswords": "Vyžadovat silná hesla",
-      "sessions": "Správa relací",
-      "sessionTimeout": "Časový limit relace (hodiny)"
-    },
-    "update": {
-      "title": "Aktualizace platformy",
-      "currentVersion": {
-        "title": "Aktuální verze",
-        "commit": "Commit",
-        "branch": "Větev",
-        "author": "Autor",
-        "date": "Datum",
-        "unknown": "neznámé",
-        "refresh": "Obnovit informace o verzi",
-        "branchLabel": "Větev",
-        "dateLabel": "Datum sestavení",
-        "commitLabel": "Commit"
-      },
-      "availability": {
-        "title": "Aktualizace platformy",
-        "available": "Je dostupná aktualizace",
-        "behindBy": "K dispozici je {{count}} nov{{count, plural, one{ý commit} few{é commity} other{ých commitů}}}",
-        "currentLabel": "Aktuální",
-        "remoteLabel": "Vzdálený",
-        "scriptLabel": "Skript",
-        "important": "Důležité:",
-        "warning1": "Proces aktualizace restartuje celý systém",
-        "warning2": "Všichni uživatelé budou dočasně odpojeni",
-        "warning3": "Aktualizace může trvat několik minut",
-        "warning4": "Ujistěte se, že neprobíhají kritické operace",
-        "updating": "Aktualizuji...",
-        "updateButton": "Aktualizovat platformu"
-      },
-      "upToDate": {
-        "title": "Systém je aktuální",
-        "runningLatest": "Běží poslední verze",
-        "commitLabel": "Commit",
-        "synchronized": "Vaše platforma je synchronizována se vzdáleným repozitářem.",
-        "instructionsTitle": "Jak povolit aktualizace platformy:",
-        "instruction1": "Vytvořte",
-        "instruction1Suffix": "skript",
-        "instruction2": "Nastavte spustitelný příznak a umístěte jej do systémového PATH",
-        "instruction3Prefix": "Nebo vytvořte",
-        "instruction3Suffix": "v adresáři projektu"
-      },
-      "progress": {
-        "title": "Průběh aktualizace",
-        "progressLabel": "Průběh",
-        "currentStep": "Aktuální krok:",
-        "initializing": "Inicializace...",
-        "duration": "Doba:",
-        "failed": "Aktualizace selhala",
-        "logsTitle": "Log aktualizace",
-        "hideLogs": "Skrýt log",
-        "showLogs": "Zobrazit log ({{count}})",
-        "logSummary": "... zobrazeno posledních 20 záznamů z celkových {{total}}"
-      },
-      "messages": {
-        "failed": "Aktualizace selhala",
-        "complete": "Aktualizace platformy byla úspěšně dokončena!",
-        "started": "Aktualizace platformy byla spuštěna! Sledujte průběh níže.",
-        "startError": "Nepodařilo se spustit aktualizaci platformy",
-        "scriptMissing": "Aktualizační skript není v systému k dispozici",
-        "confirm": "Opravdu chcete aktualizovat platformu? Dojde k restartu systému a může to trvat několik minut. Ujistěte se, že neprobíhají kritické operace."
-      }
     }
   },
   "errors": {
@@ -1865,37 +1865,6 @@
       }
     }
   },
-  "telemetry": {
-    "timeRanges": {
-      "1h": "1 hodina",
-      "6h": "6 hodin",
-      "24h": "24 hodin",
-      "7d": "7 dní",
-      "30d": "30 dní"
-    },
-    "csv": {
-      "timestamp": "Čas",
-      "value": "Hodnota",
-      "minValue": "Minimální hodnota",
-      "maxValue": "Maximální hodnota"
-    },
-    "historyTitle": "Historie {{name}}",
-    "sensorMeta": "Pin {{pin}} • {{unit}}",
-    "controls": {
-      "timeRange": "Časové období",
-      "chartType": "Typ grafu",
-      "chartOptions": {
-        "line": "Liniový graf",
-        "area": "Plošný graf"
-      },
-      "dataPoints": "Datové body",
-      "aggregation": {
-        "raw": "Surová data",
-        "hourly": "Hodinový průměr"
-      }
-    },
-    "noData": "Pro zvolené období nejsou k dispozici žádná data"
-  },
   "mobileMenu": {
     "accessibility": {
       "open": "Otevřít menu",
@@ -1939,5 +1908,103 @@
     "currentLocation": "Aktuální",
     "selectNewLocation": "Vyberte novou lokalitu",
     "selectLocationError": "Vyberte prosím lokalitu"
+  },
+  "notificationTemplates": {
+    "title": "Šablony oznámení",
+    "subtitle": "Spravujte šablony zpráv pro upozornění a notifikace",
+    "actions": {
+      "create": "Vytvořit šablonu",
+      "testTitle": "Otestovat šablonu",
+      "test": "Test",
+      "duplicateTitle": "Duplikovat šablonu",
+      "duplicate": "Kopírovat",
+      "editTitle": "Upravit šablonu",
+      "edit": "Upravit",
+      "deleteTitle": "Smazat šablonu",
+      "delete": "Smazat"
+    },
+    "filters": {
+      "searchPlaceholder": "Hledat šablony...",
+      "channels": {
+        "all": "Všechny kanály"
+      },
+      "types": {
+        "all": "Všechny typy"
+      }
+    },
+    "channels": {
+      "email": "E-mail",
+      "sms": "SMS",
+      "telegram": "Telegram",
+      "whatsapp": "WhatsApp",
+      "webhook": "Webhook"
+    },
+    "types": {
+      "alert": "Upozornění",
+      "deviceStatus": "Stav zařízení",
+      "system": "Systém",
+      "custom": "Vlastní"
+    },
+    "empty": {
+      "title": "Nenalezeny žádné šablony",
+      "adjustFilters": "Zkuste upravit filtry",
+      "description": "Vytvořte svou první šablonu notifikace a začněte"
+    },
+    "badges": {
+      "system": "Systém",
+      "inactive": "Neaktivní"
+    },
+    "labels": {
+      "subject": "Předmět:",
+      "bodyPreview": "Náhled zprávy:"
+    },
+    "toast": {
+      "createSuccess": "Šablona byla úspěšně vytvořena",
+      "createError": "Šablonu se nepodařilo vytvořit",
+      "updateSuccess": "Šablona byla úspěšně aktualizována",
+      "updateError": "Šablonu se nepodařilo aktualizovat",
+      "deleteSuccess": "Šablona byla úspěšně smazána",
+      "deleteError": "Šablonu se nepodařilo smazat",
+      "testSuccess": "Test šablony byl úspěšný",
+      "testError": "Test šablony se nezdařil"
+    },
+    "form": {
+      "editTitle": "Upravit šablonu",
+      "createTitle": "Vytvořit šablonu",
+      "nameLabel": "Název *",
+      "namePlaceholder": "moje_vlastni_sablona",
+      "channelLabel": "Kanál *",
+      "typeLabel": "Typ *",
+      "activeLabel": "Aktivní",
+      "descriptionLabel": "Popis",
+      "descriptionPlaceholder": "Stručný popis této šablony",
+      "subjectLabel": "Předmět šablony *",
+      "subjectPlaceholder": "Upozornění: {{device_name}} - {{sensor_name}}",
+      "variablesHint": "Použijte {{ a }} pro proměnné (např. {{device_name}})",
+      "bodyLabel": "Tělo zprávy *",
+      "bodyPlaceholderEmail": "<h2>Upozornění z {{device_name}}</h2>\n<p>Senzor: {{sensor_name}}</p>\n<p>Hodnota: {{current_value}}{{unit}}</p>",
+      "bodyPlaceholder": "Upozornění z {{device_name}}: {{sensor_name}} = {{current_value}}{{unit}}",
+      "bodyHelperHtml": "Podporuje HTML. Použijte {{ a }} pro proměnné",
+      "bodyHelper": "Použijte {{ a }} pro proměnné",
+      "availableVariablesTitle": "Dostupné proměnné",
+      "updateAction": "Aktualizovat šablonu",
+      "createAction": "Vytvořit šablonu"
+    },
+    "testModal": {
+      "title": "Otestovat šablonu: {{name}}",
+      "instructions": "Zadejte hodnoty pro proměnné, abyste viděli finální výsledek:",
+      "variablePlaceholder": "Zadejte {{key}}",
+      "renderedOutput": "Výsledek:",
+      "bodyLabel": "Tělo:",
+      "testing": "Testování...",
+      "testButton": "Otestovat šablonu"
+    },
+    "deleteModal": {
+      "title": "Smazat šablonu",
+      "confirmationPrefix": "Opravdu chcete smazat šablonu",
+      "warning": "Tuto akci nelze vrátit zpět.",
+      "deleting": "Mazání...",
+      "confirmButton": "Smazat šablonu"
+    }
   }
 }

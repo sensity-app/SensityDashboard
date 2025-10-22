@@ -12,6 +12,7 @@ require('dotenv').config();
 // Import enhanced routes and services
 const authRoutes = require('./src/routes/auth');
 const deviceRoutes = require('./src/routes/devices');
+const sensorTypeRoutes = require('./src/routes/sensorTypes');
 const alertRoutes = require('./src/routes/alerts');
 const locationRoutes = require('./src/routes/locations');
 const userRoutes = require('./src/routes/users');
@@ -131,7 +132,7 @@ app.use('/api/', userRateLimiter.middleware());
 
 // Routes that require a valid license
 const protectedRoutes = [
-    ['/api/sensor-types', deviceRoutes, 'device_management'], // Sensor types endpoint (in devices router)
+    ['/api/sensor-types', sensorTypeRoutes, 'device_management'],
     ['/api/sensor-rules', sensorRulesRoutes, 'analytics_basic'], // Sensor rules management
     ['/api/devices', deviceRoutes, 'device_management'],
     ['/api/alerts', alertRoutes, 'basic_monitoring'],

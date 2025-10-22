@@ -169,17 +169,17 @@ function DeviceDetail() {
                 queryClient.invalidateQueries(['device', id]);
                 toast.success(
                     <div>
-                        <strong>Firmware Rebuild Initiated!</strong>
+                        <strong>{t('deviceDetail.toast.otaRebuildStarted', 'Firmware rebuild initiated!')}</strong>
                         <br />
                         {data.message}
                         <br />
-                        <small>Sensors configured: {data.sensors_configured}</small>
+                        <small>{t('deviceDetail.toast.otaRebuildSensors', { count: data.sensors_configured })}</small>
                     </div>,
                     { duration: 6000 }
                 );
             },
             onError: (error) => {
-                toast.error(error?.response?.data?.error || 'Failed to initiate firmware rebuild');
+                toast.error(error?.response?.data?.error || t('deviceDetail.toast.otaRebuildError', 'Failed to initiate firmware rebuild'));
             }
         }
     );
@@ -655,27 +655,27 @@ function DeviceDetail() {
                                                 >
                                                     <Zap className="h-5 w-5 text-indigo-600 mt-0.5 flex-shrink-0" />
                                                     <div>
-                                                        <div className="font-medium text-gray-900">Manual OTA Update</div>
-                                                        <div className="text-xs text-gray-500 mt-0.5">Upload and push firmware file</div>
+                                                        <div className="font-medium text-gray-900">{t('deviceDetail.otaMenu.manualTitle', 'Manual OTA Update')}</div>
+                                                        <div className="text-xs text-gray-500 mt-0.5">{t('deviceDetail.otaMenu.manualSubtitle', 'Upload and push firmware file')}</div>
                                                     </div>
                                                 </button>
                                                 <button
                                                     onClick={() => {
                                                         setShowOTADropdown(false);
-                                                        if (confirm('This will rebuild the firmware with current device configuration and push it via OTA. The device will automatically reboot with the new firmware. Continue?')) {
+                                                        if (confirm(t('deviceDetail.otaMenu.rebuildConfirm', 'This will rebuild the firmware with current device configuration and push it via OTA. The device will automatically reboot with the new firmware. Continue?'))) {
                                                             otaRebuildMutation.mutate(id);
                                                         }
                                                     }}
                                                     disabled={otaRebuildMutation.isLoading || device.status !== 'online'}
                                                     className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors flex items-start gap-3 disabled:opacity-50 disabled:cursor-not-allowed border-t border-gray-100"
-                                                    title={device.status !== 'online' ? 'Device must be online for OTA rebuild' : 'Rebuild firmware and push via OTA'}
+                                                    title={device.status !== 'online' ? t('deviceDetail.otaMenu.tooltipOffline', 'Device must be online for OTA rebuild') : t('deviceDetail.otaMenu.tooltipReady', 'Rebuild firmware and push via OTA')}
                                                 >
                                                     <RefreshCw className={`h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0 ${otaRebuildMutation.isLoading ? 'animate-spin' : ''}`} />
                                                     <div>
                                                         <div className="font-medium text-gray-900">
-                                                            {otaRebuildMutation.isLoading ? 'Rebuilding...' : 'Rebuild & OTA Update'}
+                                                            {otaRebuildMutation.isLoading ? t('deviceDetail.otaMenu.rebuildLoading', 'Rebuilding...') : t('deviceDetail.otaMenu.rebuildTitle', 'Rebuild & OTA Update')}
                                                         </div>
-                                                        <div className="text-xs text-gray-500 mt-0.5">Auto-rebuild with current config</div>
+                                                        <div className="text-xs text-gray-500 mt-0.5">{t('deviceDetail.otaMenu.rebuildSubtitle', 'Auto-rebuild with current config')}</div>
                                                     </div>
                                                 </button>
                                             </div>
@@ -1371,7 +1371,8 @@ function SensorEditorModal({ sensor, deviceId, onClose, onSave, mutation }) {
 
                 <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-sm text-amber-800">
-                        <strong>Note:</strong> To change sensor type or pin, use the "Manage Sensors" button instead.
+                        <strong>{t('deviceDetail.modal.noteLabel', 'Note:')}</strong>{' '}
+                        {t('deviceDetail.modal.changeSensorHint', 'To change sensor type or pin, use the \"Manage Sensors\" button instead.')}
                     </p>
                 </div>
 

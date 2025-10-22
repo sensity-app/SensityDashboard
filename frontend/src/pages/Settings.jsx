@@ -949,8 +949,11 @@ function Settings() {
                                                                                 onChange={(e) => handleEnvVarChange(varName, e.target.value)}
                                                                                 placeholder={
                                                                                     isSensitive
-                                                                                        ? t('settings.environment.maskPlaceholder')
-                                                                                        : t('settings.environment.enterValue', { name: varName })
+                                                                                        ? t('settings.environment.maskPlaceholder', 'Value hidden (click eye to reveal)')
+                                                                                        : t('settings.environment.enterValue', {
+                                                                                            name: varName,
+                                                                                            defaultValue: `Enter value for ${varName}`
+                                                                                        })
                                                                                 }
                                                                                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                                                                                 disabled={isSensitive && envVars[varName] === '***MASKED***'}

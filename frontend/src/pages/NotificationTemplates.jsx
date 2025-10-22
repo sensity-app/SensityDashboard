@@ -71,11 +71,11 @@ function NotificationTemplates() {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries('notification-templates');
-                toast.success('Template created successfully');
+                toast.success(t('notificationTemplates.toast.createSuccess', 'Template created successfully'));
                 setShowCreateModal(false);
             },
             onError: (error) => {
-                toast.error(error.response?.data?.error || 'Failed to create template');
+                toast.error(error.response?.data?.error || t('notificationTemplates.toast.createError', 'Failed to create template'));
             }
         }
     );
@@ -86,12 +86,12 @@ function NotificationTemplates() {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries('notification-templates');
-                toast.success('Template updated successfully');
+                toast.success(t('notificationTemplates.toast.updateSuccess', 'Template updated successfully'));
                 setShowEditModal(false);
                 setSelectedTemplate(null);
             },
             onError: (error) => {
-                toast.error(error.response?.data?.error || 'Failed to update template');
+                toast.error(error.response?.data?.error || t('notificationTemplates.toast.updateError', 'Failed to update template'));
             }
         }
     );
@@ -102,12 +102,12 @@ function NotificationTemplates() {
         {
             onSuccess: () => {
                 queryClient.invalidateQueries('notification-templates');
-                toast.success('Template deleted successfully');
+                toast.success(t('notificationTemplates.toast.deleteSuccess', 'Template deleted successfully'));
                 setShowDeleteModal(false);
                 setSelectedTemplate(null);
             },
             onError: (error) => {
-                toast.error(error.response?.data?.error || 'Failed to delete template');
+                toast.error(error.response?.data?.error || t('notificationTemplates.toast.deleteError', 'Failed to delete template'));
             }
         }
     );
@@ -117,11 +117,11 @@ function NotificationTemplates() {
         ({ templateId, variables }) => apiService.testNotificationTemplate(templateId, variables),
         {
             onSuccess: (data) => {
-                toast.success('Template test successful');
+                toast.success(t('notificationTemplates.toast.testSuccess', 'Template test successful'));
                 // Show rendered result
             },
             onError: (error) => {
-                toast.error(error.response?.data?.error || 'Template test failed');
+                toast.error(error.response?.data?.error || t('notificationTemplates.toast.testError', 'Template test failed'));
             }
         }
     );
@@ -217,35 +217,35 @@ function NotificationTemplates() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">
-                        Notification Templates
-                    </h1>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Manage message templates for alerts and notifications
-                    </p>
-                </div>
-                <button
-                    onClick={handleCreateTemplate}
-                    className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 hover:scale-105"
-                >
-                    <Plus className="h-4 w-4" />
-                    Create Template
-                </button>
+                    {t('notificationTemplates.title', 'Notification Templates')}
+                </h1>
+                <p className="mt-1 text-sm text-gray-500">
+                    {t('notificationTemplates.subtitle', 'Manage message templates for alerts and notifications')}
+                </p>
             </div>
+            <button
+                onClick={handleCreateTemplate}
+                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 hover:scale-105"
+            >
+                <Plus className="h-4 w-4" />
+                {t('notificationTemplates.actions.create', 'Create Template')}
+            </button>
+        </div>
 
-            {/* Filters */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        {/* Filters */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                     {/* Search */}
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search templates..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        />
-                    </div>
+                <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder={t('notificationTemplates.filters.searchPlaceholder', 'Search templates...')}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                </div>
 
                     {/* Channel Filter */}
                     <div className="flex items-center gap-2">
@@ -255,12 +255,12 @@ function NotificationTemplates() {
                             onChange={(e) => setChannelFilter(e.target.value)}
                             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         >
-                            <option value="all">All Channels</option>
-                            <option value="email">Email</option>
-                            <option value="sms">SMS</option>
-                            <option value="telegram">Telegram</option>
-                            <option value="whatsapp">WhatsApp</option>
-                            <option value="webhook">Webhook</option>
+                            <option value="all">{t('notificationTemplates.filters.channels.all', 'All Channels')}</option>
+                            <option value="email">{t('notificationTemplates.channels.email', 'Email')}</option>
+                            <option value="sms">{t('notificationTemplates.channels.sms', 'SMS')}</option>
+                            <option value="telegram">{t('notificationTemplates.channels.telegram', 'Telegram')}</option>
+                            <option value="whatsapp">{t('notificationTemplates.channels.whatsapp', 'WhatsApp')}</option>
+                            <option value="webhook">{t('notificationTemplates.channels.webhook', 'Webhook')}</option>
                         </select>
                     </div>
 
@@ -270,14 +270,14 @@ function NotificationTemplates() {
                         onChange={(e) => setTypeFilter(e.target.value)}
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     >
-                        <option value="all">All Types</option>
-                        <option value="alert">Alert</option>
-                        <option value="device_status">Device Status</option>
-                        <option value="system">System</option>
-                        <option value="custom">Custom</option>
+                        <option value="all">{t('notificationTemplates.filters.types.all', 'All Types')}</option>
+                        <option value="alert">{t('notificationTemplates.types.alert', 'Alert')}</option>
+                        <option value="device_status">{t('notificationTemplates.types.deviceStatus', 'Device Status')}</option>
+                        <option value="system">{t('notificationTemplates.types.system', 'System')}</option>
+                        <option value="custom">{t('notificationTemplates.types.custom', 'Custom')}</option>
                     </select>
                 </div>
-            </div>
+        </div>
 
             {/* Templates Grid */}
             <div className="grid grid-cols-1 gap-4">
@@ -287,12 +287,12 @@ function NotificationTemplates() {
                             <Bell className="h-8 w-8 text-gray-400" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            No templates found
+                            {t('notificationTemplates.empty.title', 'No templates found')}
                         </h3>
                         <p className="text-sm text-gray-500 mb-4">
                             {searchQuery || channelFilter !== 'all' || typeFilter !== 'all'
-                                ? 'Try adjusting your filters'
-                                : 'Create your first notification template to get started'}
+                                ? t('notificationTemplates.empty.adjustFilters', 'Try adjusting your filters')
+                                : t('notificationTemplates.empty.description', 'Create your first notification template to get started')}
                         </p>
                         {!searchQuery && channelFilter === 'all' && typeFilter === 'all' && (
                             <button
@@ -300,7 +300,7 @@ function NotificationTemplates() {
                                 className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
                             >
                                 <Plus className="h-4 w-4" />
-                                Create Template
+                                {t('notificationTemplates.actions.create', 'Create Template')}
                             </button>
                         )}
                     </div>
@@ -308,6 +308,8 @@ function NotificationTemplates() {
                     filteredTemplates.map((template) => {
                         const channelColor = getChannelColor(template.channel);
                         const typeColor = getTypeColor(template.template_type);
+                        const channelLabel = t(`notificationTemplates.channels.${template.channel}`, template.channel);
+                        const typeLabel = t(`notificationTemplates.types.${template.template_type}`, template.template_type);
 
                         return (
                             <div
@@ -329,18 +331,18 @@ function NotificationTemplates() {
                                                 </h3>
                                                 {template.is_system && (
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
-                                                        System
+                                                        {t('notificationTemplates.badges.system', 'System')}
                                                     </span>
                                                 )}
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${channelColor}-100 text-${channelColor}-700`}>
-                                                    {template.channel}
+                                                    {channelLabel}
                                                 </span>
                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-${typeColor}-100 text-${typeColor}-700`}>
-                                                    {template.template_type}
+                                                    {typeLabel}
                                                 </span>
                                                 {!template.is_active && (
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                                                        Inactive
+                                                        {t('notificationTemplates.badges.inactive', 'Inactive')}
                                                     </span>
                                                 )}
                                             </div>
@@ -353,7 +355,7 @@ function NotificationTemplates() {
 
                                             {template.channel === 'email' && template.subject_template && (
                                                 <div className="mb-2">
-                                                    <p className="text-xs font-medium text-gray-500 mb-1">Subject:</p>
+                                                    <p className="text-xs font-medium text-gray-500 mb-1">{t('notificationTemplates.labels.subject', 'Subject:')}</p>
                                                     <p className="text-sm text-gray-700 font-mono bg-gray-50 p-2 rounded">
                                                         {template.subject_template}
                                                     </p>
@@ -361,7 +363,7 @@ function NotificationTemplates() {
                                             )}
 
                                             <div>
-                                                <p className="text-xs font-medium text-gray-500 mb-1">Body Preview:</p>
+                                                <p className="text-xs font-medium text-gray-500 mb-1">{t('notificationTemplates.labels.bodyPreview', 'Body Preview:')}</p>
                                                 <p className="text-sm text-gray-700 font-mono bg-gray-50 p-2 rounded line-clamp-2">
                                                     {template.body_template}
                                                 </p>
@@ -374,35 +376,35 @@ function NotificationTemplates() {
                                         <button
                                             onClick={() => handleTestTemplate(template)}
                                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-purple-100 text-purple-700 text-xs font-medium hover:bg-purple-200 transition-colors"
-                                            title="Test Template"
+                                            title={t('notificationTemplates.actions.testTitle', 'Test Template')}
                                         >
                                             <Zap className="h-3 w-3" />
-                                            Test
+                                            {t('notificationTemplates.actions.test', 'Test')}
                                         </button>
                                         <button
                                             onClick={() => handleDuplicateTemplate(template)}
                                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium hover:bg-blue-200 transition-colors"
-                                            title="Duplicate Template"
+                                            title={t('notificationTemplates.actions.duplicateTitle', 'Duplicate Template')}
                                         >
                                             <Copy className="h-3 w-3" />
-                                            Copy
+                                            {t('notificationTemplates.actions.duplicate', 'Copy')}
                                         </button>
                                         <button
                                             onClick={() => handleEditTemplate(template)}
                                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium hover:bg-gray-200 transition-colors"
-                                            title="Edit Template"
+                                            title={t('notificationTemplates.actions.editTitle', 'Edit Template')}
                                         >
                                             <Edit2 className="h-3 w-3" />
-                                            Edit
+                                            {t('notificationTemplates.actions.edit', 'Edit')}
                                         </button>
                                         {!template.is_system && (
                                             <button
                                                 onClick={() => handleDeleteTemplate(template)}
                                                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-medium hover:bg-red-200 transition-colors"
-                                                title="Delete Template"
+                                                title={t('notificationTemplates.actions.deleteTitle', 'Delete Template')}
                                             >
                                                 <Trash2 className="h-3 w-3" />
-                                                Delete
+                                                {t('notificationTemplates.actions.delete', 'Delete')}
                                             </button>
                                         )}
                                     </div>
@@ -472,6 +474,7 @@ function NotificationTemplates() {
 
 // Template Form Modal
 function TemplateFormModal({ template, availableVariables, onClose, onSave, isLoading, isEdit }) {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({
         name: template?.name || '',
         description: template?.description || '',
@@ -502,7 +505,9 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                 <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-indigo-700">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-white">
-                            {isEdit ? 'Edit Template' : 'Create Template'}
+                            {isEdit
+                                ? t('notificationTemplates.form.editTitle', 'Edit Template')
+                                : t('notificationTemplates.form.createTitle', 'Create Template')}
                         </h2>
                         <button
                             onClick={onClose}
@@ -520,7 +525,7 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Name *
+                                    {t('notificationTemplates.form.nameLabel', 'Name *')}
                                 </label>
                                 <input
                                     type="text"
@@ -528,13 +533,13 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    placeholder="my_custom_template"
+                                    placeholder={t('notificationTemplates.form.namePlaceholder', 'my_custom_template')}
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Channel *
+                                    {t('notificationTemplates.form.channelLabel', 'Channel *')}
                                 </label>
                                 <select
                                     value={formData.channel}
@@ -542,17 +547,17 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                     required
                                 >
-                                    <option value="email">Email</option>
-                                    <option value="sms">SMS</option>
-                                    <option value="telegram">Telegram</option>
-                                    <option value="whatsapp">WhatsApp</option>
-                                    <option value="webhook">Webhook</option>
+                                    <option value="email">{t('notificationTemplates.channels.email', 'Email')}</option>
+                                    <option value="sms">{t('notificationTemplates.channels.sms', 'SMS')}</option>
+                                    <option value="telegram">{t('notificationTemplates.channels.telegram', 'Telegram')}</option>
+                                    <option value="whatsapp">{t('notificationTemplates.channels.whatsapp', 'WhatsApp')}</option>
+                                    <option value="webhook">{t('notificationTemplates.channels.webhook', 'Webhook')}</option>
                                 </select>
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Type *
+                                    {t('notificationTemplates.form.typeLabel', 'Type *')}
                                 </label>
                                 <select
                                     value={formData.template_type}
@@ -560,10 +565,10 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                     required
                                 >
-                                    <option value="alert">Alert</option>
-                                    <option value="device_status">Device Status</option>
-                                    <option value="system">System</option>
-                                    <option value="custom">Custom</option>
+                                    <option value="alert">{t('notificationTemplates.types.alert', 'Alert')}</option>
+                                    <option value="device_status">{t('notificationTemplates.types.deviceStatus', 'Device Status')}</option>
+                                    <option value="system">{t('notificationTemplates.types.system', 'System')}</option>
+                                    <option value="custom">{t('notificationTemplates.types.custom', 'Custom')}</option>
                                 </select>
                             </div>
 
@@ -575,7 +580,7 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                                         onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                                         className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                                     />
-                                    <span className="text-sm font-medium text-gray-700">Active</span>
+                                    <span className="text-sm font-medium text-gray-700">{t('notificationTemplates.form.activeLabel', 'Active')}</span>
                                 </label>
                             </div>
                         </div>
@@ -583,14 +588,14 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                         {/* Description */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Description
+                                {t('notificationTemplates.form.descriptionLabel', 'Description')}
                             </label>
                             <textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 rows={2}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="Brief description of this template"
+                                placeholder={t('notificationTemplates.form.descriptionPlaceholder', 'Brief description of this template')}
                             />
                         </div>
 
@@ -598,7 +603,7 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                         {formData.channel === 'email' && (
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Subject Template *
+                                    {t('notificationTemplates.form.subjectLabel', 'Subject Template *')}
                                 </label>
                                 <div className="flex gap-2">
                                     <input
@@ -607,11 +612,11 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                                         value={formData.subject_template}
                                         onChange={(e) => setFormData({ ...formData, subject_template: e.target.value })}
                                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm"
-                                        placeholder="Alert: {{device_name}} - {{sensor_name}}"
+                                        placeholder={t('notificationTemplates.form.subjectPlaceholder', 'Alert: {{device_name}} - {{sensor_name}}')}
                                     />
                                 </div>
                                 <p className="mt-1 text-xs text-gray-500">
-                                    Use {'{{'} and {'}}'}  for variables (e.g., {'{{device_name}}'})
+                                    {t('notificationTemplates.form.variablesHint', 'Use {{ and }} for variables (e.g., {{device_name}})')}
                                 </p>
                             </div>
                         )}
@@ -619,7 +624,7 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                         {/* Body Template */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Body Template *
+                                {t('notificationTemplates.form.bodyLabel', 'Body Template *')}
                             </label>
                             <textarea
                                 required
@@ -628,12 +633,14 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                                 rows={8}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-mono text-sm"
                                 placeholder={formData.channel === 'email'
-                                    ? '<h2>Alert from {{device_name}}</h2>\n<p>Sensor: {{sensor_name}}</p>\n<p>Value: {{current_value}}{{unit}}</p>'
-                                    : 'Alert from {{device_name}}: {{sensor_name}} = {{current_value}}{{unit}}'
+                                    ? t('notificationTemplates.form.bodyPlaceholderEmail', '<h2>Alert from {{device_name}}</h2>\n<p>Sensor: {{sensor_name}}</p>\n<p>Value: {{current_value}}{{unit}}</p>')
+                                    : t('notificationTemplates.form.bodyPlaceholder', 'Alert from {{device_name}}: {{sensor_name}} = {{current_value}}{{unit}}')
                                 }
                             />
                             <p className="mt-1 text-xs text-gray-500">
-                                {formData.channel === 'email' ? 'HTML supported. ' : ''}Use {'{{'} and {'}}'}  for variables
+                                {formData.channel === 'email'
+                                    ? t('notificationTemplates.form.bodyHelperHtml', 'HTML supported. Use {{ and }} for variables')
+                                    : t('notificationTemplates.form.bodyHelper', 'Use {{ and }} for variables')}
                             </p>
                         </div>
 
@@ -641,7 +648,7 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                         <div className="bg-blue-50 p-4 rounded-lg">
                             <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
                                 <Code className="h-4 w-4 text-blue-600" />
-                                Available Variables
+                                {t('notificationTemplates.form.availableVariablesTitle', 'Available Variables')}
                             </h4>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                 {Object.entries(availableVariables).map(([key, description]) => (
@@ -669,7 +676,7 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                         disabled={isLoading}
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </button>
                     <button
                         onClick={handleSubmit}
@@ -679,12 +686,14 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
                         {isLoading ? (
                             <>
                                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                Saving...
+                                {t('common.saving')}
                             </>
                         ) : (
                             <>
                                 <CheckCircle className="h-4 w-4" />
-                                {isEdit ? 'Update Template' : 'Create Template'}
+                                {isEdit
+                                    ? t('notificationTemplates.form.updateAction', 'Update Template')
+                                    : t('notificationTemplates.form.createAction', 'Create Template')}
                             </>
                         )}
                     </button>
@@ -696,6 +705,7 @@ function TemplateFormModal({ template, availableVariables, onClose, onSave, isLo
 
 // Test Template Modal
 function TestTemplateModal({ template, availableVariables, onClose, onTest, isLoading, testResult }) {
+    const { t } = useTranslation();
     const [testVariables, setTestVariables] = useState(() => {
         const vars = {};
         Object.keys(availableVariables).forEach(key => {
@@ -715,7 +725,7 @@ function TestTemplateModal({ template, availableVariables, onClose, onTest, isLo
                 <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-purple-700">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-white">
-                            Test Template: {template.name}
+                            {t('notificationTemplates.testModal.title', { name: template.name })}
                         </h2>
                         <button
                             onClick={onClose}
@@ -729,7 +739,7 @@ function TestTemplateModal({ template, availableVariables, onClose, onTest, isLo
                 {/* Form */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     <p className="text-sm text-gray-600">
-                        Provide values for the template variables to see the rendered output:
+                        {t('notificationTemplates.testModal.instructions', 'Provide values for the template variables to see the rendered output:')}
                     </p>
 
                     {Object.entries(availableVariables).map(([key, description]) => (
@@ -743,24 +753,24 @@ function TestTemplateModal({ template, availableVariables, onClose, onTest, isLo
                                 value={testVariables[key]}
                                 onChange={(e) => setTestVariables({ ...testVariables, [key]: e.target.value })}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                placeholder={`Enter ${key}`}
+                                placeholder={t('notificationTemplates.testModal.variablePlaceholder', { key })}
                             />
                         </div>
                     ))}
 
                     {testResult && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <h4 className="text-sm font-medium text-green-900 mb-2">Rendered Output:</h4>
+                            <h4 className="text-sm font-medium text-green-900 mb-2">{t('notificationTemplates.testModal.renderedOutput', 'Rendered Output:')}</h4>
                             {template.channel === 'email' && testResult.subject && (
                                 <div className="mb-3">
-                                    <p className="text-xs font-medium text-gray-600 mb-1">Subject:</p>
+                                    <p className="text-xs font-medium text-gray-600 mb-1">{t('notificationTemplates.labels.subject', 'Subject:')}</p>
                                     <p className="text-sm text-gray-900 bg-white p-2 rounded border border-green-200">
                                         {testResult.subject}
                                     </p>
                                 </div>
                             )}
                             <div>
-                                <p className="text-xs font-medium text-gray-600 mb-1">Body:</p>
+                                <p className="text-xs font-medium text-gray-600 mb-1">{t('notificationTemplates.testModal.bodyLabel', 'Body:')}</p>
                                 {template.channel === 'email' ? (
                                     <div
                                         className="text-sm bg-white p-4 rounded border border-green-200"
@@ -782,7 +792,7 @@ function TestTemplateModal({ template, availableVariables, onClose, onTest, isLo
                         onClick={onClose}
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                        Close
+                        {t('common.close', 'Close')}
                     </button>
                     <button
                         onClick={handleTest}
@@ -792,12 +802,12 @@ function TestTemplateModal({ template, availableVariables, onClose, onTest, isLo
                         {isLoading ? (
                             <>
                                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                Testing...
+                                {t('notificationTemplates.testModal.testing', 'Testing...')}
                             </>
                         ) : (
                             <>
                                 <Zap className="h-4 w-4" />
-                                Test Template
+                                {t('notificationTemplates.testModal.testButton', 'Test Template')}
                             </>
                         )}
                     </button>
@@ -809,6 +819,7 @@ function TestTemplateModal({ template, availableVariables, onClose, onTest, isLo
 
 // Delete Confirm Modal
 function DeleteConfirmModal({ template, onClose, onConfirm, isLoading }) {
+    const { t } = useTranslation();
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
@@ -819,7 +830,7 @@ function DeleteConfirmModal({ template, onClose, onConfirm, isLoading }) {
                             <AlertCircle className="h-5 w-5 text-red-600" />
                         </div>
                         <h2 className="text-xl font-bold text-gray-900">
-                            Delete Template
+                            {t('notificationTemplates.deleteModal.title', 'Delete Template')}
                         </h2>
                     </div>
                 </div>
@@ -827,10 +838,11 @@ function DeleteConfirmModal({ template, onClose, onConfirm, isLoading }) {
                 {/* Content */}
                 <div className="p-6">
                     <p className="text-gray-700">
-                        Are you sure you want to delete the template <strong>{template.name}</strong>?
+                        {t('notificationTemplates.deleteModal.confirmationPrefix', 'Are you sure you want to delete the template')}{' '}
+                        <strong>{template.name}</strong>?
                     </p>
                     <p className="mt-2 text-sm text-gray-600">
-                        This action cannot be undone.
+                        {t('notificationTemplates.deleteModal.warning', 'This action cannot be undone.')}
                     </p>
                 </div>
 
@@ -841,7 +853,7 @@ function DeleteConfirmModal({ template, onClose, onConfirm, isLoading }) {
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                         disabled={isLoading}
                     >
-                        Cancel
+                        {t('common.cancel')}
                     </button>
                     <button
                         onClick={onConfirm}
@@ -851,12 +863,12 @@ function DeleteConfirmModal({ template, onClose, onConfirm, isLoading }) {
                         {isLoading ? (
                             <>
                                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                Deleting...
+                                {t('notificationTemplates.deleteModal.deleting', 'Deleting...')}
                             </>
                         ) : (
                             <>
                                 <Trash2 className="h-4 w-4" />
-                                Delete Template
+                                {t('notificationTemplates.deleteModal.confirmButton', 'Delete Template')}
                             </>
                         )}
                     </button>

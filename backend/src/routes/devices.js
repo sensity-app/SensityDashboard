@@ -8,22 +8,6 @@ const otaService = require('../services/otaService');
 
 const router = express.Router();
 
-// GET /api/sensor-types - Get all available sensor types
-router.get('/sensor-types', authenticateToken, async (req, res) => {
-    try {
-        const result = await db.query(`
-            SELECT id, name, unit, min_value, max_value, description, icon
-            FROM sensor_types
-            ORDER BY name
-        `);
-
-        res.json({ sensor_types: result.rows });
-    } catch (error) {
-        logger.error('Get sensor types error:', error);
-        res.status(500).json({ error: 'Failed to retrieve sensor types' });
-    }
-});
-
 // GET /api/devices/:id/sensors/:sensorId/recommended-thresholds - Get recommended thresholds based on historic data
 router.get('/:id/sensors/:sensorId/recommended-thresholds',
     authenticateToken,

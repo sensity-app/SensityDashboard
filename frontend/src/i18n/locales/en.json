@@ -650,7 +650,10 @@
     "toast": {
       "sensorUpdated": "Sensor updated successfully",
       "otaQueued": "Configuration will be applied on the device shortly.",
-      "sensorUpdateFailed": "Failed to update sensor: {{message}}"
+      "sensorUpdateFailed": "Failed to update sensor: {{message}}",
+      "otaRebuildStarted": "Firmware rebuild initiated!",
+      "otaRebuildSensors": "Sensors configured: {{count}}",
+      "otaRebuildError": "Failed to initiate firmware rebuild"
     },
     "modal": {
       "title": "Edit sensor: {{name}}",
@@ -662,7 +665,9 @@
       "triggerOtaHint": "Device receives the updated configuration on next sync.",
       "cancel": "Cancel",
       "save": "Save changes",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "noteLabel": "Note:",
+      "changeSensorHint": "To change sensor type or pin, use the \"Manage Sensors\" button instead."
     },
     "sensorManager": {
       "title": "Manage Sensors",
@@ -684,6 +689,16 @@
       "pinInUse": "(in use)",
       "namePlaceholder": "e.g., Living Room Temperature",
       "sensitivityHint": "Higher = more detail"
+    },
+    "otaMenu": {
+      "manualTitle": "Manual OTA Update",
+      "manualSubtitle": "Upload and push firmware file",
+      "rebuildConfirm": "This will rebuild the firmware with current device configuration and push it via OTA. The device will automatically reboot with the new firmware. Continue?",
+      "tooltipOffline": "Device must be online for OTA rebuild",
+      "tooltipReady": "Rebuild firmware and push via OTA",
+      "rebuildLoading": "Rebuilding...",
+      "rebuildTitle": "Rebuild & OTA Update",
+      "rebuildSubtitle": "Auto-rebuild with current config"
     }
   },
   "devices": {
@@ -751,7 +766,11 @@
     "sendingOta": "Sending OTA update command...",
     "currentFirmware": "Current Firmware:",
     "statusLabel": "Status:",
-    "unknownFirmware": "Unknown"
+    "unknownFirmware": "Unknown",
+    "types": {
+      "arduino": "Arduino",
+      "raspberryPi": "Raspberry Pi"
+    }
   },
   "deviceManagement": {
     "toast": {
@@ -907,34 +926,35 @@
     "unresolvedBadge": "unresolved"
   },
   "telemetry": {
-    "title": "Telemetry",
-    "historicalData": "Historical Data",
-    "realTimeData": "Real-time Data",
-    "timeRange": "Time Range",
-    "aggregation": "Aggregation",
-    "raw": "Raw Data",
-    "hourly": "Hourly",
-    "daily": "Daily",
-    "weekly": "Weekly",
-    "monthly": "Monthly",
-    "export": "Export Data",
-    "chart": "Chart",
-    "table": "Table",
-    "statistics": "Statistics",
-    "average": "Average",
-    "minimum": "Minimum",
-    "maximum": "Maximum",
-    "count": "Count",
-    "dataPoints": "Data Points",
-    "noData": "No telemetry data available",
-    "lastHour": "Last Hour",
-    "last6Hours": "Last 6 Hours",
-    "last24Hours": "Last 24 Hours",
-    "last7Days": "Last 7 Days",
-    "last30Days": "Last 30 Days",
-    "customRange": "Custom Range",
-    "startDate": "Start Date",
-    "endDate": "End Date"
+    "timeRanges": {
+      "1h": "1 Hour",
+      "6h": "6 Hours",
+      "24h": "24 Hours",
+      "7d": "7 Days",
+      "30d": "30 Days"
+    },
+    "csv": {
+      "timestamp": "Timestamp",
+      "value": "Value",
+      "minValue": "Min Value",
+      "maxValue": "Max Value"
+    },
+    "historyTitle": "{{name}} History",
+    "sensorMeta": "Pin {{pin}} • {{unit}}",
+    "controls": {
+      "timeRange": "Time Range",
+      "chartType": "Chart Type",
+      "chartOptions": {
+        "line": "Line Chart",
+        "area": "Area Chart"
+      },
+      "dataPoints": "Data Points",
+      "aggregation": {
+        "raw": "Raw Data",
+        "hourly": "Hourly Average"
+      }
+    },
+    "noData": "No data available for the selected time range"
   },
   "ota": {
     "title": "Over-the-Air Updates",
@@ -1070,32 +1090,170 @@
     }
   },
   "settings": {
-    "title": "Settings",
-    "systemSettings": "System Settings",
-    "appearance": "Appearance",
-    "language": "Language",
-    "theme": "Theme",
-    "light": "Light",
-    "dark": "Dark",
-    "auto": "Auto",
-    "timezone": "Timezone",
-    "dateFormat": "Date Format",
-    "timeFormat": "Time Format",
-    "notifications": "Notifications",
-    "backup": "Backup & Restore",
-    "export": "Export Settings",
-    "import": "Import Settings",
-    "reset": "Reset to Defaults",
-    "advanced": "Advanced Settings",
-    "apiSettings": "API Settings",
-    "databaseSettings": "Database Settings",
-    "cacheSettings": "Cache Settings",
-    "loggingSettings": "Logging Settings",
-    "securitySettings": "Security Settings",
-    "settingsSaved": "Settings saved successfully",
-    "settingsReset": "Settings reset successfully",
-    "languageChanged": "Language changed successfully",
-    "languageUpdateFailed": "Failed to update language preference"
+    "title": "System Settings",
+    "subtitle": "Configure your IoT platform settings and system preferences",
+    "save": "Save Settings",
+    "saveSuccess": "Settings saved successfully",
+    "saveError": "Failed to save settings",
+    "saving": "Saving...",
+    "backupSuccess": "Database backup downloaded successfully",
+    "backupError": "Failed to create database backup",
+    "tabs": {
+      "system": "System",
+      "platform": "Platform Update",
+      "branding": "Branding",
+      "environment": "Environment",
+      "database": "Database",
+      "email": "Email",
+      "security": "Security"
+    },
+    "system": {
+      "title": "System Information",
+      "status": "System Status",
+      "running": "Running",
+      "uptime": "Uptime",
+      "version": "Version",
+      "nodeVersion": "Node.js Version",
+      "unknown": "Unknown",
+      "siteName": "Site Name",
+      "adminEmail": "Admin Email",
+      "maintenanceMode": "Maintenance Mode"
+    },
+    "branding": {
+      "title": "Brand Customization",
+      "companyInfo": "Company Information",
+      "companyName": "Company Name",
+      "logoManagement": "Logo Management",
+      "companyLogo": "Company Logo",
+      "favicon": "Favicon",
+      "colorScheme": "Color Scheme",
+      "primaryColor": "Primary Color",
+      "accentColor": "Accent Color",
+      "preview": "Preview",
+      "toast": {
+        "invalidImage": "Please select a valid image file",
+        "imageTooLarge": "Image file size must be less than 2MB",
+        "logoUploaded": "Logo uploaded successfully",
+        "logoUploadFailed": "Failed to upload logo",
+        "logoRemoved": "Logo removed",
+        "logoRemoveFailed": "Failed to remove logo"
+      }
+    },
+    "environment": {
+      "title": "Environment Variables",
+      "errorCount": "{{count}} error{{count, plural, one{} other{s}}}",
+      "warningCount": "{{count}} warning{{count, plural, one{} other{s}}}",
+      "emptyTitle": "No Environment Variables Found",
+      "emptyDescription1": "The .env file doesn't exist or is empty. Environment variables are used to configure your application settings like database connections, API keys, and other sensitive configurations.",
+      "emptyDescription2": "You can create environment variables below, and they will be saved to your .env file automatically.",
+      "errorsTitle": "Errors",
+      "warningsTitle": "Warnings",
+      "addTitle": "Add Environment Variables",
+      "namePlaceholder": "Variable Name (e.g., DB_HOST)",
+      "valuePlaceholder": "Value",
+      "addButton": "Add",
+      "hint": "Press Tab to format variable names, or Enter to add the variable",
+      "sensitive": "Sensitive",
+      "maskPlaceholder": "Value hidden (click eye to reveal)",
+      "enterValue": "Enter value for {{name}}",
+      "otherVariables": "Other Variables",
+      "restartNotice": "Changes may require server restart to take effect",
+      "save": "Save Environment Variables",
+      "saveSuccess": "{{restartRequired, select, true{Environment variables updated successfully. Server restart required.} false{Environment variables updated successfully.}}}",
+      "saveError": "Failed to save environment variables"
+    },
+    "update": {
+      "title": "Platform Update",
+      "currentVersion": {
+        "title": "Current Version",
+        "commit": "Commit",
+        "branch": "Branch",
+        "author": "Author",
+        "date": "Date",
+        "unknown": "unknown",
+        "refresh": "Refresh Version Info",
+        "branchLabel": "Branch",
+        "dateLabel": "Build date",
+        "commitLabel": "Commit"
+      },
+      "availability": {
+        "title": "Platform Update",
+        "available": "Update available",
+        "behindBy": "{{count}} new commit{{count, plural, one{} other{s}}} available",
+        "currentLabel": "Current",
+        "remoteLabel": "Remote",
+        "scriptLabel": "Script",
+        "important": "Important:",
+        "warning1": "The update process will restart the entire system",
+        "warning2": "All users will be disconnected temporarily",
+        "warning3": "The process may take several minutes to complete",
+        "warning4": "Make sure no critical operations are running",
+        "updating": "Updating...",
+        "updateButton": "Update Platform"
+      },
+      "upToDate": {
+        "title": "System is up to date",
+        "runningLatest": "Running the latest version",
+        "commitLabel": "Commit",
+        "synchronized": "Your platform is synchronized with the remote repository.",
+        "instructionsTitle": "To enable platform updates:",
+        "instruction1": "Create an",
+        "instruction1Suffix": "script",
+        "instruction2": "Make it executable and place it in your system PATH",
+        "instruction3Prefix": "Or create",
+        "instruction3Suffix": "in the project directory"
+      },
+      "progress": {
+        "title": "Update Progress",
+        "progressLabel": "Progress",
+        "currentStep": "Current step:",
+        "initializing": "Initializing...",
+        "duration": "Duration:",
+        "failed": "Update Failed",
+        "logsTitle": "Update Logs",
+        "hideLogs": "Hide Logs",
+        "showLogs": "Show Logs ({{count}})",
+        "logSummary": "... showing last 20 entries of {{total}} total"
+      },
+      "messages": {
+        "failed": "Update failed",
+        "complete": "Platform update completed successfully!",
+        "started": "Platform update started! Monitor progress below.",
+        "startError": "Failed to start platform update",
+        "scriptMissing": "Update script is not available on this system",
+        "confirm": "Are you sure you want to update the platform? This will restart the system and may take several minutes. Make sure no critical operations are running."
+      }
+    },
+    "database": {
+      "title": "Database Management",
+      "info": "Database Information",
+      "type": "Type",
+      "status": "Status",
+      "backup": "Backup & Restore",
+      "createBackup": "Create Backup",
+      "backupDescription": "Download a complete backup of your database including all devices, users, alerts, and telemetry data.",
+      "retention": "Data Retention",
+      "backupRetention": "Backup Retention (days)",
+      "logRetention": "Log Retention (days)"
+    },
+    "email": {
+      "title": "Email Configuration",
+      "notice": "Email settings are configured in the backend environment file (.env). Restart the application after making changes.",
+      "smtpHost": "SMTP Host",
+      "smtpPort": "SMTP Port",
+      "username": "Username",
+      "smtpHostPlaceholder": "smtp.gmail.com",
+      "smtpPortPlaceholder": "587"
+    },
+    "security": {
+      "title": "Security Settings",
+      "authentication": "Authentication",
+      "authDescription": "Configure authentication and session settings",
+      "forceHttps": "Force HTTPS",
+      "strongPasswords": "Require Strong Passwords",
+      "sessions": "Session Management",
+      "sessionTimeout": "Session Timeout (hours)"
+    }
   },
   "errors": {
     "networkError": "Network error occurred",
@@ -1255,7 +1413,12 @@
     "conditions": "Conditions",
     "addCondition": "Add Condition",
     "condition": "Condition",
-    "severity": "Severity",
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
     "evaluationWindow": "Evaluation Window (seconds)",
     "evaluationWindowPlaceholder": "300",
     "alertMessage": "Alert Message",
@@ -1290,178 +1453,6 @@
       "range": "Range",
       "change": "Change",
       "pattern": "Pattern"
-    },
-    "severity": {
-      "low": "Low",
-      "medium": "Medium",
-      "high": "High",
-      "critical": "Critical"
-    }
-  },
-  "settings": {
-    "title": "System Settings",
-    "subtitle": "Configure your IoT platform settings and system preferences",
-    "save": "Save Settings",
-    "saveSuccess": "Settings saved successfully",
-    "saveError": "Failed to save settings",
-    "saving": "Saving...",
-    "backupSuccess": "Database backup downloaded successfully",
-    "backupError": "Failed to create database backup",
-    "tabs": {
-      "system": "System",
-      "platform": "Platform Update",
-      "branding": "Branding",
-      "environment": "Environment",
-      "database": "Database",
-      "email": "Email",
-      "security": "Security"
-    },
-    "system": {
-      "title": "System Information",
-      "status": "System Status",
-      "running": "Running",
-      "uptime": "Uptime",
-      "version": "Version",
-      "nodeVersion": "Node.js Version",
-      "unknown": "Unknown",
-      "siteName": "Site Name",
-      "adminEmail": "Admin Email",
-      "maintenanceMode": "Maintenance Mode"
-    },
-    "branding": {
-      "title": "Brand Customization",
-      "companyInfo": "Company Information",
-      "companyName": "Company Name",
-      "logoManagement": "Logo Management",
-      "companyLogo": "Company Logo",
-      "favicon": "Favicon",
-      "colorScheme": "Color Scheme",
-      "primaryColor": "Primary Color",
-      "accentColor": "Accent Color",
-      "preview": "Preview",
-      "toast": {
-        "invalidImage": "Please select a valid image file",
-        "imageTooLarge": "Image file size must be less than 2MB",
-        "logoUploaded": "Logo uploaded successfully",
-        "logoUploadFailed": "Failed to upload logo",
-        "logoRemoved": "Logo removed",
-        "logoRemoveFailed": "Failed to remove logo"
-      }
-    },
-    "environment": {
-      "title": "Environment Variables",
-      "errorCount": "{{count}} error{{count, plural, one{} other{s}}}",
-      "warningCount": "{{count}} warning{{count, plural, one{} other{s}}}",
-      "emptyTitle": "No Environment Variables Found",
-      "emptyDescription1": "The .env file doesn't exist or is empty. Environment variables are used to configure your application settings like database connections, API keys, and other sensitive configurations.",
-      "emptyDescription2": "You can create environment variables below, and they will be saved to your .env file automatically.",
-      "errorsTitle": "Errors",
-      "warningsTitle": "Warnings",
-      "addTitle": "Add Environment Variables",
-      "namePlaceholder": "Variable Name (e.g., DB_HOST)",
-      "valuePlaceholder": "Value",
-      "addButton": "Add",
-      "hint": "Press Tab to format variable names, or Enter to add the variable",
-      "sensitive": "Sensitive",
-      "maskPlaceholder": "***MASKED***",
-      "enterValue": "Enter {{name}}",
-      "otherVariables": "Other Variables",
-      "restartNotice": "Changes may require server restart to take effect",
-      "save": "Save Environment Variables",
-      "saveSuccess": "{{restartRequired, select, true{Environment variables updated successfully. Server restart required.} false{Environment variables updated successfully.}}}",
-      "saveError": "Failed to save environment variables"
-    },
-    "update": {
-      "title": "Platform Update",
-      "currentVersion": {
-        "title": "Current Version",
-        "commit": "Commit",
-        "branch": "Branch",
-        "author": "Author",
-        "date": "Date",
-        "unknown": "unknown",
-        "refresh": "Refresh Version Info",
-        "branchLabel": "Branch",
-        "dateLabel": "Build date",
-        "commitLabel": "Commit"
-      },
-      "availability": {
-        "title": "Platform Update",
-        "available": "Update available",
-        "behindBy": "{{count}} new commit{{count, plural, one{} other{s}}} available",
-        "currentLabel": "Current",
-        "remoteLabel": "Remote",
-        "scriptLabel": "Script",
-        "important": "Important:",
-        "warning1": "The update process will restart the entire system",
-        "warning2": "All users will be disconnected temporarily",
-        "warning3": "The process may take several minutes to complete",
-        "warning4": "Make sure no critical operations are running",
-        "updating": "Updating...",
-        "updateButton": "Update Platform"
-      },
-      "upToDate": {
-        "title": "System is up to date",
-        "runningLatest": "Running the latest version",
-        "commitLabel": "Commit",
-        "synchronized": "Your platform is synchronized with the remote repository.",
-        "instructionsTitle": "To enable platform updates:",
-        "instruction1": "Create an",
-        "instruction1Suffix": "script",
-        "instruction2": "Make it executable and place it in your system PATH",
-        "instruction3Prefix": "Or create",
-        "instruction3Suffix": "in the project directory"
-      },
-      "progress": {
-        "title": "Update Progress",
-        "progressLabel": "Progress",
-        "currentStep": "Current step:",
-        "initializing": "Initializing...",
-        "duration": "Duration:",
-        "failed": "Update Failed",
-        "logsTitle": "Update Logs",
-        "hideLogs": "Hide Logs",
-        "showLogs": "Show Logs ({{count}})",
-        "logSummary": "... showing last 20 entries of {{total}} total"
-      },
-      "messages": {
-        "failed": "Update failed",
-        "complete": "Platform update completed successfully!",
-        "started": "Platform update started! Monitor progress below.",
-        "startError": "Failed to start platform update",
-        "scriptMissing": "Update script is not available on this system",
-        "confirm": "Are you sure you want to update the platform? This will restart the system and may take several minutes. Make sure no critical operations are running."
-      }
-    },
-    "database": {
-      "title": "Database Management",
-      "info": "Database Information",
-      "type": "Type",
-      "status": "Status",
-      "backup": "Backup & Restore",
-      "createBackup": "Create Backup",
-      "backupDescription": "Download a complete backup of your database including all devices, users, alerts, and telemetry data.",
-      "retention": "Data Retention",
-      "backupRetention": "Backup Retention (days)",
-      "logRetention": "Log Retention (days)"
-    },
-    "email": {
-      "title": "Email Configuration",
-      "notice": "Email settings are configured in the backend environment file (.env). Restart the application after making changes.",
-      "smtpHost": "SMTP Host",
-      "smtpPort": "SMTP Port",
-      "username": "Username",
-      "smtpHostPlaceholder": "smtp.gmail.com",
-      "smtpPortPlaceholder": "587"
-    },
-    "security": {
-      "title": "Security Settings",
-      "authentication": "Authentication",
-      "authDescription": "Configure authentication and session settings",
-      "forceHttps": "Force HTTPS",
-      "strongPasswords": "Require Strong Passwords",
-      "sessions": "Session Management",
-      "sessionTimeout": "Session Timeout (hours)"
     }
   },
   "serialMonitor": {
@@ -1874,37 +1865,6 @@
       }
     }
   },
-  "telemetry": {
-    "timeRanges": {
-      "1h": "1 Hour",
-      "6h": "6 Hours",
-      "24h": "24 Hours",
-      "7d": "7 Days",
-      "30d": "30 Days"
-    },
-    "csv": {
-      "timestamp": "Timestamp",
-      "value": "Value",
-      "minValue": "Min Value",
-      "maxValue": "Max Value"
-    },
-    "historyTitle": "{{name}} History",
-    "sensorMeta": "Pin {{pin}} • {{unit}}",
-    "controls": {
-      "timeRange": "Time Range",
-      "chartType": "Chart Type",
-      "chartOptions": {
-        "line": "Line Chart",
-        "area": "Area Chart"
-      },
-      "dataPoints": "Data Points",
-      "aggregation": {
-        "raw": "Raw Data",
-        "hourly": "Hourly Average"
-      }
-    },
-    "noData": "No data available for the selected time range"
-  },
   "mobileMenu": {
     "accessibility": {
       "open": "Open menu",
@@ -1946,5 +1906,103 @@
     "currentLocation": "Current",
     "selectNewLocation": "Select New Location",
     "selectLocationError": "Please select a location"
+  },
+  "notificationTemplates": {
+    "title": "Notification Templates",
+    "subtitle": "Manage message templates for alerts and notifications",
+    "actions": {
+      "create": "Create Template",
+      "testTitle": "Test Template",
+      "test": "Test",
+      "duplicateTitle": "Duplicate Template",
+      "duplicate": "Copy",
+      "editTitle": "Edit Template",
+      "edit": "Edit",
+      "deleteTitle": "Delete Template",
+      "delete": "Delete"
+    },
+    "filters": {
+      "searchPlaceholder": "Search templates...",
+      "channels": {
+        "all": "All Channels"
+      },
+      "types": {
+        "all": "All Types"
+      }
+    },
+    "channels": {
+      "email": "Email",
+      "sms": "SMS",
+      "telegram": "Telegram",
+      "whatsapp": "WhatsApp",
+      "webhook": "Webhook"
+    },
+    "types": {
+      "alert": "Alert",
+      "deviceStatus": "Device Status",
+      "system": "System",
+      "custom": "Custom"
+    },
+    "empty": {
+      "title": "No templates found",
+      "adjustFilters": "Try adjusting your filters",
+      "description": "Create your first notification template to get started"
+    },
+    "badges": {
+      "system": "System",
+      "inactive": "Inactive"
+    },
+    "labels": {
+      "subject": "Subject:",
+      "bodyPreview": "Body Preview:"
+    },
+    "toast": {
+      "createSuccess": "Template created successfully",
+      "createError": "Failed to create template",
+      "updateSuccess": "Template updated successfully",
+      "updateError": "Failed to update template",
+      "deleteSuccess": "Template deleted successfully",
+      "deleteError": "Failed to delete template",
+      "testSuccess": "Template test successful",
+      "testError": "Template test failed"
+    },
+    "form": {
+      "editTitle": "Edit Template",
+      "createTitle": "Create Template",
+      "nameLabel": "Name *",
+      "namePlaceholder": "my_custom_template",
+      "channelLabel": "Channel *",
+      "typeLabel": "Type *",
+      "activeLabel": "Active",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Brief description of this template",
+      "subjectLabel": "Subject Template *",
+      "subjectPlaceholder": "Alert: {{device_name}} - {{sensor_name}}",
+      "variablesHint": "Use {{ and }} for variables (e.g., {{device_name}})",
+      "bodyLabel": "Body Template *",
+      "bodyPlaceholderEmail": "<h2>Alert from {{device_name}}</h2>\n<p>Sensor: {{sensor_name}}</p>\n<p>Value: {{current_value}}{{unit}}</p>",
+      "bodyPlaceholder": "Alert from {{device_name}}: {{sensor_name}} = {{current_value}}{{unit}}",
+      "bodyHelperHtml": "HTML supported. Use {{ and }} for variables",
+      "bodyHelper": "Use {{ and }} for variables",
+      "availableVariablesTitle": "Available Variables",
+      "updateAction": "Update Template",
+      "createAction": "Create Template"
+    },
+    "testModal": {
+      "title": "Test Template: {{name}}",
+      "instructions": "Provide values for the template variables to see the rendered output:",
+      "variablePlaceholder": "Enter {{key}}",
+      "renderedOutput": "Rendered Output:",
+      "bodyLabel": "Body:",
+      "testing": "Testing...",
+      "testButton": "Test Template"
+    },
+    "deleteModal": {
+      "title": "Delete Template",
+      "confirmationPrefix": "Are you sure you want to delete the template",
+      "warning": "This action cannot be undone.",
+      "deleting": "Deleting...",
+      "confirmButton": "Delete Template"
+    }
   }
 }

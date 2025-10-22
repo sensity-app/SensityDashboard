@@ -1413,8 +1413,8 @@ function DeviceFormModal({ device, locations, onClose }) {
                         >
                             <option value="esp8266">ESP8266</option>
                             <option value="esp32">ESP32</option>
-                            <option value="arduino">Arduino</option>
-                            <option value="raspberry_pi">Raspberry Pi</option>
+                            <option value="arduino">{t('devices.types.arduino', 'Arduino')}</option>
+                            <option value="raspberry_pi">{t('devices.types.raspberryPi', 'Raspberry Pi')}</option>
                         </select>
                     </div>
 

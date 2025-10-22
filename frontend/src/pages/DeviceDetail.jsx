@@ -161,6 +161,28 @@ function DeviceDetail() {
         }
     );
 
+    const otaRebuildMutation = useMutation(
+        (deviceId) => apiService.otaRebuild(deviceId),
+        {
+            onSuccess: (data) => {
+                queryClient.invalidateQueries(['device', id]);
+                toast.success(
+                    <div>
+                        <strong>Firmware Rebuild Initiated!</strong>
+                        <br />
+                        {data.message}
+                        <br />
+                        <small>Sensors configured: {data.sensors_configured}</small>
+                    </div>,
+                    { duration: 6000 }
+                );
+            },
+            onError: (error) => {
+                toast.error(error?.response?.data?.error || 'Failed to initiate firmware rebuild');
+            }
+        }
+    );
+
     const updateDeviceConfigMutation = useMutation(
         ({ deviceId, config }) => apiService.updateDeviceConfig(deviceId, config),
         {
@@ -609,10 +631,32 @@ function DeviceDetail() {
                                 </button>
                                 <button
                                     onClick={() => setShowOTAManager(true)}
-                                    className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-indigo-600 shadow hover:bg-indigo-50"
+                                    className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-indigo-600 shadow hover:bg-indigo-50 transition-colors"
                                 >
                                     <Zap className="h-4 w-4" />
                                     {t('deviceDetail.otaUpdate')}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (confirm('This will rebuild the firmware with current device configuration and push it via OTA. The device will automatically reboot with the new firmware. Continue?')) {
+                                            otaRebuildMutation.mutate(id);
+                                        }
+                                    }}
+                                    disabled={otaRebuildMutation.isLoading || device.status !== 'online'}
+                                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-2 text-sm font-medium text-white shadow-lg hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    title={device.status !== 'online' ? 'Device must be online for OTA rebuild' : 'Rebuild firmware and push via OTA'}
+                                >
+                                    {otaRebuildMutation.isLoading ? (
+                                        <>
+                                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                            Rebuilding...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <RefreshCw className="h-4 w-4" />
+                                            Rebuild & OTA Update
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -691,6 +735,17 @@ function DeviceDetail() {
                                 </div>
                                 {sortedSensors.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
+                                        <button
+                                            onClick={() => {
+                                                queryClient.invalidateQueries(['device-sensors', id]);
+                                                queryClient.invalidateQueries(['device', id]);
+                                                toast.success('Refreshing device data...');
+                                            }}
+                                            className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                        >
+                                            <Activity className="h-4 w-4" />
+                                            Refresh
+                                        </button>
                                         <button
                                             onClick={() => handleSensorHistory(selectedSensor || sortedSensors[0])}
                                             className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"

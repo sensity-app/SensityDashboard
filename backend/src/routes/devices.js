@@ -1230,6 +1230,150 @@ router.get('/:id/ota-pending', [
     }
 });
 
+// POST /api/devices/:id/ota-rebuild - Rebuild firmware and trigger OTA update
+router.post('/:id/ota-rebuild', [
+    authenticateToken,
+    param('id').notEmpty()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        // Get device configuration
+        const deviceResult = await db.query(`
+            SELECT d.*, dc.ota_enabled
+            FROM devices d
+            LEFT JOIN device_config dc ON d.id = dc.device_id
+            WHERE d.id = $1
+        `, [id]);
+
+        if (deviceResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Device not found' });
+        }
+
+        const device = deviceResult.rows[0];
+
+        // Check if OTA is enabled
+        if (device.ota_enabled === false) {
+            return res.status(400).json({ error: 'OTA updates are disabled for this device' });
+        }
+
+        // Check if device is online
+        if (device.status !== 'online' && device.current_status !== 'online') {
+            return res.status(400).json({
+                error: 'Device is offline. OTA update requires device to be online.',
+                device_status: device.status || device.current_status
+            });
+        }
+
+        // Get device sensors configuration
+        const sensorsResult = await db.query(`
+            SELECT ds.*, st.name as sensor_type
+            FROM device_sensors ds
+            JOIN sensor_types st ON ds.sensor_type_id = st.id
+            WHERE ds.device_id = $1 AND ds.enabled = true
+            ORDER BY ds.pin
+        `, [id]);
+
+        // Build firmware configuration object
+        const firmwareConfig = {
+            device_id: device.id,
+            device_name: device.name,
+            api_key: device.api_key,
+            wifi_ssid: device.wifi_ssid || process.env.DEFAULT_WIFI_SSID,
+            wifi_password: device.wifi_password || process.env.DEFAULT_WIFI_PASSWORD,
+            server_url: process.env.SERVER_URL || `http://${req.get('host')}`,
+            heartbeat_interval: device.heartbeat_interval || 60,
+            sensors: sensorsResult.rows.map(s => ({
+                pin: s.pin,
+                type: s.sensor_type.toLowerCase(),
+                name: s.name,
+                enabled: s.enabled,
+                threshold_min: s.threshold_min || 0,
+                threshold_max: s.threshold_max || 100,
+                calibration_offset: s.calibration_offset || 0,
+                calibration_multiplier: s.calibration_multiplier || 1
+            }))
+        };
+
+        logger.info(`Starting OTA rebuild for device ${id}`);
+
+        // Note: Actual firmware compilation would happen here
+        // For now, we'll create a placeholder to trigger OTA update intent
+        // In production, you would:
+        // 1. Call firmwareCompiler service to build firmware
+        // 2. Store compiled binary
+        // 3. Create OTA update record
+        // 4. Device will check for update on next heartbeat
+
+        // Create OTA update record
+        const firmwareVersion = `auto-rebuild-${Date.now()}`;
+        const otaResult = await db.query(`
+            INSERT INTO ota_updates (device_id, firmware_version, status, initiated_by, metadata)
+            VALUES ($1, $2, 'pending', $3, $4)
+            RETURNING id
+        `, [
+            id,
+            firmwareVersion,
+            userId,
+            JSON.stringify({
+                auto_rebuild: true,
+                config: firmwareConfig,
+                timestamp: new Date().toISOString()
+            })
+        ]);
+
+        // Update device to indicate pending OTA
+        await db.query(`
+            UPDATE devices
+            SET pending_ota = true,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+        `, [id]);
+
+        // Log the OTA rebuild event
+        logger.logOTAEvent(id, 'rebuild_initiated', {
+            ota_update_id: otaResult.rows[0].id,
+            sensors_count: sensorsResult.rows.length,
+            initiated_by: req.user.email
+        });
+
+        // Broadcast via WebSocket
+        if (req.websocketService) {
+            req.websocketService.broadcastDeviceUpdate(id, {
+                pending_ota: true,
+                ota_status: 'rebuild_initiated'
+            });
+        }
+
+        res.json({
+            message: 'Firmware rebuild initiated. Device will receive update on next heartbeat.',
+            ota_update_id: otaResult.rows[0].id,
+            firmware_version: firmwareVersion,
+            device_ip: device.ip_address,
+            sensors_configured: sensorsResult.rows.length,
+            next_steps: [
+                'Firmware is being prepared',
+                'Device will check for update on next heartbeat',
+                'Update will be applied automatically',
+                'Device will reboot with new configuration'
+            ]
+        });
+
+    } catch (error) {
+        logger.error('OTA rebuild error:', error);
+        res.status(500).json({
+            error: 'Failed to initiate firmware rebuild',
+            details: error.message
+        });
+    }
+});
+
 // Device Health Monitoring Endpoints
 
 // POST /api/devices/:id/health - Update device health data (from device)

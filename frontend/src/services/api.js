@@ -112,6 +112,9 @@ export const apiService = {
     deleteSensor: (deviceId, sensorId) => apiClient.delete(`/devices/${deviceId}/sensors/${sensorId}`),
     getSensorTypes: () => apiClient.get('/sensor-types'),
 
+    // OTA Updates
+    otaRebuild: (deviceId) => apiClient.post(`/devices/${deviceId}/ota-rebuild`),
+
     // Sensor Rules - using correct device-based endpoints
     getSensorRules: (deviceId, sensorId) => apiClient.get(`/devices/${deviceId}/sensors/${sensorId}/rules`),
     createSensorRule: (deviceId, sensorId, ruleData) => apiClient.post(`/devices/${deviceId}/sensors/${sensorId}/rules`, ruleData),

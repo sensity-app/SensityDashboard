@@ -212,6 +212,8 @@ const createTables = async () => {
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS wifi_quality_percent FLOAT;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS reset_reason VARCHAR(100);
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS boot_time TIMESTAMP;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS current_status VARCHAR(20) DEFAULT 'offline';
+        UPDATE devices SET current_status = status WHERE current_status IS NULL;
 
         -- Device health history for trend analysis
         CREATE TABLE IF NOT EXISTS device_health_history (

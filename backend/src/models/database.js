@@ -118,6 +118,9 @@ const initialize = async () => {
             logger.info('Database tables already exist');
         }
 
+        // Ensure legacy schema patches are applied
+        await ensureLegacyColumns();
+
         // Run migrations if needed
         await runMigrations();
 
@@ -212,8 +215,6 @@ const createTables = async () => {
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS wifi_quality_percent FLOAT;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS reset_reason VARCHAR(100);
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS boot_time TIMESTAMP;
-        ALTER TABLE devices ADD COLUMN IF NOT EXISTS current_status VARCHAR(20) DEFAULT 'offline';
-        UPDATE devices SET current_status = status WHERE current_status IS NULL;
 
         -- Device health history for trend analysis
         CREATE TABLE IF NOT EXISTS device_health_history (
@@ -595,6 +596,23 @@ const createTables = async () => {
         `);
     } catch (error) {
         logger.warn('Unable to seed telegram_config table:', error.message);
+    }
+};
+
+// Ensure columns added after initial installations exist
+const ensureLegacyColumns = async () => {
+    try {
+        await query(`
+            ALTER TABLE devices
+            ADD COLUMN IF NOT EXISTS current_status VARCHAR(20) DEFAULT 'offline'
+        `);
+        await query(`
+            UPDATE devices
+            SET current_status = status
+            WHERE current_status IS NULL
+        `);
+    } catch (error) {
+        logger.warn('Unable to ensure current_status column on devices table:', error.message);
     }
 };
 

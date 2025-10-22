@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useTranslation } from 'react-i18next';
-import { Wifi, WifiOff, AlertTriangle, Zap, Clock, Activity, Signal, TrendingUp, Plus, Trash2, Save, Settings, Edit2, Check, X, RefreshCw } from 'lucide-react';
+import { Wifi, WifiOff, AlertTriangle, Zap, Clock, Activity, Signal, TrendingUp, Plus, Trash2, Save, Settings, Edit2, Check, X, RefreshCw, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiService } from '../services/api';
 import { websocketService } from '../services/websocket';
@@ -27,6 +27,7 @@ function DeviceDetail() {
     const [isRenamingDevice, setIsRenamingDevice] = useState(false);
     const [newDeviceName, setNewDeviceName] = useState('');
     const [showDeviceSettings, setShowDeviceSettings] = useState(false);
+    const [showOTADropdown, setShowOTADropdown] = useState(false);
     const [deviceConfig, setDeviceConfig] = useState({
         heartbeat_interval: 60,
         armed: false,
@@ -629,35 +630,58 @@ function DeviceDetail() {
                                     <Settings className="h-4 w-4" />
                                     {t('deviceDetail.deviceSettings', 'Device Settings')}
                                 </button>
-                                <button
-                                    onClick={() => setShowOTAManager(true)}
-                                    className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-indigo-600 shadow hover:bg-indigo-50 transition-colors"
-                                >
-                                    <Zap className="h-4 w-4" />
-                                    {t('deviceDetail.otaUpdate')}
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (confirm('This will rebuild the firmware with current device configuration and push it via OTA. The device will automatically reboot with the new firmware. Continue?')) {
-                                            otaRebuildMutation.mutate(id);
-                                        }
-                                    }}
-                                    disabled={otaRebuildMutation.isLoading || device.status !== 'online'}
-                                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-2 text-sm font-medium text-white shadow-lg hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                    title={device.status !== 'online' ? 'Device must be online for OTA rebuild' : 'Rebuild firmware and push via OTA'}
-                                >
-                                    {otaRebuildMutation.isLoading ? (
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowOTADropdown(!showOTADropdown)}
+                                        className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-indigo-600 shadow hover:bg-indigo-50 transition-colors"
+                                    >
+                                        <Zap className="h-4 w-4" />
+                                        {t('deviceDetail.otaUpdate', 'OTA Update')}
+                                        <ChevronDown className={`h-4 w-4 transition-transform ${showOTADropdown ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {showOTADropdown && (
                                         <>
-                                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                                            Rebuilding...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <RefreshCw className="h-4 w-4" />
-                                            Rebuild & OTA Update
+                                            <div
+                                                className="fixed inset-0 z-10"
+                                                onClick={() => setShowOTADropdown(false)}
+                                            />
+                                            <div className="absolute right-0 mt-2 w-64 rounded-lg bg-white shadow-xl border border-gray-200 overflow-hidden z-20">
+                                                <button
+                                                    onClick={() => {
+                                                        setShowOTADropdown(false);
+                                                        setShowOTAManager(true);
+                                                    }}
+                                                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3"
+                                                >
+                                                    <Zap className="h-5 w-5 text-indigo-600 mt-0.5 flex-shrink-0" />
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">Manual OTA Update</div>
+                                                        <div className="text-xs text-gray-500 mt-0.5">Upload and push firmware file</div>
+                                                    </div>
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setShowOTADropdown(false);
+                                                        if (confirm('This will rebuild the firmware with current device configuration and push it via OTA. The device will automatically reboot with the new firmware. Continue?')) {
+                                                            otaRebuildMutation.mutate(id);
+                                                        }
+                                                    }}
+                                                    disabled={otaRebuildMutation.isLoading || device.status !== 'online'}
+                                                    className="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors flex items-start gap-3 disabled:opacity-50 disabled:cursor-not-allowed border-t border-gray-100"
+                                                    title={device.status !== 'online' ? 'Device must be online for OTA rebuild' : 'Rebuild firmware and push via OTA'}
+                                                >
+                                                    <RefreshCw className={`h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0 ${otaRebuildMutation.isLoading ? 'animate-spin' : ''}`} />
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">
+                                                            {otaRebuildMutation.isLoading ? 'Rebuilding...' : 'Rebuild & OTA Update'}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 mt-0.5">Auto-rebuild with current config</div>
+                                                    </div>
+                                                </button>
+                                            </div>
                                         </>
                                     )}
-                                </button>
+                                </div>
                             </div>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

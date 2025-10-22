@@ -43,6 +43,23 @@ const computeStats = (series) => {
     };
 };
 
+const adjustForUnit = (value, unit) => {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    const numeric = typeof value === 'number' ? value : parseFloat(value);
+    if (!Number.isFinite(numeric)) {
+        return null;
+    }
+
+    if (unit === '%' && Math.abs(numeric) > 100) {
+        return numeric / 10;
+    }
+
+    return numeric;
+};
+
 function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -94,15 +111,15 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                     ? new Date(timestampValue).getTime()
                     : null;
 
-                const parsedValue = parseFloat(point.value ?? point.processed_value ?? point.raw_value);
-                const parsedMin = point.min_value !== undefined ? parseFloat(point.min_value) : undefined;
-                const parsedMax = point.max_value !== undefined ? parseFloat(point.max_value) : undefined;
+                const parsedValue = adjustForUnit(point.value ?? point.processed_value ?? point.raw_value, sensorUnit);
+                const parsedMin = point.min_value !== undefined ? adjustForUnit(point.min_value, sensorUnit) : undefined;
+                const parsedMax = point.max_value !== undefined ? adjustForUnit(point.max_value, sensorUnit) : undefined;
 
                 return {
                     timestamp: parsedTimestamp,
-                    value: Number.isFinite(parsedValue) ? parsedValue : null,
-                    min_value: Number.isFinite(parsedMin) ? parsedMin : undefined,
-                    max_value: Number.isFinite(parsedMax) ? parsedMax : undefined,
+                    value: parsedValue,
+                    min_value: parsedMin,
+                    max_value: parsedMax,
                     formattedTime: timestampValue ? new Date(timestampValue).toLocaleString() : ''
                 };
             }).filter(point => point.timestamp !== null);

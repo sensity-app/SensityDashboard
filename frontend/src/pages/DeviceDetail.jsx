@@ -449,6 +449,18 @@ function DeviceDetail() {
         return Number.isFinite(numeric) ? numeric.toFixed(2) : '—';
     };
 
+    const adjustForUnit = (sensor, value) => {
+        if (value === null || value === undefined) return null;
+        const numeric = typeof value === 'number' ? value : parseFloat(value);
+        if (!Number.isFinite(numeric)) return null;
+
+        const unit = sensor?.unit || sensor?.sensor_unit || sensor?.sensor_unit_name;
+        if (unit === '%' && Math.abs(numeric) > 100) {
+            return numeric / 10;
+        }
+        return numeric;
+    };
+
     const normalizeNumeric = (value) => {
         if (value === null || value === undefined) return null;
         if (typeof value === 'number') return Number.isFinite(value) ? value : null;
@@ -474,18 +486,25 @@ function DeviceDetail() {
         const candidateValue = realtime
             ? (realtime.processed_value ?? realtime.value ?? realtime.raw_value)
             : (stat?.avg_value ?? null);
-        const value = normalizeNumeric(candidateValue);
+        const value = adjustForUnit(sensor, normalizeNumeric(candidateValue));
         const timestamp = normalizeTimestamp(realtime?.timestamp);
         const state = realtime && timestamp
             ? (Date.now() - timestamp.getTime() <= 120000 ? 'fresh' : 'stale')
             : 'unknown';
 
+        const normalizedStat = stat ? {
+            ...stat,
+            avg_value: adjustForUnit(sensor, normalizeNumeric(stat.avg_value)),
+            min_value: adjustForUnit(sensor, normalizeNumeric(stat.min_value)),
+            max_value: adjustForUnit(sensor, normalizeNumeric(stat.max_value))
+        } : null;
+
         return {
             value,
             timestamp,
             state,
-            unit: realtime?.unit || sensor.unit || stat?.unit || '',
-            stat
+            unit: realtime?.unit || sensor.unit || normalizedStat?.unit || '',
+            stat: normalizedStat
         };
     };
 

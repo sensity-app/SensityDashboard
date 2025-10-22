@@ -451,16 +451,35 @@ function DeviceDetail() {
         return Number.isFinite(numeric) ? numeric.toFixed(2) : '—';
     };
 
+    const normalizeNumeric = (value) => {
+        if (value === null || value === undefined) return null;
+        if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+        const parsed = parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const normalizeTimestamp = (input) => {
+        if (!input) return null;
+        if (typeof input === 'number') {
+            // Some firmware reports uptime seconds; treat values < 1e12 as seconds
+            const millis = input < 1e12 ? input * 1000 : input;
+            return new Date(millis);
+        }
+        const date = new Date(input);
+        return Number.isNaN(date.getTime()) ? null : date;
+    };
+
     const getSensorDisplayData = (sensor) => {
         // Priority: WebSocket realtime > Latest telemetry API > Stats
         const realtime = realtimeData[sensor.pin] || latestTelemetry[sensor.pin];
         const stat = statsByPin.get(sensor.pin);
-        const value = realtime
+        const candidateValue = realtime
             ? (realtime.processed_value ?? realtime.value ?? realtime.raw_value)
-            : (stat?.avg_value ? parseFloat(stat.avg_value) : null);
-        const timestamp = realtime?.timestamp ? new Date(realtime.timestamp) : null;
-        const state = realtime
-            ? (Date.now() - new Date(realtime.timestamp).getTime() <= 120000 ? 'fresh' : 'stale')
+            : (stat?.avg_value ?? null);
+        const value = normalizeNumeric(candidateValue);
+        const timestamp = normalizeTimestamp(realtime?.timestamp);
+        const state = realtime && timestamp
+            ? (Date.now() - timestamp.getTime() <= 120000 ? 'fresh' : 'stale')
             : 'unknown';
 
         return {

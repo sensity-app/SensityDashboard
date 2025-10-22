@@ -1245,9 +1245,12 @@ router.post('/:id/ota-rebuild', [
 
         // Get device configuration
         const deviceResult = await db.query(`
-            SELECT d.*, dc.ota_enabled
+            SELECT
+                d.*,
+                dc.ota_enabled,
+                dc.heartbeat_interval AS config_heartbeat_interval
             FROM devices d
-            LEFT JOIN device_config dc ON d.id = dc.device_id
+            LEFT JOIN device_configs dc ON d.id = dc.device_id
             WHERE d.id = $1
         `, [id]);
 
@@ -1287,7 +1290,7 @@ router.post('/:id/ota-rebuild', [
             wifi_ssid: device.wifi_ssid || process.env.DEFAULT_WIFI_SSID,
             wifi_password: device.wifi_password || process.env.DEFAULT_WIFI_PASSWORD,
             server_url: process.env.SERVER_URL || `http://${req.get('host')}`,
-            heartbeat_interval: device.heartbeat_interval || 60,
+            heartbeat_interval: device.heartbeat_interval || device.config_heartbeat_interval || 60,
             sensors: sensorsResult.rows.map(s => ({
                 pin: s.pin,
                 type: s.sensor_type.toLowerCase(),

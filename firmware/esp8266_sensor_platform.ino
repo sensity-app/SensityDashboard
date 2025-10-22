@@ -588,7 +588,15 @@ void readAndProcessSensors(bool sendTelemetry)
         if (hasReading)
         {
             JsonObject sensor = sensorData.createNestedObject();
-            sensor["pin"] = sensors[i].pin;
+            // Send pin as string for analog pins (A0), numeric for digital pins
+            if (sensors[i].pin == A0)
+            {
+                sensor["pin"] = "A0";
+            }
+            else
+            {
+                sensor["pin"] = sensors[i].pin;
+            }
             sensor["type"] = sensors[i].type;
             sensor["name"] = sensors[i].name;
             sensor["raw_value"] = rawValue;
@@ -1099,12 +1107,16 @@ void notifyOTAStatus(const String &status, int progress, const String &errorMess
 // Print sensor values to serial console for debugging
 void printSensorValuesToConsole()
 {
-    Serial.println("========================================");
-    Serial.println("📊 SENSOR VALUES (5-second snapshot)");
-    Serial.print("⏱️  Uptime: ");
-    Serial.print(millis() / 1000);
-    Serial.println(" seconds");
-    Serial.println("========================================");
+    // Build complete output string first to avoid character breaking
+    String output = "";
+    output.reserve(512); // Pre-allocate memory to avoid fragmentation
+
+    output += "========================================\n";
+    output += "📊 SENSOR VALUES (5-second snapshot)\n";
+    output += "⏱️  Uptime: ";
+    output += String(millis() / 1000);
+    output += " seconds\n";
+    output += "========================================\n";
 
     bool hasSensors = false;
     for (int i = 0; i < sensorCount; i++)
@@ -1168,32 +1180,36 @@ void printSensorValuesToConsole()
 
         if (hasReading)
         {
-            Serial.print("  🔹 ");
-            Serial.print(sensors[i].name);
-            Serial.print(" (Pin ");
-            Serial.print(sensors[i].pin);
-            Serial.print(")");
-            Serial.println();
-            Serial.print("     Raw: ");
-            Serial.print(rawValue, 2);
-            Serial.print(" | Processed: ");
-            Serial.print(processedValue, 2);
-            Serial.print(" ");
-            Serial.println(unit);
-            Serial.print("     Thresholds: ");
-            Serial.print(sensors[i].threshold_min, 2);
-            Serial.print(" - ");
-            Serial.println(sensors[i].threshold_max, 2);
+            output += "🔹 ";
+            output += sensors[i].name;
+            output += " (Pin ";
+            output += (sensors[i].pin == A0) ? "A0" : String(sensors[i].pin);
+            output += ")\n";
+            output += "Raw: ";
+            output += String(rawValue, 2);
+            output += " | Processed: ";
+            output += String(processedValue, 2);
+            output += " ";
+            output += unit;
+            output += "\n";
+            output += "Thresholds: ";
+            output += String(sensors[i].threshold_min, 2);
+            output += " - ";
+            output += String(sensors[i].threshold_max, 2);
+            output += "\n";
         }
     }
 
     if (!hasSensors)
     {
-        Serial.println("  ⚠️  No enabled sensors configured");
+        output += "⚠️  No enabled sensors configured\n";
     }
 
-    Serial.println("========================================");
-    Serial.println();
+    output += "========================================\n";
+
+    // Print entire output at once to avoid character breaking
+    Serial.print(output);
+    Serial.flush(); // Ensure all data is sent before returning
 }
 
 void sendAlarmEvent(int sensorIndex, float value)

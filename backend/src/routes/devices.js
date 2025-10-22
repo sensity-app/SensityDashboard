@@ -1457,7 +1457,6 @@ router.post('/:id/health',
 // GET /api/devices/:id/health - Get device health status
 router.get('/:id/health',
     authenticateToken,
-    requireFeature('analytics_advanced'),
     async (req, res) => {
         try {
             const deviceId = req.params.id;
@@ -1524,7 +1523,6 @@ router.get('/:id/health',
 // GET /api/devices/:id/health/history - Get device health history
 router.get('/:id/health/history',
     authenticateToken,
-    requireFeature('analytics_advanced'),
     [
         query('timeRange').optional().isIn(['1h', '6h', '24h', '7d', '30d']),
         query('metrics').optional().isString()
@@ -1933,24 +1931,48 @@ router.get('/:id/telemetry/latest', authenticateToken, async (req, res) => {
 router.get('/:id/telemetry/history', authenticateToken, async (req, res) => {
     try {
         const deviceId = req.params.id;
-        const { sensor_pin, start_date, end_date, aggregation = 'raw' } = req.query;
+        let { sensor_pin: sensorPin } = req.query;
+        const { start_date, end_date, aggregation = 'raw' } = req.query;
 
         const telemetryProcessor = req.telemetryProcessor;
-        if (!sensor_pin) {
-            return res.status(400).json({ error: 'sensor_pin query parameter is required' });
+        if (!telemetryProcessor || typeof telemetryProcessor.getHistoricalTelemetry !== 'function') {
+            return res.status(503).json({ error: 'Telemetry processor unavailable' });
         }
+
+        if (!sensorPin) {
+            const defaultSensor = await db.query(`
+                SELECT pin
+                FROM device_sensors
+                WHERE device_id = $1 AND enabled = true
+                ORDER BY pin
+                LIMIT 1
+            `, [deviceId]);
+
+            if (defaultSensor.rows.length === 0) {
+                return res.status(404).json({ error: 'No sensors configured for this device' });
+            }
+
+            sensorPin = defaultSensor.rows[0].pin;
+        }
+
         const safeStart = start_date ? new Date(start_date) : new Date(Date.now() - 24 * 60 * 60 * 1000);
         const safeEnd = end_date ? new Date(end_date) : new Date();
 
         const data = await telemetryProcessor.getHistoricalTelemetry(
             deviceId,
-            sensor_pin,
+            sensorPin,
             safeStart,
             safeEnd,
             aggregation
         );
 
-        res.json({ telemetry: data });
+        res.json({
+            telemetry: data,
+            sensor_pin: sensorPin,
+            start: safeStart.toISOString(),
+            end: safeEnd.toISOString(),
+            aggregation
+        });
     } catch (error) {
         logger.error('Get historical telemetry error:', error);
         res.status(500).json({ error: 'Failed to fetch telemetry history' });

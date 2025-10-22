@@ -58,8 +58,6 @@ function DeviceDetail() {
                 console.error('Failed to fetch sensors:', error);
             },
             select: (data) => {
-                // Ensure we always return an array
-                console.log('Raw sensor data:', data);
                 if (!data) return [];
                 if (Array.isArray(data.sensors)) return data.sensors;
                 if (Array.isArray(data)) return data;

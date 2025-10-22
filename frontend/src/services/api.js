@@ -125,9 +125,11 @@ export const apiService = {
     // Telemetry
     getLatestTelemetry: (deviceId) => apiClient.get(`/devices/${deviceId}/telemetry/latest`),
     getHistoricalTelemetry: (deviceId, sensorPin, startDate, endDate, aggregation = 'raw') =>
-        apiClient.get(`/devices/${deviceId}/telemetry/history`, {
-            params: { sensor_pin: sensorPin, start_date: startDate, end_date: endDate, aggregation }
-        }),
+        apiClient
+            .get(`/devices/${deviceId}/telemetry/history`, {
+                params: { sensor_pin: sensorPin, start_date: startDate, end_date: endDate, aggregation }
+            })
+            .then((data) => data?.telemetry || data?.history || data || []),
     getTelemetryStats: (deviceId, timeRange = '24h') =>
         apiClient.get(`/devices/${deviceId}/telemetry/stats`, { params: { range: timeRange } }),
 
@@ -203,9 +205,17 @@ export const apiService = {
     getDeviceTagsForDevice: (deviceId) => apiClient.get(`/device-tags/device/${deviceId}`),
 
     // Device Health
-    getDeviceHealth: (deviceId) => apiClient.get(`/devices/${deviceId}/health`),
+    getDeviceHealth: (deviceId) =>
+        apiClient.get(`/devices/${deviceId}/health`).then((data) => ({
+            metrics: data?.currentHealth || {},
+            score: data?.healthScore || null,
+            recentHistory: data?.recentHistory || [],
+            recommendations: data?.recommendations || []
+        })),
     getDeviceHealthHistory: (deviceId, timeRange = '24h', metrics) =>
-        apiClient.get(`/devices/${deviceId}/health/history`, { params: { timeRange, metrics } }),
+        apiClient
+            .get(`/devices/${deviceId}/health/history`, { params: { timeRange, metrics } })
+            .then((data) => data?.history || data?.records || data?.telemetry || data || []),
     updateDeviceHealth: (deviceId, healthData) => apiClient.post(`/devices/${deviceId}/health`, healthData),
 
     // Alert Rules
@@ -225,7 +235,20 @@ export const apiService = {
     resolveAlert: (alertId, note) => apiClient.put(`/alerts/${alertId}/resolve`, { resolution_notes: note }),
 
     // Audit Logs
-    getAuditLogs: (filters = {}) => apiClient.get('/audit-logs', { params: filters }),
+    getAuditLogs: (filters = {}) => {
+        const params = { ...filters };
+        if (params.action) {
+            params.action_type = params.action;
+            delete params.action;
+        }
+        return apiClient.get('/audit-logs', { params }).then((data) => ({
+            logs: data?.logs || (Array.isArray(data) ? data : []),
+            total: data?.total ?? (Array.isArray(data) ? data.length : 0),
+            limit: data?.limit ?? null,
+            offset: data?.offset ?? null,
+            hasMore: data?.hasMore ?? false
+        }));
+    },
     getAuditLog: (logId) => apiClient.get(`/audit-logs/${logId}`),
 
     // Users (for filtering)

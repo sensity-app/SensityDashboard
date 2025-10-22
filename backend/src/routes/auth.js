@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const db = require('../models/database');
 const logger = require('../utils/logger');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const auditService = require('../services/auditService');
 const emailService = require('../services/emailService');
 const { bruteForceProtection } = require('../middleware/bruteForceProtection');
 
@@ -226,6 +227,7 @@ router.post('/login', [
             if (req.bruteForce) {
                 await req.bruteForce.recordFailure('user_not_found');
             }
+            await auditService.logLogin({ email }, req, false, 'user_not_found');
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -238,6 +240,7 @@ router.post('/login', [
             if (req.bruteForce) {
                 await req.bruteForce.recordFailure('invalid_password');
             }
+            await auditService.logLogin(user, req, false, 'invalid_password');
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
@@ -258,6 +261,7 @@ router.post('/login', [
         );
 
         logger.info(`User logged in: ${email}`);
+        await auditService.logLogin(user, req, true);
 
         res.json({
             message: 'Login successful',
@@ -275,6 +279,17 @@ router.post('/login', [
         logger.error('Login error:', error);
         res.status(500).json({ error: 'Login failed' });
     }
+});
+
+// POST /api/auth/logout
+router.post('/logout', authenticateToken, async (req, res) => {
+    try {
+        await auditService.logLogout(req.user, req);
+    } catch (error) {
+        logger.warn('Logout audit logging failed:', error.message);
+    }
+
+    res.json({ message: 'Logged out successfully' });
 });
 
 // GET /api/auth/me

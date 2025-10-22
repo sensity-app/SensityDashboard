@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from 'react-query';
 import { Shield, User, Activity, Filter, Eye, Download, Search } from 'lucide-react';
@@ -12,11 +12,11 @@ const AuditLogPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     // Fetch audit logs
-    const { data: logsData = [], isLoading, refetch } = useQuery(
+    const { data: logsResponse = { logs: [], total: 0 }, isLoading, refetch } = useQuery(
         ['audit-logs', actionFilter, userFilter, dateRange],
         async () => {
             const filters = {};
-            if (actionFilter !== 'all') filters.action = actionFilter;
+            if (actionFilter !== 'all') filters.action_type = actionFilter;
             if (userFilter !== 'all') filters.user_id = userFilter;
             if (dateRange !== 'all') {
                 const now = new Date();
@@ -29,8 +29,7 @@ const AuditLogPage = () => {
                 filters.start_date = startDate.toISOString();
             }
 
-            const response = await apiService.getAuditLogs(filters);
-            return Array.isArray(response) ? response : (response?.logs || []);
+            return apiService.getAuditLogs(filters);
         },
         { refetchInterval: 60000 }
     );
@@ -76,33 +75,85 @@ const AuditLogPage = () => {
     };
 
     const formatAction = (action) => {
-        return action.split('_').map(word =>
+        if (!action) return '—';
+        return action.replace(/\./g, '_').split('_').map(word =>
             word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ');
     };
 
-    const filteredLogs = logsData.filter(log => {
+    const logs = logsResponse?.logs || [];
+
+    const normalizedLogs = useMemo(() => {
+        return logs.map((log) => {
+            const actionKey = log.action_type || log.action || '';
+            const actionLabel = formatAction(actionKey);
+            const userDisplay = log.user_email || log.username || log.user || log.email || 'Unknown';
+            const userIdValue = log.user_id ?? log.userId ?? null;
+
+            let metadata = log.metadata;
+            if (typeof metadata === 'string') {
+                try {
+                    metadata = JSON.parse(metadata);
+                } catch {
+                    metadata = null;
+                }
+            }
+
+            let detailsText = log.details || '';
+            if (!detailsText && metadata && typeof metadata === 'object') {
+                detailsText = Object.entries(metadata)
+                    .map(([key, value]) => `${key}: ${value}`)
+                    .join(', ');
+            }
+
+            if ((!detailsText || detailsText === '—') && (log.resource_type || log.resource_name)) {
+                detailsText = [log.resource_type, log.resource_name].filter(Boolean).join(': ');
+            }
+
+            return {
+                ...log,
+                actionKey,
+                actionLabel,
+                userDisplay,
+                userIdValue,
+                metadata,
+                detailsText: detailsText || '—'
+            };
+        });
+    }, [logs]);
+
+    const filteredLogs = normalizedLogs.filter(log => {
         if (searchTerm) {
             const search = searchTerm.toLowerCase();
             return (
-                log.action?.toLowerCase().includes(search) ||
-                log.username?.toLowerCase().includes(search) ||
-                log.details?.toLowerCase().includes(search) ||
+                log.actionKey?.toLowerCase().includes(search) ||
+                log.actionLabel?.toLowerCase().includes(search) ||
+                log.userDisplay?.toLowerCase().includes(search) ||
+                log.detailsText?.toLowerCase().includes(search) ||
                 log.ip_address?.toLowerCase().includes(search)
             );
         }
+
+        if (actionFilter !== 'all' && log.actionKey !== actionFilter) {
+            return false;
+        }
+
+        if (userFilter !== 'all' && String(log.userIdValue) !== String(userFilter)) {
+            return false;
+        }
+
         return true;
     });
 
     const actionTypes = [
-        ...new Set(logsData.map(log => log.action))
+        ...new Set(normalizedLogs.map(log => log.actionKey).filter(Boolean))
     ].sort();
 
     const stats = {
         total: filteredLogs.length,
-        logins: filteredLogs.filter(l => l.action === 'login').length,
-        deviceChanges: filteredLogs.filter(l => l.action?.includes('device')).length,
-        alertActions: filteredLogs.filter(l => l.action?.includes('alert')).length
+        logins: filteredLogs.filter(l => l.actionKey?.includes('login')).length,
+        deviceChanges: filteredLogs.filter(l => l.actionKey?.includes('device')).length,
+        alertActions: filteredLogs.filter(l => l.actionKey?.includes('alert')).length
     };
 
     const exportLogs = () => {
@@ -110,10 +161,10 @@ const AuditLogPage = () => {
             ['Timestamp', 'User', 'Action', 'IP Address', 'Details'].join(','),
             ...filteredLogs.map(log => [
                 formatDateTime(log.created_at),
-                log.username || 'Unknown',
-                log.action,
+                log.userDisplay || 'Unknown',
+                log.actionLabel,
                 log.ip_address || '—',
-                (log.details || '').replace(/,/g, ';')
+                (log.detailsText || '').replace(/,/g, ';')
             ].join(','))
         ].join('\n');
 
@@ -327,9 +378,9 @@ const AuditLogPage = () => {
                                                 {(log.username || log.email || 'U').charAt(0).toUpperCase()}
                                             </div>
                                             <div className="ml-3">
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {log.username || 'Unknown'}
-                                                </div>
+                                            <div className="text-sm font-medium text-gray-900">
+                                                {log.userDisplay || 'Unknown'}
+                                            </div>
                                                 <div className="text-xs text-gray-500">
                                                     {log.email}
                                                 </div>
@@ -337,13 +388,13 @@ const AuditLogPage = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 py-1 inline-flex items-center gap-1 text-xs leading-5 font-semibold rounded-full ${getActionColor(log.action)}`}>
-                                            <span>{getActionIcon(log.action)}</span>
-                                            {formatAction(log.action)}
+                                        <span className={`px-2 py-1 inline-flex items-center gap-1 text-xs leading-5 font-semibold rounded-full ${getActionColor(log.actionKey)}`}>
+                                            <span>{getActionIcon(log.actionKey)}</span>
+                                            {log.actionLabel}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-sm text-gray-500">
-                                        {log.details || '—'}
+                                        {log.detailsText || '—'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {log.ip_address || '—'}

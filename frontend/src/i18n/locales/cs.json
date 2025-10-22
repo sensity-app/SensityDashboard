@@ -1120,7 +1120,15 @@
         "hourly": "Hodinový průměr"
       }
     },
-    "noData": "Pro zvolené období nejsou k dispozici žádná data"
+    "noData": "Pro zvolené období nejsou k dispozici žádná data",
+    "baseline": {
+      "mean": "Průměr",
+      "median": "Medián",
+      "range": "Pozorovaný rozsah",
+      "spread": "Směrodatná odchylka",
+      "recommended": "Navrhované prahy",
+      "percentileWindow": "Vypočteno z neutrální historie"
+    }
   },
   "ota": {
     "title": "OTA Aktualizace",

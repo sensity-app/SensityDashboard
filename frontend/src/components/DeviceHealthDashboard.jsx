@@ -88,6 +88,33 @@ const DeviceHealthDashboard = () => {
         { key: 'error_rate', label: t('deviceHealth.metrics.errorRate'), color: '#6B7280' }
     ];
 
+    const healthMetrics = deviceHealth?.metrics || deviceHealth?.currentHealth || {};
+    const healthScore = deviceHealth?.score?.score ?? deviceHealth?.healthScore?.score ?? healthMetrics.overall_score ?? null;
+    const healthIssues = deviceHealth?.score?.issues || deviceHealth?.issues || [];
+    const healthRecommendations = deviceHealth?.recommendations || [];
+    const recentHealthHistory = deviceHealth?.recentHistory || [];
+
+    const normalizedHistory = useMemo(() => {
+        const rawHistory = Array.isArray(healthHistory) ? healthHistory : (healthHistory?.history || []);
+        return rawHistory.map(point => {
+            const timestamp = new Date(point.timestamp || point.created_at || Date.now()).getTime();
+            const normalized = { ...point, timestamp };
+
+            Object.keys(normalized).forEach(key => {
+                if (key === 'timestamp') return;
+                const value = normalized[key];
+                if (typeof value === 'string' && value !== '') {
+                    const parsed = parseFloat(value);
+                    if (Number.isFinite(parsed)) {
+                        normalized[key] = parsed;
+                    }
+                }
+            });
+
+            return normalized;
+        });
+    }, [healthHistory]);
+
     if (devicesLoading) {
         return (
             <div className="flex justify-center items-center p-8">
@@ -171,12 +198,12 @@ const DeviceHealthDashboard = () => {
                     ) : deviceHealth ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             {/* Overall Score */}
-                            <div className={`${deviceHealth.overall_score ? getHealthScoreBgColor(deviceHealth.overall_score) : 'bg-gray-50'} rounded-lg p-4`}>
+                            <div className={`${healthScore ? getHealthScoreBgColor(healthScore) : 'bg-gray-50'} rounded-lg p-4`}>
                                 <h3 className="text-sm font-medium text-gray-700">{t('deviceHealth.overallScore')}</h3>
-                                <p className={`text-2xl font-bold ${deviceHealth.overall_score ? getHealthScoreColor(deviceHealth.overall_score) : 'text-gray-500'}`}>
-                                    {deviceHealth.overall_score ? `${deviceHealth.overall_score}/100` : '—'}
+                                <p className={`text-2xl font-bold ${healthScore ? getHealthScoreColor(healthScore) : 'text-gray-500'}`}>
+                                    {healthScore ? `${healthScore}/100` : '—'}
                                 </p>
-                                {!deviceHealth.overall_score && (
+                                {!healthScore && (
                                     <p className="text-xs text-gray-500 mt-1">{t('deviceHealth.noData', 'No data')}</p>
                                 )}
                             </div>
@@ -184,24 +211,27 @@ const DeviceHealthDashboard = () => {
                             <div className="bg-green-50 rounded-lg p-4">
                                 <h3 className="text-sm font-medium text-gray-700">{t('deviceHealth.uptime')}</h3>
                                 <p className="text-2xl font-bold text-green-600">
-                                    {deviceHealth.uptime_percentage?.toFixed(1)}%
+                                    {healthMetrics.uptime_percentage !== undefined
+                                        ? `${healthMetrics.uptime_percentage.toFixed(1)}%`
+                                        : '—'}
                                 </p>
                             </div>
                             {/* Data Quality */}
                             <div className="bg-blue-50 rounded-lg p-4">
                                 <h3 className="text-sm font-medium text-gray-700">{t('deviceHealth.dataQuality')}</h3>
                                 <p className="text-2xl font-bold text-blue-600">
-                                    {deviceHealth.data_quality_score?.toFixed(1)}%
+                                    {healthMetrics.data_quality_score !== undefined
+                                        ? `${healthMetrics.data_quality_score.toFixed(1)}%`
+                                        : '—'}
                                 </p>
                             </div>
                             {/* Last Contact */}
                             <div className="bg-gray-50 rounded-lg p-4">
                                 <h3 className="text-sm font-medium text-gray-700">{t('deviceHealth.lastContact')}</h3>
                                 <p className="text-sm font-medium text-gray-900">
-                                    {deviceHealth.last_contact ?
-                                        new Date(deviceHealth.last_contact).toLocaleString() :
-                                        t('deviceHealth.never')
-                                    }
+                                    {healthMetrics.last_heartbeat || healthMetrics.last_contact
+                                        ? new Date(healthMetrics.last_heartbeat || healthMetrics.last_contact).toLocaleString()
+                                        : t('deviceHealth.never')}
                                 </p>
                             </div>
                         </div>
@@ -210,15 +240,15 @@ const DeviceHealthDashboard = () => {
                     )}
 
                     {/* Health Issues & Recommendations */}
-                    {deviceHealth && deviceHealth.issues && deviceHealth.issues.length > 0 && (
+{healthIssues.length > 0 && (
                         <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                             <h3 className="text-sm font-medium text-yellow-800 mb-2">
                                 {t('deviceHealth.healthIssues')}
                             </h3>
                             <ul className="space-y-1">
-                                {Array.isArray(deviceHealth.issues) && deviceHealth.issues.map((issue, index) => (
+                                {healthIssues.map((issue, index) => (
                                     <li key={index} className="text-sm text-yellow-700">
-                                        • {issue}
+                                        • {issue.message || issue}
                                     </li>
                                 ))}
                             </ul>
@@ -226,13 +256,13 @@ const DeviceHealthDashboard = () => {
                     )}
 
                     {/* Recommendations */}
-                    {deviceHealth && deviceHealth.recommendations && deviceHealth.recommendations.length > 0 && (
+{healthRecommendations.length > 0 && (
                         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
                             <h3 className="text-sm font-medium text-blue-800 mb-2">
                                 {t('deviceHealth.recommendations')}
                             </h3>
                             <ul className="space-y-3">
-                                {Array.isArray(deviceHealth.recommendations) && deviceHealth.recommendations.map((recommendation, index) => (
+                                {healthRecommendations.map((recommendation, index) => (
                                     <li key={index} className="text-sm">
                                         <div className="flex items-start gap-2">
                                             <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded ${
@@ -298,14 +328,14 @@ const DeviceHealthDashboard = () => {
                         <div className="flex justify-center py-8">
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                         </div>
-                    ) : healthHistory.length === 0 ? (
+                    ) : normalizedHistory.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                             <p>{t('deviceHealth.noHistoryData')}</p>
                         </div>
                     ) : (
                         <div className="h-80">
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={healthHistory}>
+                                <LineChart data={normalizedHistory}>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis
                                         dataKey="timestamp"

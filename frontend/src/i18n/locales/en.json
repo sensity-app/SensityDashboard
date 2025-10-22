@@ -954,7 +954,15 @@
         "hourly": "Hourly Average"
       }
     },
-    "noData": "No data available for the selected time range"
+    "noData": "No data available for the selected time range",
+    "baseline": {
+      "mean": "Average",
+      "median": "Median",
+      "range": "Observed Range",
+      "spread": "Std Dev",
+      "recommended": "Suggested Thresholds",
+      "percentileWindow": "Based on neutral historical behavior"
+    }
   },
   "ota": {
     "title": "Over-the-Air Updates",

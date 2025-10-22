@@ -4,6 +4,45 @@ import { Calendar, Download, Settings } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useTranslation } from 'react-i18next';
 
+const computeStats = (series) => {
+    const values = series
+        .map(point => point.value)
+        .filter((value) => value !== null && value !== undefined && Number.isFinite(value));
+
+    if (!values.length) {
+        return null;
+    }
+
+    const sorted = [...values].sort((a, b) => a - b);
+    const sum = values.reduce((acc, val) => acc + val, 0);
+    const mean = sum / values.length;
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / values.length;
+    const stdDev = Math.sqrt(variance);
+
+    const percentile = (p) => {
+        if (sorted.length === 1) return sorted[0];
+        const index = Math.min(sorted.length - 1, Math.max(0, Math.round(p * (sorted.length - 1))));
+        return sorted[index];
+    };
+
+    const p10 = percentile(0.1);
+    const p90 = percentile(0.9);
+
+    return {
+        count: values.length,
+        mean,
+        median,
+        min: sorted[0],
+        max: sorted[sorted.length - 1],
+        stdDev,
+        p10,
+        p90,
+        recommendedMin: parseFloat((Math.min(p10, mean - 2 * stdDev)).toFixed(2)),
+        recommendedMax: parseFloat((Math.max(p90, mean + 2 * stdDev)).toFixed(2))
+    };
+};
+
 function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -45,19 +84,28 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                 timeRange === '7d' || timeRange === '30d' ? 'hourly' : aggregation
             );
 
-            const formattedData = Array.isArray(response) ? response.map(point => {
-                const parsedValue = parseFloat(point.value);
-                const parsedMin = point.min_value ? parseFloat(point.min_value) : undefined;
-                const parsedMax = point.max_value ? parseFloat(point.max_value) : undefined;
+            const rawPoints = Array.isArray(response)
+                ? response
+                : (response?.telemetry || response?.history || []);
+
+            const formattedData = rawPoints.map(point => {
+                const timestampValue = point.timestamp || point.hour_timestamp || point.time;
+                const parsedTimestamp = timestampValue
+                    ? new Date(timestampValue).getTime()
+                    : null;
+
+                const parsedValue = parseFloat(point.value ?? point.processed_value ?? point.raw_value);
+                const parsedMin = point.min_value !== undefined ? parseFloat(point.min_value) : undefined;
+                const parsedMax = point.max_value !== undefined ? parseFloat(point.max_value) : undefined;
 
                 return {
-                    timestamp: new Date(point.timestamp).getTime(),
+                    timestamp: parsedTimestamp,
                     value: Number.isFinite(parsedValue) ? parsedValue : null,
                     min_value: Number.isFinite(parsedMin) ? parsedMin : undefined,
                     max_value: Number.isFinite(parsedMax) ? parsedMax : undefined,
-                    formattedTime: new Date(point.timestamp).toLocaleString()
+                    formattedTime: timestampValue ? new Date(timestampValue).toLocaleString() : ''
                 };
-            }) : [];
+            }).filter(point => point.timestamp !== null);
 
             setData(formattedData);
         } catch (error) {
@@ -66,6 +114,8 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
             setLoading(false);
         }
     };
+
+    const stats = useMemo(() => computeStats(data), [data]);
 
     const downloadData = () => {
         const csvContent = [
@@ -299,6 +349,26 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                     </ResponsiveContainer>
                 )}
             </div>
+
+            {stats && (
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('telemetry.baseline.mean', 'Average')}</p>
+                        <p className="text-xl font-bold text-gray-900">{stats.mean.toFixed(2)} {sensorUnit}</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('telemetry.baseline.median', 'Median')}: {stats.median.toFixed(2)}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('telemetry.baseline.range', 'Observed Range')}</p>
+                        <p className="text-xl font-bold text-gray-900">{stats.min.toFixed(2)} – {stats.max.toFixed(2)} {sensorUnit}</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('telemetry.baseline.spread', 'Std Dev')}: {stats.stdDev.toFixed(2)}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('telemetry.baseline.recommended', 'Suggested Thresholds')}</p>
+                        <p className="text-xl font-bold text-gray-900">{stats.recommendedMin.toFixed(2)} – {stats.recommendedMax.toFixed(2)} {sensorUnit}</p>
+                        <p className="text-xs text-gray-500 mt-1">{t('telemetry.baseline.percentileWindow', 'Based on neutral historical behavior')}.</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

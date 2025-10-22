@@ -359,82 +359,114 @@ class LicenseService {
      * Check if a feature is enabled
      */
     async isFeatureEnabled(featureName) {
-        const license = this.cachedLicense || await this.loadCachedLicense();
+        try {
+            const license = this.cachedLicense || await this.loadCachedLicense();
 
-        if (!license) {
-            // No license - allow basic features only
+            if (!license) {
+                // No license - allow basic features only
+                const basicFeatures = ['basic_monitoring', 'device_management'];
+                return basicFeatures.includes(featureName);
+            }
+
+            const features = typeof license.features === 'string'
+                ? JSON.parse(license.features)
+                : license.features;
+
+            return features[featureName] === true;
+        } catch (error) {
+            logger.error('Error checking feature enabled:', error);
+            // On error, allow basic features only
             const basicFeatures = ['basic_monitoring', 'device_management'];
             return basicFeatures.includes(featureName);
         }
-
-        const features = typeof license.features === 'string'
-            ? JSON.parse(license.features)
-            : license.features;
-
-        return features[featureName] === true;
     }
 
     /**
      * Check if device/user limit is exceeded
      */
     async checkUsageLimits() {
-        const license = this.cachedLicense || await this.loadCachedLicense();
+        try {
+            const license = this.cachedLicense || await this.loadCachedLicense();
 
-        if (!license) {
+            if (!license) {
+                return {
+                    devices_ok: false,
+                    users_ok: false,
+                    message: 'No valid license found'
+                };
+            }
+
+            const [devicesCount, usersCount] = await Promise.all([
+                db.query('SELECT COUNT(*) as count FROM devices'),
+                db.query('SELECT COUNT(*) as count FROM users')
+            ]);
+
+            const currentDevices = parseInt(devicesCount.rows[0].count);
+            const currentUsers = parseInt(usersCount.rows[0].count);
+
             return {
-                devices_ok: false,
-                users_ok: false,
-                message: 'No valid license found'
+                devices_ok: currentDevices <= license.max_devices,
+                users_ok: currentUsers <= license.max_users,
+                current_devices: currentDevices,
+                max_devices: license.max_devices,
+                current_users: currentUsers,
+                max_users: license.max_users
+            };
+        } catch (error) {
+            logger.error('Error checking usage limits:', error);
+            // Return safe defaults on error
+            return {
+                devices_ok: true,
+                users_ok: true,
+                current_devices: 0,
+                max_devices: 0,
+                current_users: 0,
+                max_users: 0,
+                error: true
             };
         }
-
-        const [devicesCount, usersCount] = await Promise.all([
-            db.query('SELECT COUNT(*) as count FROM devices'),
-            db.query('SELECT COUNT(*) as count FROM users')
-        ]);
-
-        const currentDevices = parseInt(devicesCount.rows[0].count);
-        const currentUsers = parseInt(usersCount.rows[0].count);
-
-        return {
-            devices_ok: currentDevices <= license.max_devices,
-            users_ok: currentUsers <= license.max_users,
-            current_devices: currentDevices,
-            max_devices: license.max_devices,
-            current_users: currentUsers,
-            max_users: license.max_users
-        };
     }
 
     /**
      * Get current license status
      */
     async getLicenseStatus() {
-        const license = this.cachedLicense || await this.loadCachedLicense();
+        try {
+            const license = this.cachedLicense || await this.loadCachedLicense();
 
-        if (!license) {
+            if (!license) {
+                return {
+                    valid: false,
+                    message: 'No license configured',
+                    requires_activation: true
+                };
+            }
+
+            const limits = await this.checkUsageLimits();
+            const daysUntilExpiry = license.expires_at
+                ? Math.ceil((new Date(license.expires_at) - new Date()) / (1000 * 60 * 60 * 24))
+                : null;
+
+            return {
+                valid: license.status === 'active',
+                license_type: license.license_type,
+                status: license.status,
+                offline_mode: license.is_offline_mode,
+                expires_at: license.expires_at,
+                days_until_expiry: daysUntilExpiry,
+                last_validated_at: license.last_validated_at,
+                ...limits
+            };
+        } catch (error) {
+            logger.error('Error getting license status:', error);
+            // Return a safe default that won't block operations
             return {
                 valid: false,
-                message: 'No license configured',
+                message: 'Error checking license status',
+                error: true,
                 requires_activation: true
             };
         }
-
-        const limits = await this.checkUsageLimits();
-        const daysUntilExpiry = license.expires_at
-            ? Math.ceil((new Date(license.expires_at) - new Date()) / (1000 * 60 * 60 * 24))
-            : null;
-
-        return {
-            valid: license.status === 'active',
-            license_type: license.license_type,
-            status: license.status,
-            offline_mode: license.is_offline_mode,
-            expires_at: license.expires_at,
-            days_until_expiry: daysUntilExpiry,
-            last_validated_at: license.last_validated_at,
-            ...limits
-        };
     }
 
     /**

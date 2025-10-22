@@ -38,6 +38,15 @@ const requireValidLicense = async (req, res, next) => {
         next();
     } catch (error) {
         logger.error('License validation error:', error);
+
+        // For telemetry endpoints, allow through even if license validation fails
+        // This prevents devices from being blocked due to backend issues
+        if (req.path && req.path.includes('/telemetry')) {
+            logger.warn('Allowing telemetry despite license validation error');
+            req.license = { valid: false, error: true };
+            return next();
+        }
+
         return res.status(500).json({
             error: 'License validation failed',
             message: 'Could not validate license'

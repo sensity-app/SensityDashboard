@@ -24,13 +24,15 @@ import {
     RotateCcw,
     Clock,
     Key,
-    MessageSquare
+    MessageSquare,
+    Plug
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { apiService } from '../services/api';
 import LicenseManagerPanel from '../components/LicenseManagerPanel';
 import NotificationTemplates from './NotificationTemplates';
+import ProtocolSettingsManager from '../components/ProtocolSettingsManager';
 
 function Settings() {
     const { t } = useTranslation();
@@ -360,6 +362,7 @@ function Settings() {
         { id: 'platform', label: t('settings.tabs.platform', 'Platform Update'), icon: RotateCcw },
         { id: 'branding', label: t('settings.tabs.branding', 'Branding'), icon: Image },
         { id: 'notifications', label: t('settings.tabs.notifications', 'Notification Templates'), icon: MessageSquare },
+        { id: 'protocol', label: t('settings.tabs.protocol', 'Protocol Settings'), icon: Plug },
         { id: 'environment', label: t('settings.tabs.environment', 'Environment'), icon: Code },
         { id: 'database', label: t('settings.tabs.database', 'Database'), icon: Database },
         { id: 'email', label: t('settings.tabs.email', 'Email'), icon: Mail },
@@ -1243,6 +1246,13 @@ function Settings() {
                         {activeTab === 'notifications' && (
                             <div className="p-6">
                                 <NotificationTemplates />
+                            </div>
+                        )}
+
+                        {/* Protocol Settings Tab */}
+                        {activeTab === 'protocol' && (
+                            <div className="p-6">
+                                <ProtocolSettingsManager />
                             </div>
                         )}
 

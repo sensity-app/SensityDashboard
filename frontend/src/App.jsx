@@ -32,7 +32,6 @@ import DeviceLocationsManager from './components/DeviceLocationsManager';
 import DeviceHealthDashboard from './components/DeviceHealthDashboard';
 import AlertRulesManager from './components/AlertRulesManager';
 import SilentModeManager from './components/SilentModeManager';
-import ProtocolSettingsManager from './components/ProtocolSettingsManager';
 import ErrorBoundary from './components/ErrorBoundary';
 import { apiService } from './services/api';
 import LicenseManagerPanel from './components/LicenseManagerPanel';
@@ -431,8 +430,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                 items: [
                     { path: '/users', label: t('nav.userManagement', 'Users'), icon: '👥' },
                     { path: '/audit-log', label: t('nav.auditLog', 'Audit Log'), icon: '🔍', feature: 'audit_logging' },
-                    { path: '/settings', label: t('nav.settings', 'Settings'), icon: '⚙️' },
-                    { path: '/protocol-settings', label: t('nav.protocolSettings', 'Protocol Settings'), icon: '🔌', feature: 'custom_integrations' }
+                    { path: '/settings', label: t('nav.settings', 'Settings'), icon: '⚙️' }
                 ]
             });
         }
@@ -899,14 +897,6 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                         <>
                             <Route path="/users" element={<UserManagement />} />
                             <Route path="/settings" element={<Settings />} />
-                            <Route
-                                path="/protocol-settings"
-                                element={
-                                    <FeatureGate feature="custom_integrations">
-                                        <ProtocolSettingsManager />
-                                    </FeatureGate>
-                                }
-                            />
                         </>
                     )}
                     <Route path="*" element={<Navigate to="/" />} />

@@ -3,7 +3,7 @@
 -- It's safe to run multiple times (uses ON CONFLICT DO NOTHING)
 
 -- Insert common sensor types with sensible defaults
-INSERT INTO sensor_types (name, unit, icon, description, default_threshold_min, default_threshold_max)
+INSERT INTO sensor_types (name, unit, icon, description, min_value, max_value)
 VALUES
     ('Temperature', '°C', '🌡️', 'Temperature sensor', 15.0, 30.0),
     ('Humidity', '%', '💧', 'Humidity sensor', 30.0, 70.0),
@@ -30,7 +30,7 @@ ON CONFLICT (name) DO NOTHING;
 -- Update any existing sensor types that don't have defaults
 UPDATE sensor_types
 SET
-    default_threshold_min = CASE name
+    min_value = CASE name
         WHEN 'Temperature' THEN 15.0
         WHEN 'Humidity' THEN 30.0
         WHEN 'Light' THEN 0.0
@@ -51,9 +51,9 @@ SET
         WHEN 'Power' THEN 0.0
         WHEN 'Energy' THEN 0.0
         WHEN 'pH' THEN 0.0
-        ELSE default_threshold_min
+        ELSE min_value
     END,
-    default_threshold_max = CASE name
+    max_value = CASE name
         WHEN 'Temperature' THEN 30.0
         WHEN 'Humidity' THEN 70.0
         WHEN 'Light' THEN 1000.0
@@ -74,9 +74,9 @@ SET
         WHEN 'Power' THEN 1000.0
         WHEN 'Energy' THEN 10000.0
         WHEN 'pH' THEN 14.0
-        ELSE default_threshold_max
+        ELSE max_value
     END
-WHERE default_threshold_min IS NULL OR default_threshold_max IS NULL;
+WHERE min_value IS NULL OR max_value IS NULL;
 
 -- Verify sensor types
 SELECT COUNT(*) as sensor_types_count FROM sensor_types;

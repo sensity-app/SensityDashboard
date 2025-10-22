@@ -109,11 +109,11 @@ const DeviceHealthDashboard = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6 space-y-6 animate-fade-in">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">{t('deviceHealth.title')}</h1>
+                    <h1 className="text-3xl font-bold text-gray-900">{t('deviceHealth.title')}</h1>
                     <p className="text-gray-600 mt-1">{t('deviceHealth.subtitle')}</p>
                 </div>
                 <div className="flex space-x-3">

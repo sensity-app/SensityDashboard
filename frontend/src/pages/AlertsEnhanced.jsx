@@ -113,7 +113,7 @@ const AlertsPage = () => {
     };
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6 space-y-6 animate-fade-in">
             {/* Header */}
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-gray-900">
@@ -126,25 +126,40 @@ const AlertsPage = () => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-                    <div className="text-sm font-medium text-gray-500">{t('alerts.total', 'Total')}</div>
-                    <div className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</div>
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                    <div className="relative z-10">
+                        <p className="text-sm font-medium opacity-90">{t('alerts.total', 'Total')}</p>
+                        <p className="text-3xl font-bold mt-2">{stats.total}</p>
+                    </div>
+                    <AlertTriangle className="absolute right-4 top-4 h-12 w-12 opacity-20" />
                 </div>
-                <div className="bg-white rounded-lg shadow-sm p-4 border border-red-200">
-                    <div className="text-sm font-medium text-red-600">{t('alerts.open', 'Open')}</div>
-                    <div className="text-2xl font-bold text-red-700 mt-1">{stats.open}</div>
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-500 to-red-600 p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                    <div className="relative z-10">
+                        <p className="text-sm font-medium opacity-90">{t('alerts.open', 'Open')}</p>
+                        <p className="text-3xl font-bold mt-2">{stats.open}</p>
+                    </div>
+                    <XCircle className="absolute right-4 top-4 h-12 w-12 opacity-20" />
                 </div>
-                <div className="bg-white rounded-lg shadow-sm p-4 border border-yellow-200">
-                    <div className="text-sm font-medium text-yellow-600">{t('alerts.acknowledged', 'Acknowledged')}</div>
-                    <div className="text-2xl font-bold text-yellow-700 mt-1">{stats.acknowledged}</div>
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                    <div className="relative z-10">
+                        <p className="text-sm font-medium opacity-90">{t('alerts.acknowledged', 'Acknowledged')}</p>
+                        <p className="text-3xl font-bold mt-2">{stats.acknowledged}</p>
+                    </div>
+                    <Clock className="absolute right-4 top-4 h-12 w-12 opacity-20" />
                 </div>
-                <div className="bg-white rounded-lg shadow-sm p-4 border border-green-200">
-                    <div className="text-sm font-medium text-green-600">{t('alerts.resolved', 'Resolved')}</div>
-                    <div className="text-2xl font-bold text-green-700 mt-1">{stats.resolved}</div>
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                    <div className="relative z-10">
+                        <p className="text-sm font-medium opacity-90">{t('alerts.resolved', 'Resolved')}</p>
+                        <p className="text-3xl font-bold mt-2">{stats.resolved}</p>
+                    </div>
+                    <CheckCircle className="absolute right-4 top-4 h-12 w-12 opacity-20" />
                 </div>
-                <div className="bg-white rounded-lg shadow-sm p-4 border border-red-300">
-                    <div className="text-sm font-medium text-red-700">{t('alerts.critical', 'Critical')}</div>
-                    <div className="text-2xl font-bold text-red-800 mt-1">{stats.critical}</div>
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                    <div className="relative z-10">
+                        <p className="text-sm font-medium opacity-90">{t('alerts.critical', 'Critical')}</p>
+                        <p className="text-3xl font-bold mt-2">{stats.critical}</p>
+                    </div>
+                    <AlertTriangle className="absolute right-4 top-4 h-12 w-12 opacity-20" />
                 </div>
             </div>
 

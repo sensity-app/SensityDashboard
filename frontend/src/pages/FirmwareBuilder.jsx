@@ -49,6 +49,7 @@ const FirmwareBuilder = () => {
     const [pinMapping, setPinMapping] = useState({});
     const [availablePins, setAvailablePins] = useState({ digital: [], analog: [] });
     const [locations, setLocations] = useState([]);
+    const [knownWifiNetworks, setKnownWifiNetworks] = useState([]);
     const [loading, setLoading] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState(null);
     const [showWebFlasher, setShowWebFlasher] = useState(false);
@@ -83,20 +84,21 @@ const FirmwareBuilder = () => {
         wifi_ssid: '',
         wifi_password: '',
         open_wifi: false,
-        server_url: window.location.origin,
+        server_url: window.location.origin, // Fixed - non-changeable
         api_key: generateApiKey(),
-        heartbeat_interval: 300,
-        sensor_read_interval: 5000,
+        heartbeat_interval: 60, // Fixed at 60 seconds
+        sensor_read_interval: 1000, // Fixed at 1 second (1000ms)
         debug_mode: false,
         ota_enabled: true,
         device_armed: true,
         sensors: []
     });
 
-    // Load sensor options and locations on component mount
+    // Load sensor options, locations, and known WiFi networks on component mount
     useEffect(() => {
         fetchSensorOptions();
         fetchLocations();
+        fetchKnownWifiNetworks();
     }, []);
 
     const fetchSensorOptions = async () => {
@@ -120,6 +122,19 @@ const FirmwareBuilder = () => {
         } catch (error) {
             console.error('Failed to load locations:', error);
             setLocations([]);
+        }
+    };
+
+    const fetchKnownWifiNetworks = async () => {
+        try {
+            // Get unique WiFi SSIDs from existing devices
+            const devicesData = await apiService.getDevices();
+            const devices = devicesData.devices || devicesData || [];
+            const uniqueSSIDs = [...new Set(devices.map(d => d.wifi_ssid).filter(Boolean))];
+            setKnownWifiNetworks(uniqueSSIDs);
+        } catch (error) {
+            console.error('Failed to load known WiFi networks:', error);
+            setKnownWifiNetworks([]);
         }
     };
 
@@ -681,7 +696,18 @@ const FirmwareBuilder = () => {
                                                     onChange={(e) => handleConfigChange('wifi_ssid', e.target.value)}
                                                     className="input-field"
                                                     placeholder={getCopy('sections.network.wifi.fields.ssid.placeholder', 'Your WiFi network name')}
+                                                    list="wifi-networks-list"
                                                 />
+                                                <datalist id="wifi-networks-list">
+                                                    {knownWifiNetworks.map((ssid, index) => (
+                                                        <option key={index} value={ssid} />
+                                                    ))}
+                                                </datalist>
+                                                {knownWifiNetworks.length > 0 && (
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        {getCopy('sections.network.wifi.fields.ssid.helper', 'Choose from known networks or enter a new one')}
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label">
@@ -732,12 +758,13 @@ const FirmwareBuilder = () => {
                                                 <input
                                                     type="url"
                                                     value={config.server_url}
-                                                    onChange={(e) => handleConfigChange('server_url', e.target.value)}
-                                                    className="input-field"
+                                                    readOnly
+                                                    disabled
+                                                    className="input-field bg-gray-100 cursor-not-allowed"
                                                     placeholder={getCopy('sections.network.server.fields.url.placeholder', 'https://your-server.com')}
                                                 />
                                             <p className="text-xs text-gray-500 mt-1">
-                                                {getCopy('sections.network.server.fields.url.helper', 'The device will connect to this server to send data')}
+                                                {getCopy('sections.network.server.fields.url.helper', 'Server URL is automatically set to this dashboard (non-changeable)')}
                                             </p>
                                         </div>
                                     </div>
@@ -747,35 +774,23 @@ const FirmwareBuilder = () => {
                                             <Settings className="w-5 h-5 mr-2" />
                                             {getCopy('deviceConfig.deviceBehavior', 'Device Behavior')}
                                         </h3>
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                            <div className="form-group">
-                                                <label className="form-label">
-                                                    {getCopy('sections.behavior.fields.heartbeat.label', 'Heartbeat Interval (seconds)')}
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={config.heartbeat_interval}
-                                                    onChange={(e) => handleConfigChange('heartbeat_interval', parseInt(e.target.value))}
-                                                    min="60"
-                                                    max="3600"
-                                                    className="input-field"
-                                                />
-                                                <p className="text-xs text-gray-500 mt-1">{getCopy('sections.behavior.fields.heartbeat.helper', "How often the device reports it's online (60-3600 seconds)")}</p>
+                                        <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+                                            <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                                                {getCopy('sections.behavior.fixed.title', 'Fixed Device Behavior')}
+                                            </h4>
+                                            <div className="space-y-2 text-sm text-blue-800">
+                                                <div className="flex justify-between">
+                                                    <span>{getCopy('sections.behavior.fixed.heartbeat', 'Heartbeat Interval:')}</span>
+                                                    <span className="font-semibold">60 seconds</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>{getCopy('sections.behavior.fixed.sensorRead', 'Sensor Read Interval:')}</span>
+                                                    <span className="font-semibold">1 second (1000ms)</span>
+                                                </div>
                                             </div>
-                                            <div className="form-group">
-                                                <label className="form-label">
-                                                    {getCopy('sections.behavior.fields.sensorRead.label', 'Sensor Read Interval (ms)')}
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={config.sensor_read_interval}
-                                                    onChange={(e) => handleConfigChange('sensor_read_interval', parseInt(e.target.value))}
-                                                    min="1000"
-                                                    max="60000"
-                                                    className="input-field"
-                                                />
-                                                <p className="text-xs text-gray-500 mt-1">{getCopy('sections.behavior.fields.sensorRead.helper', 'How often sensors are read (1000-60000 ms)')}</p>
-                                            </div>
+                                            <p className="text-xs text-blue-700 mt-3">
+                                                {getCopy('sections.behavior.fixed.description', 'These values are optimized and cannot be changed to ensure consistent device performance.')}
+                                            </p>
                                         </div>
 
                                         <div className="mt-6">

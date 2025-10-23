@@ -108,9 +108,15 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                     ? new Date(timestampValue).getTime()
                     : null;
 
-                const parsedValue = adjustForUnit(point.value ?? point.processed_value ?? point.raw_value);
+                const rawValue = point.value ?? point.processed_value ?? point.raw_value;
+                const parsedValue = adjustForUnit(rawValue);
                 const parsedMin = point.min_value !== undefined ? adjustForUnit(point.min_value) : undefined;
                 const parsedMax = point.max_value !== undefined ? adjustForUnit(point.max_value) : undefined;
+
+                // Debug logging to see actual values
+                if (rawValue !== null && rawValue !== undefined) {
+                    console.log(`[HistoricalChart] Raw value from backend: ${rawValue}, Parsed: ${parsedValue}, Sensor: ${sensorName}`);
+                }
 
                 return {
                     timestamp: parsedTimestamp,
@@ -121,6 +127,7 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                 };
             }).filter(point => point.timestamp !== null);
 
+            console.log(`[HistoricalChart] Total data points loaded: ${formattedData.length}`);
             setData(formattedData);
         } catch (error) {
             console.error('Error loading historical data:', error);

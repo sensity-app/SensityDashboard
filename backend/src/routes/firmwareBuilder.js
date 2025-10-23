@@ -215,9 +215,9 @@ router.post('/build', authenticateToken, async (req, res) => {
             server_url,
             api_key,
 
-            // Device behavior
-            heartbeat_interval = 300,
-            sensor_read_interval = 5000,
+            // Device behavior - FIXED VALUES (non-changeable by user)
+            heartbeat_interval = 60, // Fixed at 60 seconds
+            sensor_read_interval = 1000, // Fixed at 1 second (1000ms)
             debug_mode = false,
             ota_enabled = true,
             device_armed = true,
@@ -393,8 +393,8 @@ router.post('/compile', authenticateToken, async (req, res) => {
             open_wifi = false,
             server_url,
             api_key,
-            heartbeat_interval = 300,
-            sensor_read_interval = 5000,
+            heartbeat_interval = 60, // Fixed at 60 seconds
+            sensor_read_interval = 1000, // Fixed at 1 second (1000ms)
             debug_mode = false,
             ota_enabled = true,
             device_armed = true,

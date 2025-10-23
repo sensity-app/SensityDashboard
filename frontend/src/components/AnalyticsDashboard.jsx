@@ -11,15 +11,19 @@ import {
     Target,
     Zap,
     RefreshCw,
-    Monitor
+    Monitor,
+    Activity,
+    Heart
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { apiService } from '../services/api';
+import DeviceHealthDashboard from './DeviceHealthDashboard';
 
 function AnalyticsDashboardPage() {
     const { t } = useTranslation();
     const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+    const [activeTab, setActiveTab] = useState('sensors'); // 'sensors' or 'health'
 
     // Fetch devices
     const { data: devicesData, isLoading: devicesLoading } = useQuery(
@@ -64,13 +68,13 @@ function AnalyticsDashboardPage() {
 
     return (
         <div className="space-y-6">
-            {/* Device Selector */}
-            <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
+            {/* Device Selector and Tabs */}
+            <div className="bg-white rounded-lg shadow">
+                <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div className="flex items-center space-x-3">
                         <Brain className="h-6 w-6 text-blue-600" />
                         <h2 className="text-lg font-medium text-gray-900">
-                            {t('analytics.title', 'Device Analytics')}
+                            {t('analytics.title', 'Device Analytics & Health')}
                         </h2>
                     </div>
                     <div className="flex items-center space-x-4">
@@ -88,10 +92,47 @@ function AnalyticsDashboardPage() {
                         </select>
                     </div>
                 </div>
+
+                {/* Tabs */}
+                <div className="border-b border-gray-200">
+                    <nav className="flex -mb-px px-6" aria-label="Tabs">
+                        <button
+                            onClick={() => setActiveTab('sensors')}
+                            className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                                activeTab === 'sensors'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Activity className="h-4 w-4" />
+                                {t('analytics.tabs.sensorAnalytics', 'Sensor Analytics')}
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('health')}
+                            className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
+                                activeTab === 'health'
+                                    ? 'border-indigo-500 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <Heart className="h-4 w-4" />
+                                {t('analytics.tabs.deviceHealth', 'Device Health')}
+                            </div>
+                        </button>
+                    </nav>
+                </div>
             </div>
 
-            {/* Analytics Content */}
-            {selectedDeviceId && <AnalyticsDashboard deviceId={selectedDeviceId} />}
+            {/* Tab Content */}
+            {selectedDeviceId && (
+                <>
+                    {activeTab === 'sensors' && <AnalyticsDashboard deviceId={selectedDeviceId} />}
+                    {activeTab === 'health' && <DeviceHealthDashboard preSelectedDeviceId={selectedDeviceId} />}
+                </>
+            )}
         </div>
     );
 }

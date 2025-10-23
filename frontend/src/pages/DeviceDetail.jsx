@@ -506,7 +506,9 @@ function DeviceDetail() {
     };
 
     const lastHeartbeatLabel = formatRelativeTime(device?.last_heartbeat ? new Date(device.last_heartbeat) : null);
-    const uptimeLabel = formatDuration(device?.uptime_seconds);
+    // Use total_runtime_seconds for total runtime, uptime_seconds for current session
+    const totalRuntimeLabel = formatDuration(device?.total_runtime_seconds || device?.uptime_seconds);
+    const currentUptimeLabel = formatDuration(device?.uptime_seconds);
     const wifiStrengthLabel = formatSignalStrength(device?.wifi_signal_strength);
     const signalQualityLabel = getSignalQualityLabel(device?.wifi_signal_strength);
     const statusLabel = formatStatusLabel(device?.status);
@@ -522,11 +524,11 @@ function DeviceDetail() {
             hint: t('deviceDetail.metrics.statusHint', { when: lastHeartbeatLabel })
         },
         {
-            label: t('deviceDetail.metrics.uptime'),
-            value: uptimeLabel,
+            label: t('deviceDetail.metrics.totalRuntime', 'Total Runtime'),
+            value: totalRuntimeLabel,
             icon: Clock,
-            hint: device?.uptime_seconds
-                ? t('deviceDetail.metrics.uptimeHint', { hours: Math.max(1, Math.floor(device.uptime_seconds / 3600)) })
+            hint: device?.total_runtime_seconds
+                ? t('deviceDetail.metrics.runtimeHint', `${Math.floor(device.total_runtime_seconds / 3600)} total hours (current session: ${currentUptimeLabel})`)
                 : t('deviceDetail.metrics.uptimeUnknown')
         },
         {
@@ -731,7 +733,7 @@ function DeviceDetail() {
                             <div className="rounded-xl bg-white/10 p-4 backdrop-blur">
                                 <p className="text-sm text-indigo-100">{t('deviceDetail.ipAddress')}</p>
                                 <p className="text-lg font-semibold">{device.ip_address || t('deviceDetail.valueUnknown')}</p>
-                                <p className="mt-1 text-xs text-indigo-100/80">{t('deviceDetail.metrics.uptimeLabel', { value: uptimeLabel })}</p>
+                                <p className="mt-1 text-xs text-indigo-100/80">{t('deviceDetail.metrics.uptimeLabel', { value: totalRuntimeLabel })}</p>
                             </div>
                             <div className="rounded-xl bg-white/10 p-4 backdrop-blur">
                                 <p className="text-sm text-indigo-100">{t('deviceDetail.wifiSignal')}</p>

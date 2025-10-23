@@ -499,6 +499,27 @@ router.post('/:id/telemetry', [
         const memoryUsagePercent = free_heap ? Math.max(0, Math.min(100, 100 - (free_heap / 81920 * 100))) : null;
         const wifiQualityPercent = wifi_rssi ? Math.max(0, Math.min(100, 2 * (wifi_rssi + 100))) : null;
 
+        // Calculate total runtime (accumulates across reboots)
+        const deviceCheck = await db.query(`
+            SELECT uptime_seconds, last_uptime_seconds, total_runtime_seconds
+            FROM devices
+            WHERE id = $1
+        `, [id]);
+
+        let totalRuntimeUpdate = 0;
+        if (deviceCheck.rows.length > 0 && uptime !== undefined) {
+            const lastReportedUptime = deviceCheck.rows[0].last_uptime_seconds || 0;
+            const currentTotalRuntime = deviceCheck.rows[0].total_runtime_seconds || 0;
+
+            // If uptime decreased, device rebooted - add the last uptime to total
+            if (uptime < lastReportedUptime) {
+                totalRuntimeUpdate = currentTotalRuntime + lastReportedUptime;
+            } else {
+                // Normal case: uptime increased or stayed same
+                totalRuntimeUpdate = currentTotalRuntime + (uptime - lastReportedUptime);
+            }
+        }
+
         // Update device last heartbeat and health metrics
         const updateResult = await db.query(`
             UPDATE devices
@@ -506,13 +527,15 @@ router.post('/:id/telemetry', [
                 status = 'online',
                 current_status = 'online',
                 uptime_seconds = COALESCE($1, uptime_seconds),
+                last_uptime_seconds = COALESCE($1, last_uptime_seconds),
+                total_runtime_seconds = $8,
                 ip_address = $2,
                 free_heap_bytes = COALESCE($3, free_heap_bytes),
                 wifi_signal_strength = COALESCE($4, wifi_signal_strength),
                 memory_usage_percent = COALESCE($5, memory_usage_percent),
                 wifi_quality_percent = COALESCE($6, wifi_quality_percent)
             WHERE id = $7
-        `, [uptime, telemetryIp, free_heap, wifi_rssi, memoryUsagePercent, wifiQualityPercent, id]);
+        `, [uptime, telemetryIp, free_heap, wifi_rssi, memoryUsagePercent, wifiQualityPercent, id, totalRuntimeUpdate]);
 
         // Check if device exists
         if (updateResult.rowCount === 0) {
@@ -1812,20 +1835,22 @@ router.post('/:id/sensors', authenticateToken, async (req, res) => {
 router.put('/:deviceId/sensors/:sensorId', authenticateToken, async (req, res) => {
     try {
         const { deviceId, sensorId } = req.params;
-        const { name, calibration_offset, calibration_multiplier, enabled, trigger_ota, threshold_min, threshold_max } = req.body;
+        const { name, calibration_offset, sensitivity, enabled, trigger_ota, threshold_min, threshold_max } = req.body;
 
+        // Force calibration_multiplier to always be 1 - use sensitivity instead
         const result = await db.query(`
             UPDATE device_sensors
             SET name = COALESCE($1, name),
                 calibration_offset = COALESCE($2, calibration_offset),
-                calibration_multiplier = COALESCE($3, calibration_multiplier),
+                calibration_multiplier = 1,
+                sensitivity = COALESCE($3, sensitivity),
                 enabled = COALESCE($4, enabled),
                 threshold_min = COALESCE($5, threshold_min),
                 threshold_max = COALESCE($6, threshold_max),
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $7 AND device_id = $8
             RETURNING *
-        `, [name, calibration_offset, calibration_multiplier, enabled, threshold_min, threshold_max, sensorId, deviceId]);
+        `, [name, calibration_offset, sensitivity, enabled, threshold_min, threshold_max, sensorId, deviceId]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Sensor not found' });

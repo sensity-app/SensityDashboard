@@ -10,13 +10,14 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
     const [isLoading, setIsLoading] = useState(false);
     const [sensorTypes, setSensorTypes] = useState([]);
     const [showAddSensorPanel, setShowAddSensorPanel] = useState(false);
+    const [recommendations, setRecommendations] = useState({});
 
     // Available pins based on device type
     const availablePins = device?.device_type === 'esp32'
         ? ['A0', 'D0', 'D1', 'D2', 'D4', 'D5', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17', 'D18', 'D19', 'D21', 'D22', 'D23', 'D25', 'D26', 'D27', 'D32', 'D33']
         : ['A0', 'D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8'];
 
-    // Fetch available sensor types
+    // Fetch available sensor types and recommendations
     useEffect(() => {
         const fetchSensorTypes = async () => {
             try {
@@ -39,8 +40,32 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                 toast.error(t('deviceDetail.sensorManager.fetchTypesError', `Failed to load sensor types: ${error.response?.data?.error || error.message}`));
             }
         };
+
+        const fetchRecommendations = async () => {
+            try {
+                // Fetch recommended thresholds for each sensor based on historical data
+                const recs = {};
+                for (const sensor of sensors) {
+                    try {
+                        const response = await apiService.getSensorRecommendations(device.id, sensor.pin, '30d');
+                        if (response && response.recommendations && response.recommendations.hasEnoughData) {
+                            recs[sensor.pin] = response.recommendations.recommendations;
+                        }
+                    } catch (error) {
+                        console.log(`No recommendations available for sensor ${sensor.pin}`);
+                    }
+                }
+                setRecommendations(recs);
+            } catch (error) {
+                console.error('Failed to fetch recommendations:', error);
+            }
+        };
+
         fetchSensorTypes();
-    }, [t]);
+        if (device && sensors.length > 0) {
+            fetchRecommendations();
+        }
+    }, [t, device, sensors]);
 
     // Get used pins
     const usedPins = useMemo(() => {
@@ -81,8 +106,7 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
             name: `${sensorType.name} on ${nextAvailablePin}`,
             enabled: true,
             calibration_offset: 0,
-            calibration_multiplier: 1,
-            sensitivity: 1.0, // Default sensitivity
+            sensitivity: 50, // Default sensitivity (0-100 scale, 50 = medium)
             threshold_min: sensorType.default_min || 0,
             threshold_max: sensorType.default_max || 1000,
             isNew: true
@@ -149,7 +173,7 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                             name: sensor.name,
                             enabled: sensor.enabled,
                             calibration_offset: sensor.calibration_offset || 0,
-                            calibration_multiplier: (sensor.calibration_multiplier || 1) * (sensor.sensitivity || 1),
+                            sensitivity: sensor.sensitivity || 50,
                             threshold_min: sensor.threshold_min,
                             threshold_max: sensor.threshold_max
                         });
@@ -167,7 +191,7 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                             name: sensor.name,
                             enabled: sensor.enabled,
                             calibration_offset: sensor.calibration_offset,
-                            calibration_multiplier: (sensor.calibration_multiplier || 1) * (sensor.sensitivity || 1),
+                            sensitivity: sensor.sensitivity || 50,
                             threshold_min: sensor.threshold_min,
                             threshold_max: sensor.threshold_max,
                             trigger_ota: false
@@ -426,27 +450,28 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                                                     <Info className="h-4 w-4" />
                                                     {t('deviceDetail.sensorManager.sensitivityCalibration', 'Sensitivity & Calibration')}
                                                 </h5>
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
                                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                            {t('deviceDetail.sensorManager.sensitivity', 'Sensitivity')}
+                                                            {t('deviceDetail.sensorManager.sensitivity', 'Sensitivity')} ({sensor.sensitivity || 50}/100)
                                                         </label>
                                                         <input
-                                                            type="number"
-                                                            step="0.1"
-                                                            min="0.1"
-                                                            max="10"
-                                                            value={sensor.sensitivity || 1.0}
-                                                            onChange={(e) => handleSensorChange(sensor.id, 'sensitivity', parseFloat(e.target.value) || 1.0)}
-                                                            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                                                            type="range"
+                                                            min="0"
+                                                            max="100"
+                                                            value={sensor.sensitivity || 50}
+                                                            onChange={(e) => handleSensorChange(sensor.id, 'sensitivity', parseInt(e.target.value))}
+                                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                                                         />
-                                                        <p className="text-xs text-gray-600 mt-1">
-                                                            {t('deviceDetail.sensorManager.sensitivityHint', 'Higher = more detail')}
-                                                        </p>
+                                                        <div className="flex justify-between text-xs text-gray-600 mt-1">
+                                                            <span>{t('deviceDetail.sensorManager.low', 'Low')}</span>
+                                                            <span>{t('deviceDetail.sensorManager.medium', 'Medium')}</span>
+                                                            <span>{t('deviceDetail.sensorManager.high', 'High')}</span>
+                                                        </div>
                                                     </div>
                                                     <div>
                                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                            {t('deviceDetail.sensorManager.offset', 'Offset')}
+                                                            {t('deviceDetail.sensorManager.offset', 'Calibration Offset')}
                                                         </label>
                                                         <input
                                                             type="number"
@@ -455,31 +480,44 @@ function SensorManagerModal({ device, sensors, onClose, onSave }) {
                                                             onChange={(e) => handleSensorChange(sensor.id, 'calibration_offset', parseFloat(e.target.value) || 0)}
                                                             className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
                                                         />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                            {t('deviceDetail.sensorManager.multiplier', 'Multiplier')}
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0.01"
-                                                            value={sensor.calibration_multiplier || 1}
-                                                            onChange={(e) => handleSensorChange(sensor.id, 'calibration_multiplier', parseFloat(e.target.value) || 1)}
-                                                            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                                                        />
+                                                        <p className="text-xs text-gray-600 mt-1">
+                                                            {t('deviceDetail.sensorManager.offsetHint', 'Add/subtract from raw value')}
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 <p className="text-xs text-gray-600 mt-2">
-                                                    {t('deviceDetail.sensorManager.calibrationFormula', 'Final value = (raw + offset) × multiplier × sensitivity')}
+                                                    {t('deviceDetail.sensorManager.calibrationFormula', 'Final value = raw + offset')}
                                                 </p>
                                             </div>
 
                                             {/* Thresholds */}
                                             <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
-                                                <h5 className="text-sm font-semibold text-amber-900 mb-3">
-                                                    {t('deviceDetail.sensorManager.thresholds', 'Thresholds (for device-side alerts)')}
-                                                </h5>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <h5 className="text-sm font-semibold text-amber-900">
+                                                        {t('deviceDetail.sensorManager.thresholds', 'Thresholds (for device-side alerts)')}
+                                                    </h5>
+                                                    {recommendations[sensor.pin] && (
+                                                        <button
+                                                            onClick={() => {
+                                                                const rec = recommendations[sensor.pin];
+                                                                handleSensorChange(sensor.id, 'threshold_min', rec.optimal?.min || rec.warning?.min || 0);
+                                                                handleSensorChange(sensor.id, 'threshold_max', rec.optimal?.max || rec.warning?.max || 1000);
+                                                                toast.success(t('deviceDetail.sensorManager.recommendationsApplied', 'Recommended thresholds applied'));
+                                                            }}
+                                                            className="text-xs bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 transition-colors"
+                                                        >
+                                                            {t('deviceDetail.sensorManager.useRecommended', 'Use Recommended')}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {recommendations[sensor.pin] && (
+                                                    <div className="mb-3 text-xs text-green-700 bg-green-50 border border-green-200 rounded p-2">
+                                                        <strong>{t('deviceDetail.sensorManager.recommended', 'Recommended')}:</strong>{' '}
+                                                        Min: {recommendations[sensor.pin].optimal?.min?.toFixed(2) || recommendations[sensor.pin].warning?.min?.toFixed(2)},{' '}
+                                                        Max: {recommendations[sensor.pin].optimal?.max?.toFixed(2) || recommendations[sensor.pin].warning?.max?.toFixed(2)}
+                                                        {' '}(based on 30-day history)
+                                                    </div>
+                                                )}
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div>
                                                         <label className="block text-sm font-medium text-gray-700 mb-2">

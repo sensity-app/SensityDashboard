@@ -215,6 +215,14 @@ const createTables = async () => {
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS wifi_quality_percent FLOAT;
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS reset_reason VARCHAR(100);
         ALTER TABLE devices ADD COLUMN IF NOT EXISTS boot_time TIMESTAMP;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS total_runtime_seconds BIGINT DEFAULT 0;
+        ALTER TABLE devices ADD COLUMN IF NOT EXISTS last_uptime_seconds INTEGER DEFAULT 0;
+
+        -- Add sensitivity field to device_sensors (0-100 scale, default 50 = medium)
+        ALTER TABLE device_sensors ADD COLUMN IF NOT EXISTS sensitivity INTEGER DEFAULT 50;
+
+        -- Force all calibration_multipliers to 1
+        UPDATE device_sensors SET calibration_multiplier = 1 WHERE calibration_multiplier != 1;
 
         -- Device health history for trend analysis
         CREATE TABLE IF NOT EXISTS device_health_history (

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import { useTranslation } from 'react-i18next';
 import { apiService } from '../services/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
-const DeviceHealthDashboard = () => {
+const DeviceHealthDashboard = ({ preSelectedDeviceId }) => {
     const { t } = useTranslation();
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [timeRange, setTimeRange] = useState('24h');
@@ -15,7 +15,9 @@ const DeviceHealthDashboard = () => {
         'devices',
         apiService.getDevices,
         {
-            select: (data) => data?.devices || []
+            select: (data) => data?.devices || [],
+            refetchOnWindowFocus: false,
+            staleTime: 2 * 60 * 1000
         }
     );
 
@@ -25,7 +27,8 @@ const DeviceHealthDashboard = () => {
         () => apiService.getDeviceHealth(selectedDevice.id),
         {
             enabled: !!selectedDevice,
-            refetchInterval: 30000
+            refetchOnWindowFocus: false,
+            staleTime: 2 * 60 * 1000
         }
     );
 
@@ -35,15 +38,22 @@ const DeviceHealthDashboard = () => {
         () => apiService.getDeviceHealthHistory(selectedDevice.id, timeRange, selectedMetrics.join(',')),
         {
             enabled: !!selectedDevice,
-            refetchInterval: 60000
+            refetchOnWindowFocus: false,
+            staleTime: 5 * 60 * 1000
         }
     );
 
+    // Auto-select device based on preSelectedDeviceId or first device
     useEffect(() => {
-        if (devices.length > 0 && !selectedDevice) {
+        if (preSelectedDeviceId && devices.length > 0) {
+            const device = devices.find(d => d.id === preSelectedDeviceId);
+            if (device) {
+                setSelectedDevice(device);
+            }
+        } else if (devices.length > 0 && !selectedDevice) {
             setSelectedDevice(devices[0]);
         }
-    }, [devices, selectedDevice]);
+    }, [devices, selectedDevice, preSelectedDeviceId]);
 
     const getHealthScoreColor = (score) => {
         if (score >= 90) return 'text-green-600';

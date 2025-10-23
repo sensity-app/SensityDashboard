@@ -10,11 +10,91 @@ import {
     BarChart3,
     Target,
     Zap,
-    RefreshCw
+    RefreshCw,
+    Monitor
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { apiService } from '../services/api';
+
+function AnalyticsDashboardPage() {
+    const { t } = useTranslation();
+    const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+
+    // Fetch devices
+    const { data: devicesData, isLoading: devicesLoading } = useQuery(
+        'devices',
+        () => apiService.getDevices(),
+        {
+            select: (data) => data.devices || data || []
+        }
+    );
+
+    const devices = devicesData || [];
+
+    // Auto-select first device
+    useEffect(() => {
+        if (!selectedDeviceId && devices.length > 0) {
+            setSelectedDeviceId(devices[0].id);
+        }
+    }, [devices, selectedDeviceId]);
+
+    if (devicesLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center p-16 space-y-4">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent"></div>
+                <p className="text-gray-500">{t('common.loading', 'Loading...')}</p>
+            </div>
+        );
+    }
+
+    if (devices.length === 0) {
+        return (
+            <div className="bg-white rounded-lg shadow p-12 text-center">
+                <Monitor className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    {t('analytics.noDevices', 'No Devices Found')}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                    {t('analytics.noDevicesDescription', 'Add devices to start viewing analytics.')}
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Device Selector */}
+            <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                        <Brain className="h-6 w-6 text-blue-600" />
+                        <h2 className="text-lg font-medium text-gray-900">
+                            {t('analytics.title', 'Device Analytics')}
+                        </h2>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                        <label className="text-sm text-gray-600">{t('analytics.selectDevice', 'Device:')}</label>
+                        <select
+                            value={selectedDeviceId || ''}
+                            onChange={(e) => setSelectedDeviceId(e.target.value)}
+                            className="border border-gray-300 rounded-md px-3 py-2 text-sm min-w-[200px]"
+                        >
+                            {devices.map((device) => (
+                                <option key={device.id} value={device.id}>
+                                    {device.name || device.id}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* Analytics Content */}
+            {selectedDeviceId && <AnalyticsDashboard deviceId={selectedDeviceId} />}
+        </div>
+    );
+}
 
 function AnalyticsDashboard({ deviceId, onRecommendationApply }) {
     const { t } = useTranslation();
@@ -27,7 +107,8 @@ function AnalyticsDashboard({ deviceId, onRecommendationApply }) {
         () => apiService.getDeviceAnalyticsSummary(deviceId, timeRange),
         {
             enabled: !!deviceId,
-            refetchInterval: 5 * 60 * 1000 // Refresh every 5 minutes
+            refetchOnWindowFocus: false,
+            staleTime: 10 * 60 * 1000 // 10 minutes
         }
     );
 
@@ -37,7 +118,8 @@ function AnalyticsDashboard({ deviceId, onRecommendationApply }) {
         () => apiService.getSensorRecommendations(deviceId, selectedSensor.pin, timeRange),
         {
             enabled: !!deviceId && !!selectedSensor,
-            refetchInterval: 10 * 60 * 1000 // Refresh every 10 minutes
+            refetchOnWindowFocus: false,
+            staleTime: 15 * 60 * 1000 // 15 minutes
         }
     );
 
@@ -47,7 +129,8 @@ function AnalyticsDashboard({ deviceId, onRecommendationApply }) {
         () => apiService.getAnomalies(deviceId, selectedSensor.pin, '24h'),
         {
             enabled: !!deviceId && !!selectedSensor,
-            refetchInterval: 2 * 60 * 1000 // Refresh every 2 minutes
+            refetchOnWindowFocus: false,
+            staleTime: 5 * 60 * 1000 // 5 minutes
         }
     );
 
@@ -478,4 +561,5 @@ function getConfidenceColor(confidence) {
     }
 }
 
-export default AnalyticsDashboard;
+export default AnalyticsDashboardPage;
+export { AnalyticsDashboard };

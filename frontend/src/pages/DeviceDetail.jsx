@@ -103,14 +103,14 @@ function DeviceDetail() {
         }
     );
 
-    // Fetch latest telemetry data with auto-refresh every 30 seconds
+    // Fetch latest telemetry data - relies on WebSocket for real-time updates
     const { data: latestTelemetry = {} } = useQuery(
         ['latest-telemetry', id],
         () => apiService.getLatestTelemetry(id),
         {
             enabled: !!id,
-            refetchInterval: 30000, // Refresh every 30 seconds
-            refetchOnWindowFocus: true,
+            refetchOnWindowFocus: false, // Disable refresh on window focus
+            staleTime: Infinity, // Keep data fresh indefinitely (WebSocket updates it)
             select: (data) => {
                 // Convert array of telemetry to object keyed by pin for easy lookup
                 const telemetryByPin = {};
@@ -785,13 +785,18 @@ function DeviceDetail() {
 
                         <section className="space-y-4">
                             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                                <div>
-                                    <h2 className="text-xl font-semibold text-gray-900">{t('deviceDetail.sensorSectionTitle')}</h2>
-                                    <p className="text-sm text-gray-500">
-                                        {sortedSensors.length
-                                            ? t('deviceDetail.sensorSectionDescription')
-                                            : t('deviceDetail.sensorSectionEmptyHint')}
-                                    </p>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                                        <Activity className="h-5 w-5 text-indigo-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-gray-900">{t('deviceDetail.sensorSectionTitle')}</h2>
+                                        <p className="text-sm text-gray-500">
+                                            {sortedSensors.length
+                                                ? t('deviceDetail.sensorSectionDescription')
+                                                : t('deviceDetail.sensorSectionEmptyHint')}
+                                        </p>
+                                    </div>
                                 </div>
                                 {sortedSensors.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
@@ -801,14 +806,14 @@ function DeviceDetail() {
                                                 queryClient.invalidateQueries(['device', id]);
                                                 toast.success('Refreshing device data...');
                                             }}
-                                            className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
                                         >
                                             <Activity className="h-4 w-4" />
                                             Refresh
                                         </button>
                                         <button
                                             onClick={() => handleSensorHistory(selectedSensor || sortedSensors[0])}
-                                            className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
                                         >
                                             View history
                                         </button>
@@ -870,8 +875,8 @@ function DeviceDetail() {
                                         return (
                                             <div
                                                 key={sensor.id}
-                                                className={`relative flex h-full flex-col gap-4 rounded-xl border bg-white p-5 transition-all ${isDisabled ? 'opacity-60 border-gray-200' :
-                                                    isActive ? 'border-indigo-400 shadow-lg ring-2 ring-indigo-100' : 'border-gray-100 shadow-sm hover:shadow-md'
+                                                className={`relative flex h-full flex-col gap-4 rounded-xl border bg-white p-5 transition-all duration-200 hover:scale-[1.02] ${isDisabled ? 'opacity-60 border-gray-200' :
+                                                    isActive ? 'border-indigo-400 shadow-lg ring-2 ring-indigo-100' : 'border-gray-200 shadow-sm hover:shadow-lg'
                                                     }`}
                                             >
                                                 <div className="flex items-start justify-between gap-2">
@@ -1093,44 +1098,62 @@ function DeviceDetail() {
                         </div>
 
                         <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-gray-900">{t('deviceDetail.alertsHeading')}</h3>
-                                <span className="text-xs text-gray-400">{t('deviceDetail.alertsCount', { count: activeAlerts.length })}</span>
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-900">{t('deviceDetail.alertsHeading')}</h3>
+                                        <p className="text-xs text-gray-500">{activeAlerts.length} {t('deviceDetail.alertsCount', { count: activeAlerts.length })}</p>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="mt-4 space-y-3">
+                            <div className="space-y-3">
                                 {activeAlerts.length === 0 ? (
-                                    <p className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                                        {t('deviceDetail.alertsEmpty')}
-                                    </p>
+                                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
+                                        <p className="text-sm text-gray-600">{t('deviceDetail.alertsEmpty')}</p>
+                                    </div>
                                 ) : (
-                                    activeAlerts.map((alert) => (
-                                        <div key={alert.id || `${alert.alert_type}-${alert.triggered_at || alert.created_at}`} className="rounded-lg border border-gray-200 p-4">
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <p className="text-sm font-semibold text-gray-900">
-                                                        {alert.alert_type || t('deviceDetail.alerts.defaultType', 'Alert')}
-                                                    </p>
-                                                    <p className="mt-1 text-xs text-gray-500">
-                                                        {alert.message || t('deviceDetail.alerts.noContext', 'No additional context')}
-                                                    </p>
+                                    activeAlerts.map((alert) => {
+                                        const severity = alert.severity?.toLowerCase?.() || 'low';
+                                        return (
+                                            <div
+                                                key={alert.id || `${alert.alert_type}-${alert.triggered_at || alert.created_at}`}
+                                                className={`rounded-lg border-l-4 p-4 transition-all hover:shadow-md ${
+                                                    severity === 'critical' ? 'border-red-500 bg-gradient-to-r from-red-50 to-red-100/50' :
+                                                    severity === 'high' ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100/50' :
+                                                    severity === 'medium' ? 'border-yellow-500 bg-gradient-to-r from-yellow-50 to-yellow-100/50' :
+                                                    'border-green-500 bg-gradient-to-r from-green-50 to-green-100/50'
+                                                }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-gray-900 truncate">
+                                                            {alert.alert_type || t('deviceDetail.alerts.defaultType', 'Alert')}
+                                                        </p>
+                                                        <p className="mt-1 text-xs text-gray-600 line-clamp-2">
+                                                            {alert.message || t('deviceDetail.alerts.noContext', 'No additional context')}
+                                                        </p>
+                                                        <p className="mt-2 text-xs text-gray-500">
+                                                            {t('deviceDetail.triggeredAgo', {
+                                                                when: formatRelativeTime(alert.triggered_at ? new Date(alert.triggered_at) : alert.created_at ? new Date(alert.created_at) : null)
+                                                            })}
+                                                        </p>
+                                                    </div>
+                                                    <span className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded-full ${severityColors[severity] || 'bg-gray-100 text-gray-700'}`}>
+                                                        {formatSeverityLabel(alert.severity)}
+                                                    </span>
                                                 </div>
-                                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${severityColors[alert.severity?.toLowerCase?.()] || 'bg-gray-100 text-gray-700'}`}>
-                                                    {formatSeverityLabel(alert.severity)}
-                                                </span>
                                             </div>
-                                            <p className="mt-3 text-xs text-gray-400">
-                                                {t('deviceDetail.triggeredAgo', {
-                                                    when: formatRelativeTime(alert.triggered_at ? new Date(alert.triggered_at) : alert.created_at ? new Date(alert.created_at) : null)
-                                                })}
-                                            </p>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </div>
-                            <div className="mt-4 text-right">
+                            <div className="mt-4">
                                 <Link
                                     to={`/alerts?device=${id}`}
-                                    className="inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                                    className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors w-full justify-center"
                                 >
                                     {t('deviceDetail.viewAllAlerts')}
                                 </Link>

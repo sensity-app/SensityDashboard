@@ -38,7 +38,8 @@ function Dashboard() {
         'devices',
         () => apiService.getDevices(),
         {
-            refetchInterval: 30000,
+            refetchOnWindowFocus: false,
+            staleTime: 2 * 60 * 1000, // 2 minutes
             retry: false,
             select: (data) => data.devices || data || [],
             onError: (error) => {
@@ -52,7 +53,8 @@ function Dashboard() {
         'recent-alerts',
         () => apiService.getRecentAlerts(),
         {
-            refetchInterval: 10000,
+            refetchOnWindowFocus: false,
+            staleTime: 2 * 60 * 1000, // 2 minutes
             retry: false,
             select: (data) => data.alerts || data || [],
             onError: (error) => {

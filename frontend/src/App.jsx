@@ -25,7 +25,7 @@ import AlertsEnhanced from './pages/AlertsEnhanced';
 import AuditLog from './pages/AuditLog';
 
 import LanguageSelector from './components/LanguageSelector';
-import AnalyticsDashboard from './components/AnalyticsDashboard';
+import AnalyticsDashboardPage from './components/AnalyticsDashboard';
 import DeviceGroupsManager from './components/DeviceGroupsManager';
 import DeviceTagsManager from './components/DeviceTagsManager';
 import DeviceLocationsManager from './components/DeviceLocationsManager';
@@ -801,7 +801,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                         path="/analytics"
                         element={
                             <FeatureGate feature="analytics_advanced">
-                                <AnalyticsDashboard />
+                                <AnalyticsDashboardPage />
                             </FeatureGate>
                         }
                     />

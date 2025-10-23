@@ -8,17 +8,17 @@ import toast from 'react-hot-toast';
 import { apiService } from '../services/api';
 
 const severityBadgeClass = {
-    critical: 'bg-gradient-to-br from-red-500 to-red-600 text-white',
-    high: 'bg-gradient-to-br from-orange-500 to-orange-600 text-white',
-    medium: 'bg-gradient-to-br from-yellow-500 to-orange-600 text-white',
-    low: 'bg-gradient-to-br from-green-500 to-emerald-600 text-white'
+    critical: 'bg-red-100 text-red-700',
+    high: 'bg-orange-100 text-orange-700',
+    medium: 'bg-yellow-100 text-yellow-700',
+    low: 'bg-green-100 text-green-700'
 };
 
 const statusBadgeClass = {
-    active: 'bg-gradient-to-br from-red-500 to-red-600 text-white',
-    open: 'bg-gradient-to-br from-red-500 to-red-600 text-white',
-    acknowledged: 'bg-gradient-to-br from-yellow-500 to-orange-600 text-white',
-    resolved: 'bg-gradient-to-br from-green-500 to-emerald-600 text-white'
+    active: 'bg-red-100 text-red-700',
+    open: 'bg-red-100 text-red-700',
+    acknowledged: 'bg-yellow-100 text-yellow-700',
+    resolved: 'bg-green-100 text-green-700'
 };
 
 const formatDateTime = (value) => {
@@ -57,7 +57,8 @@ const AlertsPage = () => {
         {
             select: (response) => response?.alerts || response || [],
             keepPreviousData: true,
-            refetchInterval: 30000
+            refetchOnWindowFocus: false,
+            staleTime: 5 * 60 * 1000 // 5 minutes
         }
     );
 
@@ -330,10 +331,15 @@ const AlertsPage = () => {
                         return (
                             <div
                                 key={alert.id || `${alert.alert_type}-${triggeredAt || Math.random()}`}
-                                className="group relative overflow-hidden rounded-xl bg-white p-6 shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] animate-fade-in"
+                                className={`group relative overflow-hidden rounded-xl bg-white p-6 shadow-sm border-l-4 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] animate-fade-in ${
+                                    severity === 'critical' ? 'border-red-500 bg-gradient-to-r from-red-50 to-white' :
+                                    severity === 'high' ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-white' :
+                                    severity === 'medium' ? 'border-yellow-500 bg-gradient-to-r from-yellow-50 to-white' :
+                                    'border-green-500 bg-gradient-to-r from-green-50 to-white'
+                                }`}
                             >
                                 {/* Status Badge */}
-                                <div className={`absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-semibold shadow-md ${statusBadgeClass[status] || 'bg-gray-100 text-gray-700'}`}>
+                                <div className={`absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass[status] || 'bg-gray-100 text-gray-700'}`}>
                                     {formatStatus(status)}
                                 </div>
 
@@ -342,43 +348,42 @@ const AlertsPage = () => {
                                     <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
                                         {alert.alert_type || t('alerts.defaultType')}
                                     </h3>
-                                    {alert.alert_type === 'threshold_crossing' && (
-                                        <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                                            <Cpu className="h-3 w-3" />
-                                            {t('alerts.firmwareDetected', 'Device-detected')}
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {alert.alert_type === 'threshold_crossing' && (
+                                            <span className="inline-flex items-center gap-1 rounded-md bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                <Cpu className="h-3 w-3" />
+                                                {t('alerts.firmwareDetected', 'Device-detected')}
+                                            </span>
+                                        )}
+                                        {alert.alert_type === 'RULE_VIOLATION' && (
+                                            <span className="inline-flex items-center gap-1 rounded-md bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
+                                                <FileText className="h-3 w-3" />
+                                                {t('alerts.ruleTriggered', 'Rule-triggered')}
+                                            </span>
+                                        )}
+                                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${severityBadgeClass[severity] || 'bg-gray-100 text-gray-700'}`}>
+                                            {formatSeverity(severity)}
                                         </span>
-                                    )}
-                                    {alert.alert_type === 'RULE_VIOLATION' && (
-                                        <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
-                                            <FileText className="h-3 w-3" />
-                                            {t('alerts.ruleTriggered', 'Rule-triggered')}
-                                        </span>
-                                    )}
+                                    </div>
                                 </div>
 
                                 {/* Message */}
-                                <p className="mb-4 text-sm text-gray-600 line-clamp-2">
+                                <p className="mb-4 text-sm text-gray-700 line-clamp-2">
                                     {alert.message || t('alerts.noContext')}
                                 </p>
 
                                 {/* Metadata Grid */}
-                                <div className="mb-4 grid grid-cols-2 gap-3 text-xs">
-                                    <div>
-                                        <p className="font-medium text-gray-500">{t('alerts.severity')}</p>
-                                        <span className={`mt-1 inline-flex rounded-full px-2 py-1 text-xs font-semibold ${severityBadgeClass[severity] || 'bg-gray-100 text-gray-700'}`}>
-                                            {formatSeverity(severity)}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-500">{t('alerts.triggeredAt')}</p>
-                                        <p className="mt-1 text-gray-900">{formatDateTime(triggeredAt)}</p>
+                                <div className="mb-4 space-y-2 text-xs">
+                                    <div className="flex items-center gap-2 text-gray-600">
+                                        <Clock className="h-3 w-3" />
+                                        <span>{formatDateTime(triggeredAt)}</span>
                                     </div>
                                     {alert.device_id && (
-                                        <div className="col-span-2">
-                                            <p className="font-medium text-gray-500">{t('alerts.deviceColumn')}</p>
+                                        <div className="flex items-center gap-2">
+                                            <Cpu className="h-3 w-3 text-gray-600" />
                                             <Link
                                                 to={`/devices/${alert.device_id}`}
-                                                className="mt-1 text-indigo-600 hover:underline block"
+                                                className="text-indigo-600 hover:underline font-medium"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 {alert.device_name || alert.device_id}
@@ -388,12 +393,12 @@ const AlertsPage = () => {
                                 </div>
 
                                 {/* Action Buttons */}
-                                <div className="flex items-center gap-2 border-t border-gray-100 pt-4">
+                                <div className="flex items-center gap-2 border-t border-gray-200 pt-4">
                                     {status === 'active' && (
                                         <>
                                             <button
                                                 onClick={(e) => handleAcknowledge(alert.id, e)}
-                                                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-yellow-50 px-3 py-2 text-sm font-medium text-yellow-700 hover:bg-yellow-100 transition-colors disabled:opacity-50"
+                                                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-yellow-50 px-3 py-2 text-sm font-medium text-yellow-700 hover:bg-yellow-100 transition-colors disabled:opacity-50 border border-yellow-200"
                                                 disabled={acknowledgeMutation.isLoading}
                                             >
                                                 <Check className="h-4 w-4" />
@@ -401,7 +406,7 @@ const AlertsPage = () => {
                                             </button>
                                             <button
                                                 onClick={(e) => handleResolve(alert.id, e)}
-                                                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+                                                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50 border border-green-200"
                                                 disabled={resolveMutation.isLoading}
                                             >
                                                 <CheckCircle className="h-4 w-4" />
@@ -412,7 +417,7 @@ const AlertsPage = () => {
                                     {status === 'acknowledged' && (
                                         <button
                                             onClick={(e) => handleResolve(alert.id, e)}
-                                            className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
+                                            className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50 border border-green-200"
                                             disabled={resolveMutation.isLoading}
                                         >
                                             <CheckCircle className="h-4 w-4" />
@@ -420,9 +425,10 @@ const AlertsPage = () => {
                                         </button>
                                     )}
                                     {status === 'resolved' && (
-                                        <span className="flex-1 text-center text-sm text-gray-500">
+                                        <div className="flex-1 flex items-center justify-center gap-1 text-sm text-gray-500">
+                                            <CheckCircle className="h-4 w-4 text-green-600" />
                                             {t('alerts.noActions', 'No actions available')}
-                                        </span>
+                                        </div>
                                     )}
                                 </div>
                             </div>

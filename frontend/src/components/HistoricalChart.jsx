@@ -43,7 +43,7 @@ const computeStats = (series) => {
     };
 };
 
-const adjustForUnit = (value, unit) => {
+const adjustForUnit = (value) => {
     if (value === null || value === undefined) {
         return null;
     }
@@ -53,10 +53,7 @@ const adjustForUnit = (value, unit) => {
         return null;
     }
 
-    if (unit === '%' && Math.abs(numeric) > 100) {
-        return numeric / 10;
-    }
-
+    // Return value as-is without any adjustment
     return numeric;
 };
 
@@ -111,9 +108,9 @@ function HistoricalChart({ deviceId, sensorPin, sensorName, sensorUnit }) {
                     ? new Date(timestampValue).getTime()
                     : null;
 
-                const parsedValue = adjustForUnit(point.value ?? point.processed_value ?? point.raw_value, sensorUnit);
-                const parsedMin = point.min_value !== undefined ? adjustForUnit(point.min_value, sensorUnit) : undefined;
-                const parsedMax = point.max_value !== undefined ? adjustForUnit(point.max_value, sensorUnit) : undefined;
+                const parsedValue = adjustForUnit(point.value ?? point.processed_value ?? point.raw_value);
+                const parsedMin = point.min_value !== undefined ? adjustForUnit(point.min_value) : undefined;
+                const parsedMax = point.max_value !== undefined ? adjustForUnit(point.max_value) : undefined;
 
                 return {
                     timestamp: parsedTimestamp,

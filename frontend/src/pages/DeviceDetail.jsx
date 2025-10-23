@@ -454,10 +454,7 @@ function DeviceDetail() {
         const numeric = typeof value === 'number' ? value : parseFloat(value);
         if (!Number.isFinite(numeric)) return null;
 
-        const unit = sensor?.unit || sensor?.sensor_unit || sensor?.sensor_unit_name;
-        if (unit === '%' && Math.abs(numeric) > 100) {
-            return numeric / 10;
-        }
+        // Return value as-is without any adjustment
         return numeric;
     };
 

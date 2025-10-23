@@ -156,12 +156,6 @@ function AnalyticsDashboard({ deviceId, onRecommendationApply }) {
         }
     };
 
-    const getDataQualityColor = (score) => {
-        if (score >= 80) return 'text-green-600';
-        if (score >= 60) return 'text-yellow-600';
-        return 'text-red-600';
-    };
-
     if (summaryLoading) {
         return (
             <div className="bg-white rounded-lg shadow p-6">
@@ -313,6 +307,21 @@ function AnalyticsDashboard({ deviceId, onRecommendationApply }) {
 
 function SensorAnalyticsCard({ sensor, isSelected, onSelect, onApplyRecommendations }) {
     const { t } = useTranslation();
+
+    const getConfidenceColor = (confidence) => {
+        switch (confidence) {
+            case 'high': return 'text-green-600 bg-green-100';
+            case 'medium': return 'text-yellow-600 bg-yellow-100';
+            case 'low': return 'text-red-600 bg-red-100';
+            default: return 'text-gray-600 bg-gray-100';
+        }
+    };
+
+    const getDataQualityColor = (score) => {
+        if (score >= 80) return 'text-green-600';
+        if (score >= 60) return 'text-yellow-600';
+        return 'text-red-600';
+    };
 
     const getRecommendationIcon = () => {
         if (!sensor.recommendations?.hasEnoughData) {

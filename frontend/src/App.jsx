@@ -17,6 +17,7 @@ import DeviceDetail from './pages/DeviceDetail';
 import DeviceManagement from './pages/DeviceManagement';
 import UserManagement from './pages/UserManagement';
 import Settings from './pages/Settings';
+import WifiManagement from './pages/WifiManagement';
 import FirmwareBuilder from './pages/FirmwareBuilder';
 import SerialMonitor from './pages/SerialMonitor';
 import AlertsPage from './pages/Alerts';
@@ -897,6 +898,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                         <>
                             <Route path="/users" element={<UserManagement />} />
                             <Route path="/settings" element={<Settings />} />
+                            <Route path="/wifi-management" element={<WifiManagement />} />
                         </>
                     )}
                     <Route path="*" element={<Navigate to="/" />} />

@@ -50,9 +50,12 @@ const FirmwareBuilder = () => {
     const [availablePins, setAvailablePins] = useState({ digital: [], analog: [] });
     const [locations, setLocations] = useState([]);
     const [knownWifiNetworks, setKnownWifiNetworks] = useState([]);
+    const [wifiCredentials, setWifiCredentials] = useState({}); // Store SSID -> password mapping
     const [loading, setLoading] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState(null);
     const [showWebFlasher, setShowWebFlasher] = useState(false);
+    const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+    const [showWifiDropdown, setShowWifiDropdown] = useState(false);
 
     // Generate unique device ID
     const generateDeviceId = (platform = 'device') => {
@@ -127,14 +130,23 @@ const FirmwareBuilder = () => {
 
     const fetchKnownWifiNetworks = async () => {
         try {
-            // Get unique WiFi SSIDs from existing devices
+            // Get unique WiFi SSIDs and passwords from existing devices
             const devicesData = await apiService.getDevices();
             const devices = devicesData.devices || devicesData || [];
-            const uniqueSSIDs = [...new Set(devices.map(d => d.wifi_ssid).filter(Boolean))];
-            setKnownWifiNetworks(uniqueSSIDs);
+
+            const credentials = {};
+            devices.forEach(device => {
+                if (device.wifi_ssid) {
+                    credentials[device.wifi_ssid] = device.wifi_password || '';
+                }
+            });
+
+            setWifiCredentials(credentials);
+            setKnownWifiNetworks(Object.keys(credentials));
         } catch (error) {
             console.error('Failed to load known WiFi networks:', error);
             setKnownWifiNetworks([]);
+            setWifiCredentials({});
         }
     };
 
@@ -594,18 +606,42 @@ const FirmwareBuilder = () => {
                                                     type="text"
                                                     value={config.device_location}
                                                     onChange={(e) => handleConfigChange('device_location', e.target.value)}
+                                                    onFocus={() => setShowLocationDropdown(true)}
+                                                    onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
                                                     className="input-field"
                                                     placeholder={getCopy('sections.device.fields.location.placeholder', 'Enter or select location...')}
-                                                    list="locations-list"
                                                 />
-                                                <datalist id="locations-list">
-                                                    {Array.isArray(locations) && locations.map(location => (
-                                                        <option key={location.id} value={location.name} />
-                                                    ))}
-                                                </datalist>
+                                                {showLocationDropdown && locations.length > 0 && (
+                                                    <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-60 overflow-auto">
+                                                        {locations
+                                                            .filter(loc => loc.name.toLowerCase().includes(config.device_location.toLowerCase()))
+                                                            .map((location) => (
+                                                                <button
+                                                                    key={location.id}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        handleConfigChange('device_location', location.name);
+                                                                        setShowLocationDropdown(false);
+                                                                    }}
+                                                                    className="w-full text-left px-4 py-3 hover:bg-indigo-50 flex items-center gap-3 group transition-colors"
+                                                                >
+                                                                    <MapPin className="h-4 w-4 text-indigo-600" />
+                                                                    <div>
+                                                                        <div className="font-medium text-gray-900">{location.name}</div>
+                                                                        {location.timezone && (
+                                                                            <div className="text-xs text-gray-500">{location.timezone}</div>
+                                                                        )}
+                                                                    </div>
+                                                                </button>
+                                                            ))}
+                                                    </div>
+                                                )}
                                             </div>
                                             <p className="text-xs text-gray-500 mt-1">
-                                                {getCopy('sections.device.fields.location.helper', 'Choose from existing locations or type a new one')}
+                                                {locations.length > 0
+                                                    ? getCopy('sections.device.fields.location.helper', `${locations.length} saved locations available`)
+                                                    : getCopy('sections.device.fields.location.helperNew', 'Enter a new location')
+                                                }
                                             </p>
                                         </div>
                                     </div>
@@ -688,26 +724,57 @@ const FirmwareBuilder = () => {
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                             <div className="form-group">
                                                 <label className="form-label">
+                                                    <Wifi className="w-4 h-4 inline mr-1" />
                                                     {getCopy('sections.network.wifi.fields.ssid.label', 'WiFi Network Name (SSID) *')}
                                                 </label>
-                                                <input
-                                                    type="text"
-                                                    value={config.wifi_ssid}
-                                                    onChange={(e) => handleConfigChange('wifi_ssid', e.target.value)}
-                                                    className="input-field"
-                                                    placeholder={getCopy('sections.network.wifi.fields.ssid.placeholder', 'Your WiFi network name')}
-                                                    list="wifi-networks-list"
-                                                />
-                                                <datalist id="wifi-networks-list">
-                                                    {knownWifiNetworks.map((ssid, index) => (
-                                                        <option key={index} value={ssid} />
-                                                    ))}
-                                                </datalist>
-                                                {knownWifiNetworks.length > 0 && (
-                                                    <p className="text-xs text-gray-500 mt-1">
-                                                        {getCopy('sections.network.wifi.fields.ssid.helper', 'Choose from known networks or enter a new one')}
-                                                    </p>
-                                                )}
+                                                <div className="relative">
+                                                    <input
+                                                        type="text"
+                                                        value={config.wifi_ssid}
+                                                        onChange={(e) => handleConfigChange('wifi_ssid', e.target.value)}
+                                                        onFocus={() => setShowWifiDropdown(true)}
+                                                        onBlur={() => setTimeout(() => setShowWifiDropdown(false), 200)}
+                                                        className="input-field"
+                                                        placeholder={getCopy('sections.network.wifi.fields.ssid.placeholder', 'Your WiFi network name')}
+                                                    />
+                                                    {showWifiDropdown && knownWifiNetworks.length > 0 && (
+                                                        <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-60 overflow-auto">
+                                                            {knownWifiNetworks
+                                                                .filter(ssid => ssid.toLowerCase().includes(config.wifi_ssid.toLowerCase()))
+                                                                .map((ssid, index) => (
+                                                                    <button
+                                                                        key={index}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setConfig(prev => ({
+                                                                                ...prev,
+                                                                                wifi_ssid: ssid,
+                                                                                wifi_password: wifiCredentials[ssid] || ''
+                                                                            }));
+                                                                            setShowWifiDropdown(false);
+                                                                        }}
+                                                                        className="w-full text-left px-4 py-3 hover:bg-indigo-50 flex items-center justify-between group transition-colors"
+                                                                    >
+                                                                        <div className="flex items-center gap-3">
+                                                                            <Wifi className="h-4 w-4 text-indigo-600" />
+                                                                            <span className="font-medium text-gray-900">{ssid}</span>
+                                                                        </div>
+                                                                        {wifiCredentials[ssid] && (
+                                                                            <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                                                                                Saved
+                                                                            </span>
+                                                                        )}
+                                                                    </button>
+                                                                ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    {knownWifiNetworks.length > 0
+                                                        ? getCopy('sections.network.wifi.fields.ssid.helper', `${knownWifiNetworks.length} saved networks available`)
+                                                        : getCopy('sections.network.wifi.fields.ssid.helperNew', 'Enter your WiFi network name')
+                                                    }
+                                                </p>
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label">

@@ -19,9 +19,7 @@ function DeviceDetail() {
     const [selectedSensor, setSelectedSensor] = useState(null);
     const [showRuleEditor, setShowRuleEditor] = useState(false);
     const [showOTAManager, setShowOTAManager] = useState(false);
-    const [showSensorEditor, setShowSensorEditor] = useState(false);
     const [showSensorManager, setShowSensorManager] = useState(false);
-    const [editingSensor, setEditingSensor] = useState(null);
     const [renamingSensorId, setRenamingSensorId] = useState(null);
     const [newSensorName, setNewSensorName] = useState('');
     const [isRenamingDevice, setIsRenamingDevice] = useState(false);
@@ -927,7 +925,7 @@ function DeviceDetail() {
                                                         <p className="text-xs text-gray-500 mt-1">{t('deviceDetail.sensorPinType', { pin: sensor.pin, type: sensor.sensor_type || sensor.type })}</p>
                                                         {isDisabled && (
                                                             <p className="mt-1 text-xs text-amber-600">
-                                                                {t('deviceDetail.sensorDisabledHint', 'Click settings to configure and enable this sensor')}
+                                                                {t('deviceDetail.sensorDisabledHint', 'Use "Manage Sensors" to configure and enable this sensor')}
                                                             </p>
                                                         )}
                                                     </div>
@@ -935,16 +933,6 @@ function DeviceDetail() {
                                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge.className}`}>
                                                             {badge.label}
                                                         </span>
-                                                        <button
-                                                            onClick={() => {
-                                                                setEditingSensor(sensor);
-                                                                setShowSensorEditor(true);
-                                                            }}
-                                                            className={`rounded-full border p-2 ${isDisabled ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100' : 'border-gray-200 text-gray-500 hover:text-gray-700'}`}
-                                                            title={isDisabled ? t('deviceDetail.configureSensor', 'Configure Sensor') : t('deviceDetail.calibrateSensor')}
-                                                        >
-                                                            <Settings className="h-4 w-4" />
-                                                        </button>
                                                     </div>
                                                 </div>
 
@@ -1119,12 +1107,11 @@ function DeviceDetail() {
                                         return (
                                             <div
                                                 key={alert.id || `${alert.alert_type}-${alert.triggered_at || alert.created_at}`}
-                                                className={`rounded-lg border-l-4 p-4 transition-all hover:shadow-md ${
-                                                    severity === 'critical' ? 'border-red-500 bg-gradient-to-r from-red-50 to-red-100/50' :
-                                                    severity === 'high' ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100/50' :
-                                                    severity === 'medium' ? 'border-yellow-500 bg-gradient-to-r from-yellow-50 to-yellow-100/50' :
-                                                    'border-green-500 bg-gradient-to-r from-green-50 to-green-100/50'
-                                                }`}
+                                                className={`rounded-lg border-l-4 p-4 transition-all hover:shadow-md ${severity === 'critical' ? 'border-red-500 bg-gradient-to-r from-red-50 to-red-100/50' :
+                                                        severity === 'high' ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100/50' :
+                                                            severity === 'medium' ? 'border-yellow-500 bg-gradient-to-r from-yellow-50 to-yellow-100/50' :
+                                                                'border-green-500 bg-gradient-to-r from-green-50 to-green-100/50'
+                                                    }`}
                                             >
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex-1 min-w-0">
@@ -1177,23 +1164,6 @@ function DeviceDetail() {
                 <OTAManager
                     device={device}
                     onClose={() => setShowOTAManager(false)}
-                />
-            )}
-
-            {showSensorEditor && editingSensor && (
-                <SensorEditorModal
-                    sensor={editingSensor}
-                    deviceId={id}
-                    onClose={() => {
-                        setShowSensorEditor(false);
-                        setEditingSensor(null);
-                    }}
-                    onSave={() => {
-                        queryClient.invalidateQueries(['device-sensors', id]);
-                        setShowSensorEditor(false);
-                        setEditingSensor(null);
-                    }}
-                    mutation={updateSensorMutation}
                 />
             )}
 
@@ -1370,148 +1340,6 @@ function DeviceSettingsModal({ device, config, onConfigChange, onClose, onSave, 
                         )}
                     </button>
                 </div>
-            </div>
-        </div>
-    );
-}
-
-function SensorEditorModal({ sensor, deviceId, onClose, onSave, mutation }) {
-    const { t } = useTranslation();
-    const [formData, setFormData] = useState({
-        name: sensor?.name || '',
-        calibration_offset: sensor?.calibration_offset || 0,
-        calibration_multiplier: sensor?.calibration_multiplier || 1,
-        enabled: sensor?.enabled !== false
-    });
-    const [triggerOTA, setTriggerOTA] = useState(true);
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        mutation.mutate(
-            {
-                deviceId,
-                sensorId: sensor.id,
-                payload: { ...formData, trigger_ota: triggerOTA }
-            },
-            {
-                onSuccess: (response) => {
-                    toast.success(t('deviceDetail.toast.sensorUpdated'));
-                    if (triggerOTA) {
-                        toast(response?.data?.message || t('deviceDetail.toast.otaQueued'), {
-                            icon: 'ℹ️',
-                            duration: 4000
-                        });
-                    }
-                    onSave();
-                },
-                onError: (error) => {
-                    toast.error(t('deviceDetail.toast.sensorUpdateFailed', {
-                        message: error.response?.data?.error || error.message
-                    }));
-                }
-            }
-        );
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">{t('deviceDetail.modal.title', { name: sensor.name })}</h3>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 transition-colors"
-                        type="button"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
-
-                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-sm text-amber-800">
-                        <strong>{t('deviceDetail.modal.noteLabel', 'Note:')}</strong>{' '}
-                        {t('deviceDetail.modal.changeSensorHint', 'To change sensor type or pin, use the \"Manage Sensors\" button instead.')}
-                    </p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('deviceDetail.modal.name')}</label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                            required
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">{t('deviceDetail.modal.offset')}</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={formData.calibration_offset}
-                                onChange={(e) => setFormData({ ...formData, calibration_offset: parseFloat(e.target.value) || 0 })}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">{t('deviceDetail.modal.multiplier')}</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={formData.calibration_multiplier}
-                                onChange={(e) => setFormData({ ...formData, calibration_multiplier: parseFloat(e.target.value) || 1 })}
-                                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                            />
-                        </div>
-                    </div>
-
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                        <input
-                            type="checkbox"
-                            checked={formData.enabled}
-                            onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
-                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        {t('deviceDetail.modal.enabled')}
-                    </label>
-
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                        <label className="flex items-start gap-2 text-sm text-blue-700">
-                            <input
-                                type="checkbox"
-                                checked={triggerOTA}
-                                onChange={(e) => setTriggerOTA(e.target.checked)}
-                                className="mt-1 h-4 w-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span>
-                                {t('deviceDetail.modal.triggerOta')}
-                                <p className="text-xs text-blue-600/80">{t('deviceDetail.modal.triggerOtaHint')}</p>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                            disabled={mutation.isLoading}
-                        >
-                            {t('deviceDetail.modal.cancel')}
-                        </button>
-                        <button
-                            type="submit"
-                            className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-                            disabled={mutation.isLoading}
-                        >
-                            {mutation.isLoading ? t('deviceDetail.modal.saving') : t('deviceDetail.modal.save')}
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
     );

@@ -97,8 +97,8 @@ function Dashboard() {
     // Calculate stats
     const stats = useMemo(() => {
         const total = devices.length;
-        const online = devices.filter(d => d.status === 'online' || d.current_status === 'online').length;
-        const offline = devices.filter(d => d.status === 'offline' || d.current_status === 'offline').length;
+        const online = devices.filter(d => isDeviceOnline(d)).length;
+        const offline = devices.filter(d => !isDeviceOnline(d)).length;
         const activeAlerts = alerts.filter(a => a.status === 'active').length;
 
         return { total, online, offline, activeAlerts };
@@ -117,13 +117,27 @@ function Dashboard() {
         return t('common.daysAgo', '{{count}}d ago', { count: days });
     };
 
+    // Check if device is truly online based on last heartbeat (within 10 minutes)
+    const isDeviceOnline = (device) => {
+        if (!device.last_heartbeat) return false;
+        const diff = Date.now() - new Date(device.last_heartbeat).getTime();
+        const minutes = Math.floor(diff / 60000);
+        return minutes < 10; // Device is online if last heartbeat was within 10 minutes
+    };
+
     const formatSeverityLabel = (severity) => {
         if (!severity) return t('dashboard.alertSeverity.info', 'Info');
         const key = `dashboard.alertSeverity.${severity.toLowerCase()}`;
         return t(key, severity);
     };
 
-    const resolveDeviceStatus = (device) => device?.current_status || device?.status || 'offline';
+    const resolveDeviceStatus = (device) => {
+        // Determine actual status based on last heartbeat
+        if (isDeviceOnline(device)) {
+            return 'online';
+        }
+        return 'offline';
+    };
 
     const getStatusIcon = (status) => {
         switch (status) {
@@ -314,11 +328,10 @@ function Dashboard() {
                                         className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-all duration-200 group border border-transparent hover:border-indigo-200"
                                     >
                                         <div className="flex items-center gap-4 flex-1 min-w-0">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                                                status === 'online' ? 'bg-green-100 text-green-600' :
-                                                status === 'alarm' ? 'bg-red-100 text-red-600' :
-                                                'bg-gray-100 text-gray-600'
-                                            }`}>
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${status === 'online' ? 'bg-green-100 text-green-600' :
+                                                    status === 'alarm' ? 'bg-red-100 text-red-600' :
+                                                        'bg-gray-100 text-gray-600'
+                                                }`}>
                                                 {getStatusIcon(status)}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -326,11 +339,10 @@ function Dashboard() {
                                                     <p className="font-medium text-gray-900 group-hover:text-indigo-600 transition-colors truncate">
                                                         {device.name}
                                                     </p>
-                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                                        status === 'online' ? 'bg-green-100 text-green-700' :
-                                                        status === 'alarm' ? 'bg-red-100 text-red-700' :
-                                                        'bg-gray-100 text-gray-700'
-                                                    }`}>
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${status === 'online' ? 'bg-green-100 text-green-700' :
+                                                            status === 'alarm' ? 'bg-red-100 text-red-700' :
+                                                                'bg-gray-100 text-gray-700'
+                                                        }`}>
                                                         {status}
                                                     </span>
                                                 </div>
@@ -486,31 +498,27 @@ function Dashboard() {
                         {alerts.filter(a => a.status === 'active').slice(0, 5).map((alert) => (
                             <div
                                 key={alert.id}
-                                className={`flex items-start gap-4 p-4 rounded-lg border-l-4 bg-gradient-to-r transition-all hover:shadow-md ${
-                                    alert.severity === 'critical'
+                                className={`flex items-start gap-4 p-4 rounded-lg border-l-4 bg-gradient-to-r transition-all hover:shadow-md ${alert.severity === 'critical'
                                         ? 'border-red-500 from-red-50 to-red-100/50'
                                         : alert.severity === 'high'
-                                        ? 'border-orange-500 from-orange-50 to-orange-100/50'
-                                        : 'border-yellow-500 from-yellow-50 to-yellow-100/50'
-                                }`}
+                                            ? 'border-orange-500 from-orange-50 to-orange-100/50'
+                                            : 'border-yellow-500 from-yellow-50 to-yellow-100/50'
+                                    }`}
                             >
-                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                    alert.severity === 'critical' ? 'bg-red-100' :
-                                    alert.severity === 'high' ? 'bg-orange-100' : 'bg-yellow-100'
-                                }`}>
-                                    <AlertTriangle className={`h-5 w-5 ${
-                                        alert.severity === 'critical' ? 'text-red-600' :
-                                        alert.severity === 'high' ? 'text-orange-600' : 'text-yellow-600'
-                                    }`} />
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${alert.severity === 'critical' ? 'bg-red-100' :
+                                        alert.severity === 'high' ? 'bg-orange-100' : 'bg-yellow-100'
+                                    }`}>
+                                    <AlertTriangle className={`h-5 w-5 ${alert.severity === 'critical' ? 'text-red-600' :
+                                            alert.severity === 'high' ? 'text-orange-600' : 'text-yellow-600'
+                                        }`} />
                                 </div>
 
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                            alert.severity === 'critical' ? 'bg-red-100 text-red-700' :
-                                            alert.severity === 'high' ? 'bg-orange-100 text-orange-700' :
-                                            'bg-yellow-100 text-yellow-700'
-                                        }`}>
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${alert.severity === 'critical' ? 'bg-red-100 text-red-700' :
+                                                alert.severity === 'high' ? 'bg-orange-100 text-orange-700' :
+                                                    'bg-yellow-100 text-yellow-700'
+                                            }`}>
                                             {formatSeverityLabel(alert.severity)}
                                         </span>
                                         {alert.alert_type && (

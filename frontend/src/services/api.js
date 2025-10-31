@@ -174,7 +174,7 @@ export const apiService = {
     updateUserLocations: (userId, locationIds) => apiClient.post(`/users/${userId}/locations`, { locationIds }),
 
     // Alerts (for dashboard)
-    getRecentAlerts: (limit = 10) => apiClient.get('/alerts', { params: { limit, status: 'active' } }),
+    getRecentAlerts: (limit = 100) => apiClient.get('/alerts', { params: { limit, status: 'active' } }),
 
     // Analytics
     getSensorRecommendations: (deviceId, sensorPin, timeRange = '30d') =>

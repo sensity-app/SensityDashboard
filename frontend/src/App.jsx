@@ -20,7 +20,6 @@ import Settings from './pages/Settings';
 import WifiManagement from './pages/WifiManagement';
 import FirmwareBuilder from './pages/FirmwareBuilder';
 import SerialMonitor from './pages/SerialMonitor';
-import AlertsPage from './pages/Alerts';
 import SensorRules from './pages/SensorRules';
 import AlertsEnhanced from './pages/AlertsEnhanced';
 import AuditLog from './pages/AuditLog';
@@ -403,7 +402,6 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                 items: [
                     { path: '/alerts', label: t('nav.alerts', 'Alerts'), icon: '🔔', feature: 'analytics_basic' },
                     { path: '/analytics', label: t('nav.analytics', 'Analytics'), icon: '🧠', feature: 'analytics_advanced' },
-                    { path: '/device-health', label: t('nav.deviceHealth', 'Device Health'), icon: '🏥', feature: 'analytics_advanced' },
                     { path: '/alert-rules', label: t('nav.alertRules', 'Sensor Rules'), icon: '⚙️', feature: 'analytics_basic' },
                     { path: '/silent-mode', label: t('nav.silentMode', 'Silent Mode'), icon: '🔕', feature: 'analytics_basic' },
                 ]
@@ -772,7 +770,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
             )}
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto py-4 px-4 sm:py-8 sm:px-6 lg:px-8" onClick={() => setDropdownOpen(null)}>
+            <main className="max-w-7xl mx-auto py-4 px-4 sm:py-8 sm:px-6 lg:px-8">
                 <Routes>
                     <Route
                         path="/"
@@ -830,14 +828,7 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                             </FeatureGate>
                         }
                     />
-                    <Route
-                        path="/device-health"
-                        element={
-                            <FeatureGate feature="analytics_advanced">
-                                <DeviceHealthDashboard />
-                            </FeatureGate>
-                        }
-                    />
+                    <Route path="/device-health" element={<Navigate to="/analytics" replace />} />
                     <Route
                         path="/alert-rules"
                         element={

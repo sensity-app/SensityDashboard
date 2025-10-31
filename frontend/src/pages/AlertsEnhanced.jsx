@@ -9,7 +9,7 @@ import { apiService } from '../services/api';
 const AlertsPage = () => {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
-    const [statusFilter, setStatusFilter] = useState('all'); // all, open, acknowledged, resolved
+    const [statusFilter, setStatusFilter] = useState('all'); // all, active, acknowledged, resolved
     const [severityFilter, setSeverityFilter] = useState('all'); // all, critical, high, medium, low
     const [deviceFilter, setDeviceFilter] = useState('all');
     const [selectedAlert, setSelectedAlert] = useState(null);
@@ -83,16 +83,16 @@ const AlertsPage = () => {
 
     const getStatusColor = (status) => {
         const colors = {
-            open: 'bg-red-100 text-red-800',
+            active: 'bg-red-100 text-red-800',
             acknowledged: 'bg-yellow-100 text-yellow-800',
             resolved: 'bg-green-100 text-green-800'
         };
-        return colors[status] || colors.open;
+        return colors[status] || colors.active;
     };
 
     const getStatusIcon = (status) => {
         switch (status) {
-            case 'open': return <AlertTriangle className="h-4 w-4" />;
+            case 'active': return <AlertTriangle className="h-4 w-4" />;
             case 'acknowledged': return <Clock className="h-4 w-4" />;
             case 'resolved': return <CheckCircle className="h-4 w-4" />;
             default: return <AlertTriangle className="h-4 w-4" />;
@@ -106,7 +106,7 @@ const AlertsPage = () => {
 
     const stats = {
         total: alertsData.length,
-        open: alertsData.filter(a => a.status === 'open').length,
+        active: alertsData.filter(a => a.status === 'active').length,
         acknowledged: alertsData.filter(a => a.status === 'acknowledged').length,
         resolved: alertsData.filter(a => a.status === 'resolved').length,
         critical: alertsData.filter(a => a.severity === 'critical').length
@@ -135,8 +135,8 @@ const AlertsPage = () => {
                 </div>
                 <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-500 to-red-600 p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
                     <div className="relative z-10">
-                        <p className="text-sm font-medium opacity-90">{t('alerts.open', 'Open')}</p>
-                        <p className="text-3xl font-bold mt-2">{stats.open}</p>
+                        <p className="text-sm font-medium opacity-90">{t('alerts.active', 'Active')}</p>
+                        <p className="text-3xl font-bold mt-2">{stats.active}</p>
                     </div>
                     <XCircle className="absolute right-4 top-4 h-12 w-12 opacity-20" />
                 </div>
@@ -177,7 +177,7 @@ const AlertsPage = () => {
                             className="w-full rounded-md border-gray-300"
                         >
                             <option value="all">{t('alerts.allStatuses', 'All Statuses')}</option>
-                            <option value="open">{t('alerts.open', 'Open')}</option>
+                            <option value="active">{t('alerts.active', 'Active')}</option>
                             <option value="acknowledged">{t('alerts.acknowledged', 'Acknowledged')}</option>
                             <option value="resolved">{t('alerts.resolved', 'Resolved')}</option>
                         </select>
@@ -290,7 +290,7 @@ const AlertsPage = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        {alert.status === 'open' && (
+                                        {alert.status === 'active' && (
                                             <button
                                                 onClick={() => setSelectedAlert(alert)}
                                                 className="text-indigo-600 hover:text-indigo-900 mr-3"
@@ -299,7 +299,7 @@ const AlertsPage = () => {
                                                 <Check className="h-4 w-4" />
                                             </button>
                                         )}
-                                        {(alert.status === 'open' || alert.status === 'acknowledged') && (
+                                        {(alert.status === 'active' || alert.status === 'acknowledged') && (
                                             <button
                                                 onClick={() => {
                                                     setSelectedAlert(alert);
@@ -384,8 +384,8 @@ const AlertsPage = () => {
                                     }
                                 }}
                                 className={`px-4 py-2 text-sm font-medium text-white rounded-md ${acknowledgeNote === 'resolve'
-                                        ? 'bg-green-600 hover:bg-green-700'
-                                        : 'bg-indigo-600 hover:bg-indigo-700'
+                                    ? 'bg-green-600 hover:bg-green-700'
+                                    : 'bg-indigo-600 hover:bg-indigo-700'
                                     }`}
                                 disabled={acknowledgeMutation.isLoading || resolveMutation.isLoading}
                             >

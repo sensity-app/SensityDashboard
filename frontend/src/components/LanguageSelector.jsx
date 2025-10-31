@@ -51,19 +51,18 @@ function LanguageSelector({ showLabel = true, compact = false, onLanguageChange 
         {isOpen && (
           <>
             <div
-              className="fixed inset-0 z-10"
+              className="fixed inset-0 z-[100]"
               onClick={() => setIsOpen(false)}
             />
-            <div className="absolute right-0 mt-2 w-48 glass rounded-xl shadow-xl border border-white/20 z-[70] animate-fade-in">
+            <div className="absolute right-0 mt-2 w-48 glass rounded-xl shadow-xl border border-white/20 z-[101] animate-fade-in">
               {languages.map((language) => (
                 <button
                   key={language.code}
                   onClick={() => changeLanguage(language.code)}
-                  className={`flex items-center justify-between w-full px-4 py-3 text-sm transition-all duration-200 first:rounded-t-xl last:rounded-b-xl ${
-                    i18n.language === language.code
+                  className={`flex items-center justify-between w-full px-4 py-3 text-sm transition-all duration-200 first:rounded-t-xl last:rounded-b-xl ${i18n.language === language.code
                       ? 'bg-primary/10 text-primary border-r-4 border-primary'
                       : 'text-gray-700 hover:bg-white/50'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-lg">{language.flag}</span>
@@ -114,19 +113,18 @@ function LanguageSelector({ showLabel = true, compact = false, onLanguageChange 
         {isOpen && (
           <>
             <div
-              className="fixed inset-0 z-10"
+              className="fixed inset-0 z-[100]"
               onClick={() => setIsOpen(false)}
             />
-            <div className="absolute z-[70] mt-1 w-full glass rounded-xl shadow-xl border border-white/20 max-h-60 overflow-auto animate-fade-in">
+            <div className="absolute z-[101] mt-1 w-full glass rounded-xl shadow-xl border border-white/20 max-h-60 overflow-auto animate-fade-in">
               {languages.map((language) => (
                 <button
                   key={language.code}
                   onClick={() => changeLanguage(language.code)}
-                  className={`flex items-center justify-between w-full px-4 py-3 text-sm transition-all duration-200 first:rounded-t-xl last:rounded-b-xl ${
-                    i18n.language === language.code
+                  className={`flex items-center justify-between w-full px-4 py-3 text-sm transition-all duration-200 first:rounded-t-xl last:rounded-b-xl ${i18n.language === language.code
                       ? 'bg-primary/10 text-primary border-r-4 border-primary'
                       : 'text-gray-700 hover:bg-white/50'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-xl">{language.flag}</span>

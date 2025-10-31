@@ -182,14 +182,14 @@ check_root() {
 detect_all_instances() {
     local instances=()
     
-    # Check for default instance
-    if [[ -d "/opt/sensity-platform" ]]; then
+    # Check for default instance (exclude backups)
+    if [[ -d "/opt/sensity-platform" ]] && [[ ! "/opt/sensity-platform" =~ \.backup\. ]]; then
         instances+=("default")
     fi
     
-    # Check for named instances
+    # Check for named instances (exclude backups)
     for dir in /opt/sensity-platform-*; do
-        if [[ -d "$dir" ]]; then
+        if [[ -d "$dir" ]] && [[ ! "$dir" =~ \.backup\. ]]; then
             local inst_name=$(basename "$dir" | sed 's/sensity-platform-//')
             instances+=("$inst_name")
         fi

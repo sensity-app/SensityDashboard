@@ -35,11 +35,23 @@ class ErrorBoundary extends React.Component {
             severity: 'error'
         });
 
+        // Get user-friendly message
+        const userFriendlyMessage = this.getUserFriendlyMessage(error);
+
         // Update state with error details
         this.setState({
             error: error,
             errorInfo: errorInfo,
-            processedError: processedError
+            processedError: processedError,
+            userFriendlyMessage: userFriendlyMessage
+        });
+
+        // Log to console for debugging
+        console.error('Error Boundary caught an error:', {
+            message: error.message,
+            name: error.name,
+            userFriendlyMessage,
+            stack: error.stack
         });
 
         // You could also log to an external error reporting service here
@@ -47,6 +59,48 @@ class ErrorBoundary extends React.Component {
         if (this.props.onError) {
             this.props.onError(error, errorInfo);
         }
+    }
+
+    getUserFriendlyMessage(error) {
+        if (!error) return 'An unexpected error occurred.';
+
+        const message = error.message || '';
+
+        // Pattern matching for common errors with user-friendly messages
+        if (message.includes('Cannot access') && message.includes('before initialization')) {
+            return 'A component failed to load properly. This might be a temporary issue with loading the page.';
+        }
+
+        if (message.includes('Network') || message.includes('Failed to fetch') || message.includes('fetch')) {
+            return 'Unable to connect to the server. Please check your internet connection and try again.';
+        }
+
+        if (message.includes('undefined is not an object') || message.includes('Cannot read property') || message.includes('Cannot read properties of undefined')) {
+            return 'Some required data is missing. This might be resolved by refreshing the page.';
+        }
+
+        if (message.includes('null is not an object') || message.includes('Cannot read properties of null')) {
+            return 'A required component is not available. Please try refreshing the page.';
+        }
+
+        if (message.includes('permission') || message.includes('unauthorized') || message.includes('403')) {
+            return 'You don\'t have permission to access this feature. Please contact your administrator.';
+        }
+
+        if (message.includes('404') || message.includes('not found')) {
+            return 'The requested resource was not found. It may have been moved or deleted.';
+        }
+
+        if (message.includes('timeout') || message.includes('timed out')) {
+            return 'The request took too long to complete. Please try again.';
+        }
+
+        if (message.includes('parse') || message.includes('JSON')) {
+            return 'Received invalid data from the server. Please try again.';
+        }
+
+        // Default friendly message
+        return 'Something unexpected happened. Don\'t worry, your data is safe. Please try refreshing the page.';
     }
 
     handleReset = () => {
@@ -94,10 +148,23 @@ class ErrorBoundary extends React.Component {
                             Oops! Something went wrong
                         </h1>
 
-                        {/* Error Message */}
-                        <p className="text-gray-600 text-center mb-6">
-                            We're sorry for the inconvenience. An unexpected error has occurred.
-                        </p>
+                        {/* User-Friendly Error Message */}
+                        <div className="mb-6 bg-red-50 border-2 border-red-200 rounded-lg p-4">
+                            <p className="text-red-800 text-center text-lg font-medium">
+                                {this.state.userFriendlyMessage}
+                            </p>
+                        </div>
+
+                        {/* Helpful Suggestions */}
+                        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <p className="text-sm font-semibold text-blue-900 mb-2">💡 What you can do:</p>
+                            <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                                <li>Click "Refresh Page" below to reload</li>
+                                <li>Clear your browser cache and try again</li>
+                                <li>Return to the home page and navigate back</li>
+                                <li>If the problem persists, contact support</li>
+                            </ul>
+                        </div>
 
                         {/* Error Details */}
                         {this.state.error && (
@@ -207,7 +274,7 @@ export class SectionErrorBoundary extends ErrorBoundary {
                                 Error Loading {this.props.sectionName || 'Content'}
                             </h3>
                             <p className="text-sm text-red-700 mb-4">
-                                {this.state.error?.message || 'An unexpected error occurred'}
+                                {this.state.userFriendlyMessage || this.getUserFriendlyMessage(this.state.error)}
                             </p>
                             <button
                                 onClick={this.handleReset}

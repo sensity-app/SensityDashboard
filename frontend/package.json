@@ -27,7 +27,7 @@
     "i18next": "^22.4.15",
     "i18next-browser-languagedetector": "^7.0.1",
     "lucide-react": "^0.321.0",
-    "postcss": "^8.4.21",
+    "postcss": "^8.4.31",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
@@ -41,8 +41,18 @@
   "devDependencies": {
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
-    "react-scripts": "5.0.1",
+    "react-scripts": "^5.0.1",
     "web-vitals": "^3.1.1"
+  },
+  "overrides": {
+    "nth-check": "^2.1.1",
+    "webpack-dev-server": "^5.2.1",
+    "svgo": "^3.0.0",
+    "react-scripts": {
+      "resolve-url-loader": {
+        "postcss": "^8.4.31"
+      }
+    }
   },
   "browserslist": {
     "production": [

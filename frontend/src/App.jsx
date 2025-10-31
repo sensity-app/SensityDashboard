@@ -35,6 +35,7 @@ import SilentModeManager from './components/SilentModeManager';
 import ErrorBoundary from './components/ErrorBoundary';
 import { apiService } from './services/api';
 import LicenseManagerPanel from './components/LicenseManagerPanel';
+import useGlobalErrorHandler from './hooks/useGlobalErrorHandler';
 
 // Utility function to adjust color brightness
 const adjustColorBrightness = (hexColor, amount) => {
@@ -70,6 +71,9 @@ function App() {
     const [loading, setLoading] = useState(true);
     const [needsSetup, setNeedsSetup] = useState(false);
     const [hasUsers, setHasUsers] = useState(true);
+
+    // Hook to catch async errors globally
+    useGlobalErrorHandler();
 
     useEffect(() => {
         checkAuthAndSetup();
@@ -439,26 +443,38 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
     }, [t, user.role]);
 
     const visibleNavigationItems = useMemo(() => {
-        const filterItems = (items) => items.reduce((acc, item) => {
-            if (item.dropdown && Array.isArray(item.items)) {
+        // Ensure dependencies are available
+        if (!navigationItems || typeof hasFeature !== 'function') {
+            return [];
+        }
+
+        const filterItems = (items) => {
+            if (!Array.isArray(items)) return [];
+
+            return items.reduce((acc, item) => {
+                // Skip if item is invalid
+                if (!item) return acc;
+
+                if (item.dropdown && Array.isArray(item.items)) {
+                    if (item.feature && !hasFeature(item.feature)) {
+                        return acc;
+                    }
+                    const filteredSubItems = filterItems(item.items);
+                    if (filteredSubItems.length === 0) {
+                        return acc;
+                    }
+                    acc.push({ ...item, items: filteredSubItems });
+                    return acc;
+                }
+
                 if (item.feature && !hasFeature(item.feature)) {
                     return acc;
                 }
-                const filteredSubItems = filterItems(item.items);
-                if (filteredSubItems.length === 0) {
-                    return acc;
-                }
-                acc.push({ ...item, items: filteredSubItems });
-                return acc;
-            }
 
-            if (item.feature && !hasFeature(item.feature)) {
+                acc.push(item);
                 return acc;
-            }
-
-            acc.push(item);
-            return acc;
-        }, []);
+            }, []);
+        };
 
         return filterItems(navigationItems);
     }, [navigationItems, hasFeature]);

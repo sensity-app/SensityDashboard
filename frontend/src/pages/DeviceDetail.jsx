@@ -506,6 +506,7 @@ function DeviceDetail() {
     const lastHeartbeatLabel = formatRelativeTime(device?.last_heartbeat ? new Date(device.last_heartbeat) : null);
     // Use total_runtime_seconds for total runtime, uptime_seconds for current session
     const totalRuntimeLabel = formatDuration(device?.total_runtime_seconds || device?.uptime_seconds);
+    const totalRuntimeHours = Math.floor((device?.total_runtime_seconds || 0) / 3600);
     const currentUptimeLabel = formatDuration(device?.uptime_seconds);
     const wifiStrengthLabel = formatSignalStrength(device?.wifi_signal_strength);
     const signalQualityLabel = getSignalQualityLabel(device?.wifi_signal_strength);
@@ -526,7 +527,11 @@ function DeviceDetail() {
             value: totalRuntimeLabel,
             icon: Clock,
             hint: device?.total_runtime_seconds
-                ? t('deviceDetail.metrics.runtimeHint', `${Math.floor(device.total_runtime_seconds / 3600)} total hours (current session: ${currentUptimeLabel})`)
+                ? t('deviceDetail.metrics.runtimeHint', {
+                    hours: totalRuntimeHours,
+                    current: currentUptimeLabel,
+                    defaultValue: `${totalRuntimeHours} total hours (current session: ${currentUptimeLabel})`
+                })
                 : t('deviceDetail.metrics.uptimeUnknown')
         },
         {

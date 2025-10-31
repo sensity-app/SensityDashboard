@@ -63,7 +63,29 @@
         "fri": "Fri",
         "sat": "Sat"
       }
-    }
+    },
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
+    "next": "Next",
+    "previous": "Previous",
+    "pageOfTotal": "Page {{current}} of {{total}}",
+    "none": "None",
+    "excellent": "Excellent",
+    "veryGood": "Very good",
+    "good": "Good",
+    "fair": "Fair",
+    "poor": "Poor",
+    "optional": "Optional",
+    "select": "Select...",
+    "last7Days": "Last 7 Days",
+    "last30Days": "Last 30 Days",
+    "last90Days": "Last 90 Days",
+    "adding": "Adding...",
+    "color": "Color",
+    "move": "Move",
+    "moving": "Moving..."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -81,7 +103,12 @@
     "tools": "Tools",
     "firmwareBuilder": "Firmware Builder",
     "serialMonitor": "Serial Monitor",
-    "silentMode": "Silent Mode"
+    "silentMode": "Silent Mode",
+    "alerts": "Alerts",
+    "auditLog": "Audit Log",
+    "deviceLocations": "Locations",
+    "wifiManagement": "Wi-Fi Management",
+    "menu": "Menu"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -365,7 +392,13 @@
     "errors": {
       "analogExclusive": "ESP8266 has only one analog pin (A0). Please remove {{existing}} first."
     },
-    "finalStep": "Final step - Build your firmware above"
+    "finalStep": "Final step - Build your firmware above",
+    "alerts": {
+      "validationErrors": "Configuration errors:",
+      "buildSuccess": "Firmware built successfully! Device has been registered in the database and is ready to use once flashed.",
+      "buildError": "Failed to build firmware: {{message}}",
+      "buildErrorUnknown": "Unknown error"
+    }
   },
   "auth": {
     "login": "Login",
@@ -391,7 +424,24 @@
     "role": "Role",
     "admin": "Admin",
     "operator": "Operator",
-    "viewer": "Viewer"
+    "viewer": "Viewer",
+    "passwordMismatch": "Passwords do not match",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "phone": "Phone Number",
+    "loginError": "Login failed",
+    "signInTitle": "Welcome back",
+    "iotPlatform": "IoT Monitoring Platform",
+    "signIn": "Sign in",
+    "registrationError": "Registration failed",
+    "verifyingInvitation": "Verifying invitation...",
+    "invitationInvalid": "Invalid Invitation",
+    "backToLogin": "Back to Login",
+    "createAccount": "Create Account",
+    "invitedAs": "You have been invited as",
+    "expiresAt": "Expires",
+    "passwordPlaceholder": "Enter your password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "alreadyHaveAccount": "Already have an account?"
   },
   "roles": {
     "admin": "Administrator",
@@ -436,12 +486,64 @@
     "acknowledgeTooltip": "Acknowledge this alert",
     "toast": {
       "acknowledgeSuccess": "Alert acknowledged successfully",
-      "acknowledgeError": "Failed to acknowledge alert"
-    }
+      "acknowledgeError": "Failed to acknowledge alert",
+      "resolveSuccess": "Alert resolved",
+      "resolveError": "Failed to resolve alert"
+    },
+    "subtitle": "Monitor your IoT infrastructure at a glance",
+    "operational": "operational",
+    "needsAttention": "Needs attention",
+    "allGood": "All systems operational",
+    "reviewAlerts": "Review alerts",
+    "devices": "Devices",
+    "recentlyActive": "Recently active devices",
+    "noDevices": "No devices yet",
+    "noDevicesDesc": "Add your first IoT device to get started",
+    "addFirstDevice": "Add Device",
+    "commonTasks": "Common tasks",
+    "alertRules": "Alert Rules",
+    "alertRulesDesc": "Configure thresholds",
+    "viewAllAlerts": "View All",
+    "noMessage": "No message provided",
+    "resolve": "Resolve",
+    "ack": "Ack",
+    "noActiveAlerts": "All Clear!",
+    "noActiveAlertsDesc": "No active alerts at the moment. Your system is running smoothly."
   },
   "sensorRules": {
     "thresholdMaxLabel": "Max",
-    "thresholdMinLabel": "Min"
+    "thresholdMinLabel": "Min",
+    "title": "Sensor Rules",
+    "subtitle": "Manage threshold-based alert rules for sensors across devices, locations, and groups",
+    "filterScope": "Scope",
+    "allScopes": "All Scopes",
+    "deviceScope": "Device Level",
+    "locationScope": "Location Level",
+    "groupScope": "Group Level",
+    "selectDevice": "Select Device",
+    "selectLocation": "Select Location",
+    "selectGroup": "Select Group",
+    "selectSensor": "Select Sensor",
+    "createRule": "Create Rule",
+    "editRule": "Edit Rule",
+    "noRules": "No sensor rules found",
+    "createFirst": "Create Your First Rule",
+    "scope": "Scope",
+    "sensor": "Sensor",
+    "thresholds": "Thresholds",
+    "severity": "Severity",
+    "status": "Status",
+    "enabled": "Enabled",
+    "ruleName": "Rule Name",
+    "ruleNamePlaceholder": "e.g., Temperature Alert",
+    "minThreshold": "Min Threshold",
+    "maxThreshold": "Max Threshold",
+    "saveSuccess": "Rule saved successfully",
+    "saveError": "Failed to save rule",
+    "deleteSuccess": "Rule deleted successfully",
+    "deleteError": "Failed to delete rule",
+    "confirmDelete": "Are you sure you want to delete this rule?",
+    "sensorType": "Sensor Type"
   },
   "license": {
     "managementTitle": "License Management",
@@ -604,7 +706,9 @@
       "firmware": "Firmware",
       "firmwareUnknown": "Unknown",
       "firmwareTarget": "Target: {{version}}",
-      "firmwareCurrent": "No pending update"
+      "firmwareCurrent": "No pending update",
+      "totalRuntime": "Total Runtime",
+      "runtimeHint": "{{hours}} total hours (current session: {{current}})"
     },
     "signalQuality": {
       "none": "No data",
@@ -688,7 +792,33 @@
       "saving": "Saving...",
       "pinInUse": "(in use)",
       "namePlaceholder": "e.g., Living Room Temperature",
-      "sensitivityHint": "Higher = more detail"
+      "sensitivityHint": "Higher = more detail",
+      "addNewSensor": "Add New Sensor",
+      "calibrationFormula": "Final value = raw + offset",
+      "createError": "Failed to create sensor {{name}}",
+      "high": "High",
+      "low": "Low",
+      "maxThreshold": "Maximum",
+      "medium": "Medium",
+      "minThreshold": "Minimum",
+      "noSensorTypes": "No sensor types available. Please contact administrator.",
+      "noSensorTypesAvailable": "No sensor types available",
+      "noSensors": "No sensors configured yet. Click \"Add New Sensor\" to get started.",
+      "offset": "Calibration Offset",
+      "offsetHint": "Add/subtract from raw value",
+      "pinConflicts": "Pin Conflicts Detected",
+      "pinConflictsDesc": "The following pins are used by multiple sensors: {{pins}}",
+      "pinConflictsError": "Please resolve pin conflicts before saving",
+      "recommendationsApplied": "Recommended thresholds applied",
+      "recommended": "Recommended",
+      "resolvePinConflicts": "Resolve pin conflicts before saving",
+      "selectSensorType": "Select Sensor Type",
+      "sensitivity": "Sensitivity",
+      "sensitivityCalibration": "Sensitivity & Calibration",
+      "sensorAdded": "Sensor added",
+      "thresholds": "Thresholds (for device-side alerts)",
+      "updateError": "Failed to update sensor {{name}}",
+      "useRecommended": "Use Recommended"
     },
     "otaMenu": {
       "manualTitle": "Manual OTA Update",
@@ -699,7 +829,35 @@
       "rebuildLoading": "Rebuilding...",
       "rebuildTitle": "Rebuild & OTA Update",
       "rebuildSubtitle": "Auto-rebuild with current config"
-    }
+    },
+    "sensorUpdated": "Sensor updated successfully",
+    "sensorUpdateFailed": "Failed to update sensor",
+    "deviceUpdated": "Device updated successfully",
+    "deviceUpdateFailed": "Failed to update device",
+    "configUpdated": "Configuration updated. Device will receive changes on next heartbeat.",
+    "configUpdateFailed": "Failed to update configuration",
+    "sensorNameRequired": "Sensor name cannot be empty",
+    "deviceNameRequired": "Device name cannot be empty",
+    "deviceNamePlaceholder": "Device name",
+    "sensorNamePlaceholder": "Enter sensor name",
+    "save": "Save",
+    "saveName": "Save",
+    "cancel": "Cancel",
+    "rename": "Rename device",
+    "renameSensor": "Rename sensor",
+    "deviceSettings": "Device Settings",
+    "heartbeatInterval": "Heartbeat Interval",
+    "seconds": "seconds",
+    "heartbeatHelp": "How often the device sends status updates (10-3600 seconds). Lower = more real-time, higher = less network usage.",
+    "recommended": "Recommended",
+    "armedStatus": "Armed Status",
+    "armedHelp": "When armed, the device will send alerts when thresholds are crossed. When disarmed, threshold checking is disabled.",
+    "otaEnabled": "OTA Updates Enabled",
+    "otaHelp": "Allow Over-The-Air firmware updates. Recommended to keep enabled for remote updates.",
+    "debugMode": "Debug Mode",
+    "debugHelp": "Enable verbose logging in serial monitor. Useful for troubleshooting but increases serial output.",
+    "configUpdateInfo": "Configuration Update",
+    "configUpdateInfoText": "Changes will be sent to the device on its next heartbeat (within {{interval}} seconds). The device will apply the new configuration automatically."
   },
   "devices": {
     "title": "Devices",
@@ -770,7 +928,30 @@
     "types": {
       "arduino": "Arduino",
       "raspberryPi": "Raspberry Pi"
-    }
+    },
+    "subtitle": "Manage and monitor all your IoT devices",
+    "stats": {
+      "total": "Total Devices",
+      "online": "Online",
+      "offline": "Offline",
+      "alerts": "Alerts"
+    },
+    "search": "Search devices...",
+    "filters": "Filters",
+    "filterStatus": "Status",
+    "allStatuses": "All Statuses",
+    "statusOnline": "Online",
+    "statusOffline": "Offline",
+    "statusWarning": "Warning",
+    "filterLocation": "Location",
+    "allLocations": "All Locations",
+    "clearFilters": "Clear Filters",
+    "showingResults": "Showing {{count}} of {{total}} devices",
+    "noSearchResults": "Try adjusting your search or filters",
+    "signal": "Signal",
+    "lastSeen": "Last seen",
+    "firmware": "Firmware",
+    "view": "View"
   },
   "deviceManagement": {
     "toast": {
@@ -923,7 +1104,34 @@
     "alertAcknowledged": "Alert acknowledged",
     "alertResolved": "Alert resolved",
     "unresolved": "Unresolved",
-    "unresolvedBadge": "unresolved"
+    "unresolvedBadge": "unresolved",
+    "subtitle": "Monitor and manage system alerts",
+    "total": "Total",
+    "active": "Active",
+    "filterStatus": "Status",
+    "allStatuses": "All Statuses",
+    "filterSeverity": "Severity",
+    "allSeverities": "All Severities",
+    "filterDevice": "Device",
+    "allDevices": "All Devices",
+    "noAlerts": "No alerts found",
+    "time": "Time",
+    "status": "Status",
+    "viewDevice": "View Device",
+    "resolveAlert": "Resolve Alert",
+    "acknowledgeAlert": "Acknowledge Alert",
+    "addNote": "Add Note (optional)",
+    "notePlaceholder": "Describe the action taken...",
+    "acknowledgeSuccess": "Alert acknowledged",
+    "acknowledgeError": "Failed to acknowledge alert",
+    "resolveSuccess": "Alert resolved",
+    "resolveError": "Failed to resolve alert",
+    "statusLabels": {
+      "active": "Active",
+      "acknowledged": "Acknowledged",
+      "resolved": "Resolved"
+    },
+    "device": "Device"
   },
   "telemetry": {
     "timeRanges": {
@@ -1086,7 +1294,9 @@
       "uploadSuccess": "Firmware uploaded successfully",
       "uploadFailed": "Failed to upload firmware: {{message}}",
       "selectVersion": "Please select a firmware version",
-      "invalidFirmware": "Please select a valid firmware binary (.bin) file"
+      "invalidFirmware": "Please select a valid firmware binary (.bin) file",
+      "otaToggleSuccess": "OTA settings updated",
+      "otaToggleFailed": "Failed to update OTA settings"
     },
     "prompt": {
       "version": "Enter firmware version (e.g., 2.1.0):",
@@ -1095,6 +1305,9 @@
     "disabledWarning": {
       "title": "OTA updates disabled",
       "body": "This device has OTA updates disabled. The update will be forced and may take longer to complete."
+    },
+    "confirm": {
+      "forcedUpdate": "Force update even if OTA is disabled?"
     }
   },
   "settings": {
@@ -1113,7 +1326,10 @@
       "environment": "Environment",
       "database": "Database",
       "email": "Email",
-      "security": "Security"
+      "security": "Security",
+      "license": "License",
+      "notifications": "Notification Templates",
+      "protocol": "Protocol Settings"
     },
     "system": {
       "title": "System Information",
@@ -1261,7 +1477,10 @@
       "strongPasswords": "Require Strong Passwords",
       "sessions": "Session Management",
       "sessionTimeout": "Session Timeout (hours)"
-    }
+    },
+    "saveSettings": "Save Settings",
+    "languageChanged": "Language changed successfully",
+    "languageUpdateFailed": "Failed to update language"
   },
   "errors": {
     "networkError": "Network error occurred",
@@ -1316,7 +1535,37 @@
     "noRecommendations": "No recommendations available",
     "loadError": "Failed to load analytics data",
     "noData": "No data available for the selected time range",
-    "notEnoughData": "Not enough historical data for analytics. At least 50 data points needed per sensor."
+    "notEnoughData": "Not enough historical data for analytics. At least 50 data points needed per sensor.",
+    "applyRecommendations": "Apply Recommendations",
+    "applyError": "Failed to apply recommendations",
+    "avgDataQuality": "Average Data Quality",
+    "collectingData": "Collecting data...",
+    "confidence": "Confidence",
+    "critical": "Critical",
+    "dataQuality": "Data Quality",
+    "detailedAnalysis": "Detailed Analysis",
+    "highConfidence": "High confidence",
+    "insufficientData": "Not enough data to analyze",
+    "intelligentAnalytics": "Intelligent analytics for your IoT sensors",
+    "mean": "Mean",
+    "noDataDescription": "Start collecting data to unlock insights.",
+    "noDevices": "No Devices Found",
+    "noDevicesDescription": "Add devices to start viewing analytics.",
+    "optimal": "Optimal",
+    "outliers": "Outliers",
+    "reasoning": "Reasoning",
+    "recentAnomalies": "Recent Anomalies",
+    "recommendationsApplied": "Recommendations applied successfully",
+    "sensorType": "Sensor Type",
+    "sensorsAnalyzed": "Sensors analyzed",
+    "sensorsWithAnomalies": "Sensors with anomalies",
+    "statisticalAnalysis": "Statistical Analysis",
+    "stdDev": "Standard Deviation",
+    "warning": "Warning",
+    "tabs": {
+      "deviceHealth": "Device Health",
+      "sensorAnalytics": "Sensor Analytics"
+    }
   },
   "deviceGroups": {
     "title": "Device Groups Manager",
@@ -1343,7 +1592,35 @@
     "deleteConfirm": "Are you sure you want to delete this group?",
     "assignError": "Failed to assign devices",
     "unassignError": "Failed to remove device",
-    "unassignConfirm": "Remove device from this group?"
+    "unassignConfirm": "Remove device from this group?",
+    "addDevice": "Add Device",
+    "addDeviceError": "Failed to add device to group",
+    "addDeviceToGroup": "Add Device to Group",
+    "allGroups": "All Groups",
+    "avgDevicesPerGroup": "Avg devices per group",
+    "chooseDevice": "Choose a device",
+    "clickAddDevice": "Click \"Add Device\" to start",
+    "confirmDelete": "Are you sure you want to delete this group?",
+    "createFirstGroup": "Create your first group",
+    "created": "Group created successfully",
+    "deleted": "Group deleted successfully",
+    "descriptionPlaceholder": "Optional description",
+    "deviceAdded": "Device added to group",
+    "deviceRemoved": "Device removed from group",
+    "devices": "Devices",
+    "devicesInGroup": "Devices in group",
+    "namePlaceholder": "Enter group name",
+    "noAvailableDevices": "No available devices to add",
+    "noDevicesInGroup": "No devices assigned yet",
+    "removeDeviceError": "Failed to remove device from group",
+    "removeFromGroup": "Remove from Group",
+    "selectDevice": "Select Device",
+    "selectGroup": "Select Group",
+    "selectGroupDescription": "Choose a group to view details",
+    "totalDevices": "Total Devices",
+    "totalGroups": "Total Groups",
+    "updated": "Group updated successfully",
+    "createGroup": "Create Group"
   },
   "deviceTags": {
     "title": "Device Tags Manager",
@@ -1370,7 +1647,8 @@
     "deleteConfirm": "Are you sure you want to delete this tag?",
     "assignError": "Failed to assign tag",
     "unassignError": "Failed to remove tag",
-    "unassignConfirm": "Remove tag from this device?"
+    "unassignConfirm": "Remove tag from this device?",
+    "loadError": "Failed to load device tags"
   },
   "deviceHealth": {
     "title": "Device Health Monitoring",
@@ -1408,7 +1686,13 @@
       "avgResponseTime": "Average Response Time",
       "memoryUsage": "Memory Usage",
       "errorRate": "Error Rate"
-    }
+    },
+    "checkHeartbeat": "Check device heartbeat",
+    "checkOnline": "Verify device is online",
+    "noData": "No health data available",
+    "noDataYet": "Health data will appear once the device sends telemetry",
+    "waitMinutes": "Wait a few minutes and refresh",
+    "waitingForTelemetry": "Waiting for telemetry..."
   },
   "alertRules": {
     "title": "Alert Rules Manager",
@@ -1913,7 +2197,8 @@
     "moveDevice": "Move Device",
     "currentLocation": "Current",
     "selectNewLocation": "Select New Location",
-    "selectLocationError": "Please select a location"
+    "selectLocationError": "Please select a location",
+    "count": "{{count}} {{count, plural, one {location} other {locations}}}"
   },
   "notificationTemplates": {
     "title": "Notification Templates",
@@ -2012,5 +2297,58 @@
       "deleting": "Deleting...",
       "confirmButton": "Delete Template"
     }
+  },
+  "severity": {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
+  },
+  "audit": {
+    "title": "Audit Log",
+    "subtitle": "Track user actions and system changes",
+    "export": "Export CSV",
+    "totalActions": "Total Actions",
+    "logins": "Logins",
+    "deviceChanges": "Device Changes",
+    "alertActions": "Alert Actions",
+    "search": "Search",
+    "searchPlaceholder": "Search logs...",
+    "filterAction": "Action Type",
+    "allActions": "All Actions",
+    "filterUser": "User",
+    "allUsers": "All Users",
+    "dateRange": "Date Range",
+    "last24h": "Last 24 Hours",
+    "last7d": "Last 7 Days",
+    "last30d": "Last 30 Days",
+    "allTime": "All Time",
+    "noLogs": "No audit logs found",
+    "timestamp": "Timestamp",
+    "user": "User",
+    "action": "Action",
+    "details": "Details",
+    "ipAddress": "IP Address",
+    "showing": "Showing",
+    "entries": "entries"
+  },
+  "setup": {
+    "welcome": "Welcome to IoT Monitoring",
+    "createAdmin": "Create your administrator account to get started",
+    "initialSetupTitle": "Initial Setup",
+    "initialSetupDescription": "This is the first-time setup. You are creating the initial administrator account that will have full access to the system.",
+    "fullNamePlaceholder": "Enter your full name",
+    "emailPlaceholder": "Enter your email address",
+    "phonePlaceholder": "Enter your phone number",
+    "passwordPlaceholder": "Create a strong password",
+    "passwordRequirement": "Password must be at least 6 characters long",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "createAdminAccount": "Create Administrator Account",
+    "setupComplete": "Initial setup completed successfully!",
+    "setupError": "Setup failed",
+    "securityNote": "This account will have full administrative privileges. Keep your credentials secure."
+  },
+  "app": {
+    "title": "Sensity"
   }
 }

@@ -286,7 +286,7 @@ const AlertsPage = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 py-1 inline-flex items-center gap-1 text-xs leading-5 font-semibold rounded-full ${getStatusColor(alert.status)}`}>
                                             {getStatusIcon(alert.status)}
-                                            {alert.status}
+                                            {t(`alerts.statusLabels.${alert.status}`, alert.status)}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

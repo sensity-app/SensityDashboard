@@ -63,7 +63,29 @@
         "fri": "Pá",
         "sat": "So"
       }
-    }
+    },
+    "justNow": "Právě teď",
+    "minutesAgo": "před {{count}} min",
+    "hoursAgo": "před {{count}} h",
+    "daysAgo": "před {{count}} d",
+    "next": "Další",
+    "previous": "Předchozí",
+    "pageOfTotal": "Strana {{current}} z {{total}}",
+    "none": "Žádné",
+    "excellent": "Výborné",
+    "veryGood": "Velmi dobré",
+    "good": "Dobré",
+    "fair": "Průměrné",
+    "poor": "Špatné",
+    "optional": "Nepovinné",
+    "select": "Vybrat...",
+    "last7Days": "Posledních 7 dní",
+    "last30Days": "Posledních 30 dní",
+    "last90Days": "Posledních 90 dní",
+    "adding": "Přidávám...",
+    "color": "Barva",
+    "move": "Přesunout",
+    "moving": "Přesouvám..."
   },
   "nav": {
     "dashboard": "Přehled",
@@ -81,7 +103,12 @@
     "tools": "Nástroje",
     "firmwareBuilder": "Stavitel firmwaru",
     "serialMonitor": "Sériový monitor",
-    "silentMode": "Tichý režim"
+    "silentMode": "Tichý režim",
+    "alerts": "Upozornění",
+    "auditLog": "Auditní log",
+    "deviceLocations": "Lokality",
+    "wifiManagement": "Správa Wi-Fi",
+    "menu": "Menu"
   },
   "navigation": {
     "dashboard": "Přehled",
@@ -109,7 +136,10 @@
       "environment": "Prostředí",
       "database": "Databáze",
       "email": "E-mail",
-      "security": "Bezpečnost"
+      "security": "Bezpečnost",
+      "license": "Licence",
+      "notifications": "Šablony upozornění",
+      "protocol": "Nastavení protokolu"
     },
     "system": {
       "title": "Informace o systému",
@@ -257,7 +287,10 @@
         "scriptMissing": "Aktualizační skript není v systému k dispozici",
         "confirm": "Opravdu chcete aktualizovat platformu? Dojde k restartu systému a může to trvat několik minut. Ujistěte se, že neprobíhají kritické operace."
       }
-    }
+    },
+    "saveSettings": "Uložit nastavení",
+    "languageChanged": "Jazyk byl úspěšně změněn",
+    "languageUpdateFailed": "Nepodařilo se aktualizovat jazyk"
   },
   "silentMode": {
     "title": "Tichý režim upozornění",
@@ -531,7 +564,13 @@
     "errors": {
       "analogExclusive": "ESP8266 má pouze jeden analogový pin (A0). Nejprve odstraňte {{existing}}."
     },
-    "finalStep": "Závěrečný krok – vytvořte firmware výše"
+    "finalStep": "Závěrečný krok – vytvořte firmware výše",
+    "alerts": {
+      "validationErrors": "Chyby konfigurace:",
+      "buildSuccess": "Firmware byl úspěšně vytvořen! Zařízení bylo zaregistrováno v databázi a je připraveno k použití po nahrání.",
+      "buildError": "Firmware se nepodařilo vytvořit: {{message}}",
+      "buildErrorUnknown": "Neznámá chyba"
+    }
   },
   "auth": {
     "login": "Přihlášení",
@@ -557,7 +596,24 @@
     "role": "Role",
     "admin": "Administrátor",
     "operator": "Operátor",
-    "viewer": "Pozorovatel"
+    "viewer": "Pozorovatel",
+    "passwordMismatch": "Hesla se neshodují",
+    "passwordTooShort": "Heslo musí mít alespoň 6 znaků",
+    "phone": "Telefonní číslo",
+    "loginError": "Přihlášení se nezdařilo",
+    "signInTitle": "Vítejte zpět",
+    "iotPlatform": "Platforma pro monitoring IoT",
+    "signIn": "Přihlásit se",
+    "registrationError": "Registrace se nezdařila",
+    "verifyingInvitation": "Ověřuji pozvánku...",
+    "invitationInvalid": "Neplatná pozvánka",
+    "backToLogin": "Zpět na přihlášení",
+    "createAccount": "Vytvořit účet",
+    "invitedAs": "Byli jste pozváni jako",
+    "expiresAt": "Platnost do",
+    "passwordPlaceholder": "Zadejte své heslo",
+    "confirmPasswordPlaceholder": "Potvrďte své heslo",
+    "alreadyHaveAccount": "Máte již účet?"
   },
   "roles": {
     "admin": "Administrátor",
@@ -602,12 +658,64 @@
     "acknowledgeTooltip": "Potvrdit toto upozornění",
     "toast": {
       "acknowledgeSuccess": "Upozornění bylo potvrzeno",
-      "acknowledgeError": "Upozornění se nepodařilo potvrdit"
-    }
+      "acknowledgeError": "Upozornění se nepodařilo potvrdit",
+      "resolveSuccess": "Upozornění vyřešeno",
+      "resolveError": "Vyřešení upozornění se nezdařilo"
+    },
+    "subtitle": "Monitorujte svou IoT infrastrukturu na první pohled",
+    "operational": "v provozu",
+    "needsAttention": "Vyžaduje pozornost",
+    "allGood": "Vše v pořádku",
+    "reviewAlerts": "Zkontrolovat upozornění",
+    "devices": "Zařízení",
+    "recentlyActive": "Nedávno aktivní zařízení",
+    "noDevices": "Žádná zařízení",
+    "noDevicesDesc": "Přidejte své první IoT zařízení a začněte",
+    "addFirstDevice": "Přidat zařízení",
+    "commonTasks": "Běžné úkony",
+    "alertRules": "Pravidla upozornění",
+    "alertRulesDesc": "Nastavte prahové hodnoty",
+    "viewAllAlerts": "Zobrazit vše",
+    "noMessage": "Žádná zpráva",
+    "resolve": "Vyřešit",
+    "ack": "Potvrdit",
+    "noActiveAlerts": "Vše je v pořádku!",
+    "noActiveAlertsDesc": "Žádná aktivní upozornění. Systém běží hladce."
   },
   "sensorRules": {
     "thresholdMaxLabel": "Max",
-    "thresholdMinLabel": "Min"
+    "thresholdMinLabel": "Min",
+    "title": "Pravidla senzorů",
+    "subtitle": "Spravujte prahová pravidla pro senzory napříč zařízeními, lokalitami a skupinami",
+    "filterScope": "Rozsah",
+    "allScopes": "Všechny rozsahy",
+    "deviceScope": "Úroveň zařízení",
+    "locationScope": "Úroveň lokality",
+    "groupScope": "Úroveň skupiny",
+    "selectDevice": "Vyberte zařízení",
+    "selectLocation": "Vyberte lokaci",
+    "selectGroup": "Vyberte skupinu",
+    "selectSensor": "Vyberte senzor",
+    "createRule": "Vytvořit pravidlo",
+    "editRule": "Upravit pravidlo",
+    "noRules": "Žádná pravidla senzorů",
+    "createFirst": "Vytvořte první pravidlo",
+    "scope": "Rozsah",
+    "sensor": "Senzor",
+    "thresholds": "Prahové hodnoty",
+    "severity": "Závažnost",
+    "status": "Stav",
+    "enabled": "Aktivní",
+    "ruleName": "Název pravidla",
+    "ruleNamePlaceholder": "např. Upozornění na teplotu",
+    "minThreshold": "Minimální práh",
+    "maxThreshold": "Maximální práh",
+    "saveSuccess": "Pravidlo bylo úspěšně uloženo",
+    "saveError": "Uložení pravidla se nezdařilo",
+    "deleteSuccess": "Pravidlo bylo odstraněno",
+    "deleteError": "Odstranění pravidla se nezdařilo",
+    "confirmDelete": "Opravdu chcete toto pravidlo odstranit?",
+    "sensorType": "Typ senzoru"
   },
   "license": {
     "managementTitle": "Správa licence",
@@ -770,7 +878,9 @@
       "firmware": "Firmware",
       "firmwareUnknown": "Neznámý",
       "firmwareTarget": "Cíl: {{version}}",
-      "firmwareCurrent": "Žádná čekající aktualizace"
+      "firmwareCurrent": "Žádná čekající aktualizace",
+      "totalRuntime": "Celková doba běhu",
+      "runtimeHint": "{{hours}} celkových hodin (aktuální relace: {{current}})"
     },
     "signalQuality": {
       "none": "Bez údajů",
@@ -854,7 +964,33 @@
       "saving": "Ukládám...",
       "pinInUse": "(obsazeno)",
       "namePlaceholder": "např. Teplota obýváku",
-      "sensitivityHint": "Vyšší = detailnější"
+      "sensitivityHint": "Vyšší = detailnější",
+      "addNewSensor": "Přidat nový senzor",
+      "calibrationFormula": "Finální hodnota = surová + offset",
+      "createError": "Nepodařilo se vytvořit senzor {{name}}",
+      "high": "Vysoká",
+      "low": "Nízká",
+      "maxThreshold": "Maximum",
+      "medium": "Střední",
+      "minThreshold": "Minimum",
+      "noSensorTypes": "Nejsou dostupné žádné typy senzorů. Kontaktujte administrátora.",
+      "noSensorTypesAvailable": "Nejsou dostupné žádné typy senzorů",
+      "noSensors": "Zatím nejsou nakonfigurovány žádné senzory. Klikněte na \"Přidat nový senzor\".",
+      "offset": "Kalibrační offset",
+      "offsetHint": "Přičíst/odečíst od surové hodnoty",
+      "pinConflicts": "Zjištěny konflikty pinů",
+      "pinConflictsDesc": "Následující piny jsou použity více senzory: {{pins}}",
+      "pinConflictsError": "Před uložením vyřešte konflikty pinů",
+      "recommendationsApplied": "Doporučené prahy byly použity",
+      "recommended": "Doporučeno",
+      "resolvePinConflicts": "Vyřešte konflikty pinů před uložením",
+      "selectSensorType": "Vyberte typ senzoru",
+      "sensitivity": "Citlivost",
+      "sensitivityCalibration": "Citlivost a kalibrace",
+      "sensorAdded": "Senzor byl přidán",
+      "thresholds": "Prahové hodnoty (pro zařízení)",
+      "updateError": "Nepodařilo se aktualizovat senzor {{name}}",
+      "useRecommended": "Použít doporučené"
     },
     "otaMenu": {
       "manualTitle": "Ruční OTA aktualizace",
@@ -865,7 +1001,35 @@
       "rebuildLoading": "Probíhá přestavba...",
       "rebuildTitle": "Přestavět a aktualizovat OTA",
       "rebuildSubtitle": "Automatická přestavba s aktuální konfigurací"
-    }
+    },
+    "sensorUpdated": "Senzor byl úspěšně aktualizován",
+    "sensorUpdateFailed": "Aktualizace senzoru se nezdařila",
+    "deviceUpdated": "Zařízení bylo úspěšně aktualizováno",
+    "deviceUpdateFailed": "Aktualizace zařízení se nezdařila",
+    "configUpdated": "Konfigurace byla aktualizována. Zařízení obdrží změny při dalším heartbeat signálu.",
+    "configUpdateFailed": "Aktualizace konfigurace se nezdařila",
+    "sensorNameRequired": "Název senzoru nesmí být prázdný",
+    "deviceNameRequired": "Název zařízení nesmí být prázdný",
+    "deviceNamePlaceholder": "Název zařízení",
+    "sensorNamePlaceholder": "Zadejte název senzoru",
+    "save": "Uložit",
+    "saveName": "Uložit",
+    "cancel": "Zrušit",
+    "rename": "Přejmenovat zařízení",
+    "renameSensor": "Přejmenovat senzor",
+    "deviceSettings": "Nastavení zařízení",
+    "heartbeatInterval": "Interval heartbeat",
+    "seconds": "sekund",
+    "heartbeatHelp": "Jak často zařízení odesílá stav (10-3600 sekund). Nižší = více v reálném čase, vyšší = menší zátěž sítě.",
+    "recommended": "Doporučeno",
+    "armedStatus": "Stav zabezpečení",
+    "armedHelp": "Při zapnutí stráže zařízení odesílá upozornění při překročení prahu. Při vypnutí se kontrola prahů deaktivuje.",
+    "otaEnabled": "OTA aktualizace povoleny",
+    "otaHelp": "Povolí aktualizaci firmwaru přes OTA. Doporučujeme ponechat zapnuté pro vzdálené aktualizace.",
+    "debugMode": "Režim ladění",
+    "debugHelp": "Zapne podrobné logování v sériovém monitoru. Užitečné pro diagnostiku, ale zvyšuje objem výstupu.",
+    "configUpdateInfo": "Aktualizace konfigurace",
+    "configUpdateInfoText": "Změny budou odeslány při příštím heartbeat (během {{interval}} sekund). Zařízení je automaticky použije."
   },
   "devices": {
     "title": "Zařízení",
@@ -936,7 +1100,30 @@
     "types": {
       "arduino": "Arduino",
       "raspberryPi": "Raspberry Pi"
-    }
+    },
+    "subtitle": "Spravujte a sledujte všechna svá IoT zařízení",
+    "stats": {
+      "total": "Celkem zařízení",
+      "online": "Online",
+      "offline": "Offline",
+      "alerts": "Upozornění"
+    },
+    "search": "Hledat zařízení...",
+    "filters": "Filtry",
+    "filterStatus": "Stav",
+    "allStatuses": "Všechny stavy",
+    "statusOnline": "Online",
+    "statusOffline": "Offline",
+    "statusWarning": "Varování",
+    "filterLocation": "Umístění",
+    "allLocations": "Všechna umístění",
+    "clearFilters": "Vymazat filtry",
+    "showingResults": "Zobrazeno {{count}} z {{total}} zařízení",
+    "noSearchResults": "Zkuste upravit hledání nebo filtry",
+    "signal": "Signál",
+    "lastSeen": "Naposledy",
+    "firmware": "Firmware",
+    "view": "Zobrazit"
   },
   "deviceManagement": {
     "toast": {
@@ -1089,7 +1276,34 @@
     "alertAcknowledged": "Upozornění bylo potvrzeno",
     "alertResolved": "Upozornění bylo vyřešeno",
     "unresolved": "Nevyřešeno",
-    "unresolvedBadge": "nevyřízeno"
+    "unresolvedBadge": "nevyřízeno",
+    "subtitle": "Sledujte a spravujte systémová upozornění",
+    "total": "Celkem",
+    "active": "Aktivní",
+    "filterStatus": "Stav",
+    "allStatuses": "Všechny stavy",
+    "filterSeverity": "Závažnost",
+    "allSeverities": "Všechny závažnosti",
+    "filterDevice": "Zařízení",
+    "allDevices": "Všechna zařízení",
+    "noAlerts": "Žádná upozornění nenalezena",
+    "time": "Čas",
+    "status": "Stav",
+    "viewDevice": "Zobrazit zařízení",
+    "resolveAlert": "Vyřešit upozornění",
+    "acknowledgeAlert": "Potvrdit upozornění",
+    "addNote": "Přidat poznámku (volitelně)",
+    "notePlaceholder": "Popište provedený krok...",
+    "acknowledgeSuccess": "Upozornění potvrzeno",
+    "acknowledgeError": "Potvrzení upozornění se nezdařilo",
+    "resolveSuccess": "Upozornění vyřešeno",
+    "resolveError": "Vyřešení upozornění se nezdařilo",
+    "statusLabels": {
+      "active": "Aktivní",
+      "acknowledged": "Potvrzeno",
+      "resolved": "Vyřešeno"
+    },
+    "device": "Zařízení"
   },
   "telemetry": {
     "timeRanges": {
@@ -1252,7 +1466,9 @@
       "uploadSuccess": "Firmware byl úspěšně nahrán",
       "uploadFailed": "Nepodařilo se nahrát firmware: {{message}}",
       "selectVersion": "Vyberte prosím verzi firmwaru",
-      "invalidFirmware": "Vyberte platný soubor firmwaru (.bin)"
+      "invalidFirmware": "Vyberte platný soubor firmwaru (.bin)",
+      "otaToggleSuccess": "Nastavení OTA bylo aktualizováno",
+      "otaToggleFailed": "Nepodařilo se aktualizovat nastavení OTA"
     },
     "prompt": {
       "version": "Zadejte verzi firmwaru (např. 2.1.0):",
@@ -1261,6 +1477,9 @@
     "disabledWarning": {
       "title": "OTA aktualizace jsou zakázány",
       "body": "Toto zařízení má OTA aktualizace zakázané. Aktualizace bude vynucena a může trvat déle."
+    },
+    "confirm": {
+      "forcedUpdate": "Vynutit aktualizaci, i když je OTA vypnuto?"
     }
   },
   "errors": {
@@ -1316,7 +1535,37 @@
     "noRecommendations": "Žádná doporučení nejsou k dispozici",
     "loadError": "Nepodařilo se načíst analytická data",
     "noData": "Pro vybrané časové rozmezí nejsou dostupná žádná data",
-    "notEnoughData": "Nedostatek historických dat pro analýzu. Je potřeba alespoň 50 datových bodů na senzor."
+    "notEnoughData": "Nedostatek historických dat pro analýzu. Je potřeba alespoň 50 datových bodů na senzor.",
+    "applyRecommendations": "Použít doporučení",
+    "applyError": "Doporučení se nepodařilo použít",
+    "avgDataQuality": "Průměrná kvalita dat",
+    "collectingData": "Probíhá sběr dat...",
+    "confidence": "Důvěra",
+    "critical": "Kritické",
+    "dataQuality": "Kvalita dat",
+    "detailedAnalysis": "Podrobná analýza",
+    "highConfidence": "Vysoká důvěra",
+    "insufficientData": "Nedostatek dat pro analýzu",
+    "intelligentAnalytics": "Inteligentní analytika pro vaše IoT senzory",
+    "mean": "Průměr",
+    "noDataDescription": "Začněte sbírat data a získejte přehled.",
+    "noDevices": "Žádná zařízení",
+    "noDevicesDescription": "Přidejte zařízení pro zobrazení analytiky.",
+    "optimal": "Optimální",
+    "outliers": "Odlehlé hodnoty",
+    "reasoning": "Odůvodnění",
+    "recentAnomalies": "Nedávné anomálie",
+    "recommendationsApplied": "Doporučení byla úspěšně použita",
+    "sensorType": "Typ senzoru",
+    "sensorsAnalyzed": "Analyzované senzory",
+    "sensorsWithAnomalies": "Senzory s anomáliemi",
+    "statisticalAnalysis": "Statistická analýza",
+    "stdDev": "Směrodatná odchylka",
+    "warning": "Varování",
+    "tabs": {
+      "deviceHealth": "Zdraví zařízení",
+      "sensorAnalytics": "Analýza senzorů"
+    }
   },
   "deviceGroups": {
     "title": "Správce skupin zařízení",
@@ -1343,7 +1592,35 @@
     "deleteConfirm": "Opravdu chcete smazat tuto skupinu?",
     "assignError": "Nepodařilo se přiřadit zařízení",
     "unassignError": "Nepodařilo se odebrat zařízení",
-    "unassignConfirm": "Odebrat zařízení z této skupiny?"
+    "unassignConfirm": "Odebrat zařízení z této skupiny?",
+    "addDevice": "Přidat zařízení",
+    "addDeviceError": "Nepodařilo se přidat zařízení do skupiny",
+    "addDeviceToGroup": "Přidat zařízení do skupiny",
+    "allGroups": "Všechny skupiny",
+    "avgDevicesPerGroup": "Průměr zařízení ve skupině",
+    "chooseDevice": "Vyberte zařízení",
+    "clickAddDevice": "Klikněte na \"Přidat zařízení\"",
+    "confirmDelete": "Opravdu chcete tuto skupinu smazat?",
+    "createFirstGroup": "Vytvořte svou první skupinu",
+    "created": "Skupina byla vytvořena",
+    "deleted": "Skupina byla smazána",
+    "descriptionPlaceholder": "Volitelný popis",
+    "deviceAdded": "Zařízení bylo přidáno do skupiny",
+    "deviceRemoved": "Zařízení bylo odebráno ze skupiny",
+    "devices": "Zařízení",
+    "devicesInGroup": "Zařízení ve skupině",
+    "namePlaceholder": "Zadejte název skupiny",
+    "noAvailableDevices": "Žádná dostupná zařízení",
+    "noDevicesInGroup": "Ve skupině zatím nejsou žádná zařízení",
+    "removeDeviceError": "Nepodařilo se odebrat zařízení ze skupiny",
+    "removeFromGroup": "Odebrat ze skupiny",
+    "selectDevice": "Vyberte zařízení",
+    "selectGroup": "Vyberte skupinu",
+    "selectGroupDescription": "Vyberte skupinu pro zobrazení detailů",
+    "totalDevices": "Celkem zařízení",
+    "totalGroups": "Celkem skupin",
+    "updated": "Skupina byla aktualizována",
+    "createGroup": "Vytvořit skupinu"
   },
   "deviceTags": {
     "title": "Správce štítků zařízení",
@@ -1370,7 +1647,8 @@
     "deleteConfirm": "Opravdu chcete smazat tento štítek?",
     "assignError": "Nepodařilo se přiřadit štítek",
     "unassignError": "Nepodařilo se odebrat štítek",
-    "unassignConfirm": "Odebrat štítek z tohoto zařízení?"
+    "unassignConfirm": "Odebrat štítek z tohoto zařízení?",
+    "loadError": "Nepodařilo se načíst štítky zařízení"
   },
   "deviceHealth": {
     "title": "Monitorování zdraví zařízení",
@@ -1408,7 +1686,13 @@
       "avgResponseTime": "Průměrný čas odezvy",
       "memoryUsage": "Využití paměti",
       "errorRate": "Míra chyb"
-    }
+    },
+    "checkHeartbeat": "Zkontrolujte heartbeat zařízení",
+    "checkOnline": "Ověřte, že je zařízení online",
+    "noData": "Žádná data o zdraví zařízení",
+    "noDataYet": "Data se objeví, jakmile zařízení odešle telemetrii",
+    "waitMinutes": "Počkejte několik minut a obnovte",
+    "waitingForTelemetry": "Čekám na telemetrii..."
   },
   "alertRules": {
     "title": "Správce pravidel upozornění",
@@ -1915,7 +2199,8 @@
     "moveDevice": "Přesunout zařízení",
     "currentLocation": "Aktuální",
     "selectNewLocation": "Vyberte novou lokalitu",
-    "selectLocationError": "Vyberte prosím lokalitu"
+    "selectLocationError": "Vyberte prosím lokalitu",
+    "count": "{{count}} {{count, plural, one {lokace} few {lokace} other {lokací}}}"
   },
   "notificationTemplates": {
     "title": "Šablony oznámení",
@@ -2014,5 +2299,58 @@
       "deleting": "Mazání...",
       "confirmButton": "Smazat šablonu"
     }
+  },
+  "severity": {
+    "critical": "Kritická",
+    "high": "Vysoká",
+    "medium": "Střední",
+    "low": "Nízká"
+  },
+  "audit": {
+    "title": "Auditní log",
+    "subtitle": "Sledujte uživatelské akce a změny v systému",
+    "export": "Export CSV",
+    "totalActions": "Celkový počet akcí",
+    "logins": "Přihlášení",
+    "deviceChanges": "Změny zařízení",
+    "alertActions": "Akce nad upozorněními",
+    "search": "Hledat",
+    "searchPlaceholder": "Hledat v záznamech...",
+    "filterAction": "Typ akce",
+    "allActions": "Všechny akce",
+    "filterUser": "Uživatel",
+    "allUsers": "Všichni uživatelé",
+    "dateRange": "Časové období",
+    "last24h": "Posledních 24 hodin",
+    "last7d": "Posledních 7 dní",
+    "last30d": "Posledních 30 dní",
+    "allTime": "Celá historie",
+    "noLogs": "Žádné auditní záznamy",
+    "timestamp": "Čas",
+    "user": "Uživatel",
+    "action": "Akce",
+    "details": "Detaily",
+    "ipAddress": "IP adresa",
+    "showing": "Zobrazeno",
+    "entries": "záznamů"
+  },
+  "setup": {
+    "welcome": "Vítejte v IoT monitoringu",
+    "createAdmin": "Vytvořte účet administrátora pro začátek",
+    "initialSetupTitle": "Úvodní nastavení",
+    "initialSetupDescription": "Toto je první spuštění. Vytváříte počáteční administrátorský účet s plným přístupem k systému.",
+    "fullNamePlaceholder": "Zadejte své celé jméno",
+    "emailPlaceholder": "Zadejte svou e-mailovou adresu",
+    "phonePlaceholder": "Zadejte své telefonní číslo",
+    "passwordPlaceholder": "Vytvořte silné heslo",
+    "passwordRequirement": "Heslo musí mít alespoň 6 znaků",
+    "confirmPasswordPlaceholder": "Potvrďte své heslo",
+    "createAdminAccount": "Vytvořit administrátorský účet",
+    "setupComplete": "Úvodní nastavení bylo úspěšně dokončeno!",
+    "setupError": "Nastavení se nezdařilo",
+    "securityNote": "Tento účet bude mít plná administrátorská oprávnění. Uchovejte své údaje v bezpečí."
+  },
+  "app": {
+    "title": "Sensity"
   }
 }

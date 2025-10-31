@@ -330,7 +330,7 @@ const FirmwareBuilder = () => {
     const buildFirmware = async () => {
         const errors = validateConfig();
         if (errors.length > 0) {
-            alert('Configuration errors:\n' + errors.join('\n'));
+            alert(`${t('firmwareBuilder.alerts.validationErrors', 'Configuration errors:')}\n${errors.join('\n')}`);
             return;
         }
 
@@ -387,14 +387,16 @@ const FirmwareBuilder = () => {
                 setDownloadUrl(url);
 
                 // Device is automatically registered by the backend during firmware build
-                alert('Firmware built successfully! Device has been registered in the database and is ready to use once flashed.');
+                alert(t('firmwareBuilder.alerts.buildSuccess', 'Firmware built successfully! Device has been registered in the database and is ready to use once flashed.'));
             } else {
-                const error = await response.json();
-                alert('Failed to build firmware: ' + (error.error || 'Unknown error'));
+                const error = await response.json().catch(() => ({}));
+                const message = error?.error || t('firmwareBuilder.alerts.buildErrorUnknown', 'Unknown error');
+                alert(t('firmwareBuilder.alerts.buildError', 'Failed to build firmware: {{message}}', { message }));
             }
         } catch (error) {
             console.error('Build error:', error);
-            alert('Failed to build firmware: ' + error.message);
+            const message = error?.message || t('firmwareBuilder.alerts.buildErrorUnknown', 'Unknown error');
+            alert(t('firmwareBuilder.alerts.buildError', 'Failed to build firmware: {{message}}', { message }));
         } finally {
             setLoading(false);
         }

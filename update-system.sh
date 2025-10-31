@@ -55,6 +55,104 @@ print_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
+configure_update_privileges() {
+    local sudoers_file="/etc/sudoers.d/${APP_USER}-update"
+    local update_script="$APP_DIR/update-system.sh"
+    local wrapper_path="/usr/local/bin/update-system"
+
+    if [[ ! -f "$update_script" ]]; then
+        print_warning "Update script not found at $update_script; skipping privilege configuration"
+        return
+    fi
+
+    # Ensure the repository script is executable
+    chmod 755 "$update_script"
+
+    # Install a root-owned wrapper so the command is available system-wide
+    cat <<'EOF' > "$wrapper_path"
+#!/bin/bash
+set -e
+
+DEFAULT_SCRIPT="/opt/sensity-platform/update-system.sh"
+
+determine_instance() {
+    local candidate="$1"
+
+    case "$candidate" in
+        ""|"update"|"rollback"|"reset-first-user"|"create-test-admin")
+            ;;
+        *)
+            echo "$candidate"
+            return
+            ;;
+    esac
+
+    if [[ -n "$SUDO_USER" ]]; then
+        case "$SUDO_USER" in
+            sensityapp)
+                echo "default"
+                return
+                ;;
+            sensity_*)
+                echo "${SUDO_USER#sensity_}"
+                return
+                ;;
+        esac
+    fi
+
+    echo "default"
+}
+
+INSTANCE="$(determine_instance "$1")"
+if [[ "$INSTANCE" == "default" ]]; then
+    SCRIPT="$DEFAULT_SCRIPT"
+else
+    SCRIPT="/opt/sensity-platform-${INSTANCE}/update-system.sh"
+fi
+
+if [[ ! -x "$SCRIPT" ]]; then
+    if [[ "$INSTANCE" != "default" ]]; then
+        echo "update-system: script for instance '$INSTANCE' not found at $SCRIPT" >&2
+        exit 1
+    fi
+
+    SCRIPT=""
+    shopt -s nullglob
+    for candidate in /opt/sensity-platform*/update-system.sh; do
+        if [[ -x "$candidate" ]]; then
+            SCRIPT="$candidate"
+            break
+        fi
+    done
+    shopt -u nullglob
+
+    if [[ -z "$SCRIPT" ]]; then
+        echo "update-system: unable to locate update-system.sh" >&2
+        exit 1
+    fi
+fi
+
+exec "$SCRIPT" "$@"
+EOF
+    chown root:root "$wrapper_path"
+    chmod 750 "$wrapper_path"
+
+    # Prepare sudoers entry allowing the app user to invoke the updater without a password
+    local sudoers_line="$APP_USER ALL=(root) NOPASSWD: $update_script, $wrapper_path"
+    local tmp_file
+    tmp_file=$(mktemp)
+    echo "$sudoers_line" > "$tmp_file"
+
+    if visudo -cf "$tmp_file" >/dev/null 2>&1; then
+        install -m 440 -o root -g root "$tmp_file" "$sudoers_file"
+        print_success "Configured passwordless sudo for $APP_USER to run platform updates"
+    else
+        print_error "Failed to validate sudoers configuration; leaving existing settings untouched"
+    fi
+
+    rm -f "$tmp_file"
+}
+
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         print_error "This script must be run as root (use sudo)"
@@ -189,6 +287,9 @@ update_system() {
 
     # Check instance exists
     check_instance_exists
+
+    # Ensure sudo privileges and wrapper are in place before proceeding
+    configure_update_privileges
 
     # Check services health before updating
     if ! check_services; then

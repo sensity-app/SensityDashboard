@@ -44,7 +44,8 @@ let updateStatus = {
     currentStep: '',
     logs: [],
     startTime: null,
-    error: null
+    error: null,
+    script: null
 };
 
 // GitHub repository configuration
@@ -118,6 +119,21 @@ async function ensureUpdateScript(scriptPath, scriptName) {
             });
             return false;
         }
+    }
+}
+
+async function commandExists(command) {
+    try {
+        const { stdout } = await exec(`command -v ${command}`);
+        const resolvedPath = stdout.trim();
+        if (resolvedPath) {
+            logger.info(`Command "${command}" resolved to ${resolvedPath}`);
+            return resolvedPath;
+        }
+        return null;
+    } catch (error) {
+        logger.debug(`Command "${command}" not found: ${error.message}`);
+        return null;
     }
 }
 
@@ -406,7 +422,8 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
             currentStep: 'Initializing update process...',
             logs: [],
             startTime: new Date(),
-            error: null
+            error: null,
+            script: null
         };
 
         res.json({
@@ -453,23 +470,33 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
                     updateCommand = `bash "${scriptPath}"`;
                     logger.info(`Development mode: Using update script: ${scriptPath}`);
                 } else {
-                    // Production: use production script
-                    scriptName = 'update-system.sh';
-                    scriptPath = path.join(projectRoot, scriptName);
+                    // Production: prefer global update-system command if available
+                    const globalUpdateCommand = await commandExists('update-system');
 
-                    // Ensure script exists, download from GitHub if missing
-                    const scriptExists = await ensureUpdateScript(scriptPath, scriptName);
+                    if (globalUpdateCommand) {
+                        scriptName = 'update-system';
+                        scriptPath = globalUpdateCommand;
+                        updateCommand = `sudo "${scriptPath}"`;
+                        logger.info(`Production mode: Using global update-system command at ${scriptPath}`);
+                    } else {
+                        // Fall back to bundled production script
+                        scriptName = 'update-system.sh';
+                        scriptPath = path.join(projectRoot, scriptName);
 
-                    if (!scriptExists) {
-                        throw new Error('Unable to find or download update script');
+                        // Ensure script exists, download from GitHub if missing
+                        const scriptExists = await ensureUpdateScript(scriptPath, scriptName);
+
+                        if (!scriptExists) {
+                            throw new Error('Unable to find or download update script');
+                        }
+
+                        updateCommand = `sudo bash "${scriptPath}"`;
+                        logger.info(`Production mode: Using bundled update script: ${scriptPath}`);
                     }
-
-                    updateCommand = `sudo bash "${scriptPath}"`;
-                    logger.info(`Production mode: Using production update script: ${scriptPath}`);
 
                     // In production, check if we can run sudo without password
                     try {
-                        const sudoCheck = await exec('sudo -n true', { cwd: projectRoot, timeout: 2000 });
+                        await exec('sudo -n true', { cwd: projectRoot, timeout: 2000 });
                         logger.info('Sudo check passed - passwordless sudo is configured');
                     } catch (sudoError) {
                         logger.error('Sudo check failed:', sudoError.message);
@@ -489,6 +516,8 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
                         return;
                     }
                 }
+
+                updateStatus.script = scriptName;
 
                 const updateProcess = spawn('bash', ['-c', updateCommand], {
                     detached: true,
@@ -643,13 +672,30 @@ router.get('/update-status', authenticateToken, requireAdmin, async (req, res) =
             path.join(process.cwd(), '..') : process.cwd();
 
         try {
-            // Check for update script
-            if (isDevelopment) {
-                const devScript = path.join(projectRoot, 'update-system-dev.sh');
-                try {
-                    await fs.access(devScript, fs.constants.F_OK);
-                    updateScript = devScript;
-                } catch {
+            // Check for update script/command
+            if (!isDevelopment) {
+                const globalUpdateCommand = await commandExists('update-system');
+                if (globalUpdateCommand) {
+                    updateScript = 'update-system';
+                }
+            }
+
+            if (!updateScript) {
+                if (isDevelopment) {
+                    const devScript = path.join(projectRoot, 'update-system-dev.sh');
+                    try {
+                        await fs.access(devScript, fs.constants.F_OK);
+                        updateScript = devScript;
+                    } catch {
+                        const prodScript = path.join(projectRoot, 'update-system.sh');
+                        try {
+                            await fs.access(prodScript, fs.constants.F_OK);
+                            updateScript = prodScript;
+                        } catch {
+                            updateScript = 'update-system.sh';
+                        }
+                    }
+                } else {
                     const prodScript = path.join(projectRoot, 'update-system.sh');
                     try {
                         await fs.access(prodScript, fs.constants.F_OK);
@@ -657,14 +703,6 @@ router.get('/update-status', authenticateToken, requireAdmin, async (req, res) =
                     } catch {
                         updateScript = 'update-system.sh';
                     }
-                }
-            } else {
-                const prodScript = path.join(projectRoot, 'update-system.sh');
-                try {
-                    await fs.access(prodScript, fs.constants.F_OK);
-                    updateScript = prodScript;
-                } catch {
-                    updateScript = 'update-system.sh';
                 }
             }
 

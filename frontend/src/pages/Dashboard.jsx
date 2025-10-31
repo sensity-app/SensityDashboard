@@ -94,6 +94,13 @@ function Dashboard() {
     const devices = devicesData || [];
     const alerts = alertsData || [];
 
+    function isDeviceOnline(device) {
+        if (!device.last_heartbeat) return false;
+        const diff = Date.now() - new Date(device.last_heartbeat).getTime();
+        const minutes = Math.floor(diff / 60000);
+        return minutes < 10; // Device is online if last heartbeat was within 10 minutes
+    }
+
     // Calculate stats
     const stats = useMemo(() => {
         const total = devices.length;
@@ -115,14 +122,6 @@ function Dashboard() {
         if (minutes < 60) return t('common.minutesAgo', '{{count}} min ago', { count: minutes });
         if (hours < 24) return t('common.hoursAgo', '{{count}}h ago', { count: hours });
         return t('common.daysAgo', '{{count}}d ago', { count: days });
-    };
-
-    // Check if device is truly online based on last heartbeat (within 10 minutes)
-    const isDeviceOnline = (device) => {
-        if (!device.last_heartbeat) return false;
-        const diff = Date.now() - new Date(device.last_heartbeat).getTime();
-        const minutes = Math.floor(diff / 60000);
-        return minutes < 10; // Device is online if last heartbeat was within 10 minutes
     };
 
     const formatSeverityLabel = (severity) => {

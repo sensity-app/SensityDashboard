@@ -844,41 +844,69 @@ install_mqtt_broker() {
 
     print_status "Installing Mosquitto MQTT broker..."
 
+    # Remove snap-based mosquitto installations to avoid conflicts
+    if command -v snap &>/dev/null && snap list 2>/dev/null | grep -q '^mosquitto'; then
+        print_warning "Removing existing snap-based Mosquitto installation to avoid conflicts..."
+        snap stop mosquitto 2>/dev/null || true
+        snap remove mosquitto || true
+    fi
+
     # Install mosquitto
     apt-get install -y mosquitto mosquitto-clients
 
+    # Detect service name (may differ if installed via snap or other sources)
+    local mosquitto_service=""
+    if systemctl list-unit-files | grep -q '^mosquitto.service'; then
+        mosquitto_service="mosquitto"
+    elif systemctl list-unit-files | grep -q '^snap.mosquitto.mosquitto.service'; then
+        mosquitto_service="snap.mosquitto.mosquitto"
+    fi
+
+    # If service still missing, add upstream repository and try again
+    if [[ -z "$mosquitto_service" ]]; then
+        print_warning "Mosquitto systemd unit not detected, adding official repository..."
+        add-apt-repository -y ppa:mosquitto-dev/mosquitto-ppa
+        apt-get update
+        apt-get install -y mosquitto mosquitto-clients
+
+        if systemctl list-unit-files | grep -q '^mosquitto.service'; then
+            mosquitto_service="mosquitto"
+        elif systemctl list-unit-files | grep -q '^snap.mosquitto.mosquitto.service'; then
+            mosquitto_service="snap.mosquitto.mosquitto"
+        fi
+    fi
+
+    if [[ -z "$mosquitto_service" ]]; then
+        print_error "Mosquitto service could not be registered with systemd."
+        MQTT_ENABLED="false"
+        return 1
+    fi
+
     # Stop mosquitto service temporarily for configuration
-    systemctl stop mosquitto 2>/dev/null || true
+    systemctl stop "$mosquitto_service" 2>/dev/null || true
 
     # Create MQTT configuration directory
     mkdir -p /etc/mosquitto/conf.d
 
-    # Create Sensity platform configuration
-    cat > /etc/mosquitto/conf.d/sensity-platform.conf << 'EOF'
+    # Create Sensity platform configuration (kept minimal for compatibility across Mosquitto versions)
+    cat > /etc/mosquitto/conf.d/sensity-platform.conf <<'EOF'
 # Sensity Platform MQTT Configuration
+per_listener_settings true
+
 listener 1883 0.0.0.0
 protocol mqtt
-
-# Authentication
 allow_anonymous false
 password_file /etc/mosquitto/passwd
 
-# Logging
-log_dest file /var/log/mosquitto/mosquitto.log
-log_type error
-log_type warning
-log_type notice
-
-# Connection limits
-max_connections -1
-max_queued_messages 1000
-
-# Persistence
 persistence true
 persistence_location /var/lib/mosquitto/
 
-# Message size limit (allow larger payloads for sensor data)
-message_size_limit 10240
+log_dest file /var/log/mosquitto/mosquitto.log
+log_dest syslog
+log_type error
+log_type warning
+log_type notice
+connection_messages true
 EOF
 
     # Create password file with custom or default credentials
@@ -920,23 +948,16 @@ EOF
     chown mosquitto:mosquitto /etc/mosquitto/*.conf 2>/dev/null || true
     chown mosquitto:mosquitto /etc/mosquitto/conf.d/*.conf 2>/dev/null || true
 
-    # Test configuration before starting
-    print_status "Testing Mosquitto configuration..."
-    if ! mosquitto -c /etc/mosquitto/mosquitto.conf -t 2>&1 | grep -q "Error"; then
-        print_success "Mosquitto configuration test passed"
-    else
-        print_warning "Mosquitto configuration test showed warnings (this may be normal)"
-    fi
-
-    # Enable and start mosquitto service
-    systemctl enable mosquitto
-    systemctl restart mosquitto
+    # Enable and start mosquitto service using systemd; restart reapplies configuration immediately
+    systemctl daemon-reload
+    systemctl enable --now "$mosquitto_service" >/dev/null 2>&1 || systemctl enable "$mosquitto_service"
+    systemctl restart "$mosquitto_service"
 
     # Wait a moment for service to start
     sleep 3
 
     # Verify mosquitto is running
-    if systemctl is-active --quiet mosquitto; then
+    if systemctl is-active --quiet "$mosquitto_service"; then
         MQTT_ENABLED="true"
         MQTT_BROKER_URL="mqtt://localhost:1883"
 
@@ -947,7 +968,7 @@ EOF
     else
         print_error "Mosquitto failed to start"
         print_error "Checking logs..."
-        journalctl -xeu mosquitto.service -n 20 --no-pager
+        journalctl -xeu "${mosquitto_service}.service" -n 20 --no-pager
         print_error "Configuration file:"
         cat /etc/mosquitto/conf.d/sensity-platform.conf
         print_error "Password file permissions:"
@@ -999,6 +1020,103 @@ setup_application() {
 
     chown -R "$APP_USER:$APP_USER" "$APP_DIR"
     print_success "Application directory prepared"
+}
+
+configure_update_privileges() {
+    print_status "Configuring platform update permissions..."
+
+    local sudoers_file="/etc/sudoers.d/${APP_USER}-update"
+    local update_script="$APP_DIR/update-system.sh"
+    local wrapper_path="/usr/local/bin/update-system"
+
+    if [[ ! -f "$update_script" ]]; then
+        print_warning "Update script not found at $update_script; skipping privilege configuration"
+        return
+    fi
+
+    chmod 755 "$update_script"
+
+    cat <<'EOF' > "$wrapper_path"
+#!/bin/bash
+set -e
+
+DEFAULT_SCRIPT="/opt/sensity-platform/update-system.sh"
+
+determine_instance() {
+    local candidate="$1"
+
+    case "$candidate" in
+        ""|"update"|"rollback"|"reset-first-user"|"create-test-admin")
+            ;;
+        *)
+            echo "$candidate"
+            return
+            ;;
+    esac
+
+    if [[ -n "$SUDO_USER" ]]; then
+        case "$SUDO_USER" in
+            sensityapp)
+                echo "default"
+                return
+                ;;
+            sensity_*)
+                echo "${SUDO_USER#sensity_}"
+                return
+                ;;
+        esac
+    fi
+
+    echo "default"
+}
+
+INSTANCE="$(determine_instance "$1")"
+if [[ "$INSTANCE" == "default" ]]; then
+    SCRIPT="$DEFAULT_SCRIPT"
+else
+    SCRIPT="/opt/sensity-platform-${INSTANCE}/update-system.sh"
+fi
+
+if [[ ! -x "$SCRIPT" ]]; then
+    if [[ "$INSTANCE" != "default" ]]; then
+        echo "update-system: script for instance '$INSTANCE' not found at $SCRIPT" >&2
+        exit 1
+    fi
+
+    SCRIPT=""
+    shopt -s nullglob
+    for candidate in /opt/sensity-platform*/update-system.sh; do
+        if [[ -x "$candidate" ]]; then
+            SCRIPT="$candidate"
+            break
+        fi
+    done
+    shopt -u nullglob
+
+    if [[ -z "$SCRIPT" ]]; then
+        echo "update-system: unable to locate update-system.sh" >&2
+        exit 1
+    fi
+fi
+
+exec "$SCRIPT" "$@"
+EOF
+    chown root:root "$wrapper_path"
+    chmod 750 "$wrapper_path"
+
+    local sudoers_line="$APP_USER ALL=(root) NOPASSWD: $update_script, $wrapper_path"
+    local tmp_file
+    tmp_file=$(mktemp)
+    echo "$sudoers_line" > "$tmp_file"
+
+    if visudo -cf "$tmp_file" >/dev/null 2>&1; then
+        install -m 440 -o root -g root "$tmp_file" "$sudoers_file"
+        print_success "Passwordless sudo configured for $APP_USER to run updates"
+    else
+        print_warning "Failed to validate sudoers configuration; leaving existing file unchanged"
+    fi
+
+    rm -f "$tmp_file"
 }
 
 # Function to install application dependencies
@@ -2763,6 +2881,9 @@ main() {
     print_status "📝 Creating installation info..."
     create_setup_completion
 
+    print_status "🔐 Finalizing update permissions..."
+    configure_update_privileges
+
     # Show 100% completion
     show_progress 16 16
     echo -e "\n"
@@ -2860,7 +2981,11 @@ main() {
     echo -e "  Check status:  ${CYAN}sudo -u $APP_USER pm2 status${NC}"
     echo -e "  View logs:     ${CYAN}sudo -u $APP_USER pm2 logs ${PM2_APP_NAME}${NC}"
     echo -e "  Restart:       ${CYAN}sudo -u $APP_USER pm2 restart ${PM2_APP_NAME}${NC}"
-    echo -e "  Update system: ${CYAN}sudo ./update-system.sh ${INSTANCE_NAME}${NC}"
+    if [[ "$INSTANCE_NAME" == "default" ]]; then
+        echo -e "  Update system: ${CYAN}sudo update-system${NC}"
+    else
+        echo -e "  Update system: ${CYAN}sudo update-system ${INSTANCE_NAME}${NC}"
+    fi
     echo
     echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${YELLOW}⚠️  FIRST-TIME SETUP REQUIRED${NC}"

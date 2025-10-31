@@ -418,7 +418,8 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                 label: t('nav.tools', 'Tools'), icon: '🔧', dropdown: true,
                 items: [
                     { path: '/firmware-builder', label: t('nav.firmwareBuilder', 'Firmware Builder'), icon: '⚙️', feature: 'device_management' },
-                    { path: '/serial-monitor', label: t('nav.serialMonitor', 'Serial Monitor'), icon: '📺', feature: 'device_management' }
+                    { path: '/serial-monitor', label: t('nav.serialMonitor', 'Serial Monitor'), icon: '📺', feature: 'device_management' },
+                    { path: '/wifi-management', label: t('nav.wifiManagement', 'WiFi Management'), icon: '📡', feature: 'device_management' }
                 ]
             }
         ];
@@ -885,11 +886,18 @@ function AuthenticatedApp({ user, onLogout, onLanguageChange }) {
                             </FeatureGate>
                         }
                     />
+                    <Route
+                        path="/wifi-management"
+                        element={
+                            <FeatureGate feature="device_management">
+                                <WifiManagement />
+                            </FeatureGate>
+                        }
+                    />
                     {user.role === 'admin' && (
                         <>
                             <Route path="/users" element={<UserManagement />} />
                             <Route path="/settings" element={<Settings />} />
-                            <Route path="/wifi-management" element={<WifiManagement />} />
                         </>
                     )}
                     <Route path="*" element={<Navigate to="/" />} />

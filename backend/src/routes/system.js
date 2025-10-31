@@ -466,6 +466,28 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
 
                     updateCommand = `sudo bash "${scriptPath}"`;
                     logger.info(`Production mode: Using production update script: ${scriptPath}`);
+
+                    // In production, check if we can run sudo without password
+                    try {
+                        const sudoCheck = await exec('sudo -n true', { cwd: projectRoot, timeout: 2000 });
+                        logger.info('Sudo check passed - passwordless sudo is configured');
+                    } catch (sudoError) {
+                        logger.error('Sudo check failed:', sudoError.message);
+                        updateStatus.error = 'Permission denied: Passwordless sudo is not configured for this user. Please configure /etc/sudoers.d/sensity-update';
+                        updateStatus.currentStep = 'Permission error - sudo not configured';
+                        updateStatus.isRunning = false;
+                        updateStatus.logs.push({
+                            timestamp: new Date(),
+                            type: 'error',
+                            message: 'ERROR: Backend user cannot execute sudo without password. Please configure passwordless sudo for the update script.'
+                        });
+                        updateStatus.logs.push({
+                            timestamp: new Date(),
+                            type: 'info',
+                            message: 'See UPDATE_FIX_GUIDE.md for instructions on configuring sudo access.'
+                        });
+                        return;
+                    }
                 }
 
                 const updateProcess = spawn('bash', ['-c', updateCommand], {
@@ -484,6 +506,18 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
                         type: 'info',
                         message: output.trim()
                     });
+
+                    // Check for sudo password prompt (indicates permission issue)
+                    if (output.toLowerCase().includes('password') && output.includes('sudo')) {
+                        logger.error('Sudo password prompt detected - permission denied');
+                        updateStatus.error = 'Permission denied: Backend user cannot run update script. Please configure passwordless sudo.';
+                        updateStatus.currentStep = 'Permission error';
+                        updateStatus.logs.push({
+                            timestamp: new Date(),
+                            type: 'error',
+                            message: 'ERROR: Update script requires sudo permissions that are not configured. Please contact system administrator.'
+                        });
+                    }
 
                     // Update progress based on output patterns
                     if (output.includes('git pull') || output.includes('Fetching')) {
@@ -515,6 +549,14 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
                         type: 'error',
                         message: output.trim()
                     });
+
+                    // Check for sudo permission errors
+                    if (output.toLowerCase().includes('permission denied') ||
+                        output.toLowerCase().includes('not in the sudoers file')) {
+                        logger.error('Sudo permission error detected');
+                        updateStatus.error = 'Permission denied: Backend user lacks sudo privileges for update script.';
+                        updateStatus.currentStep = 'Permission error';
+                    }
                 });
 
                 updateProcess.on('close', (code) => {

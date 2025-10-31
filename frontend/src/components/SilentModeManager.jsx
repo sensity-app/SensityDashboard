@@ -43,12 +43,12 @@ function SilentModeManager() {
     // Mutations
     const createMutation = useMutation(apiService.createSilentModeSchedule, {
         onSuccess: () => {
-        toast.success(t('silentMode.toasts.created'));
+            toast.success(t('silentMode.toasts.created'));
             queryClient.invalidateQueries('silentModeSchedules');
             resetForm();
         },
         onError: (error) => {
-            toast.error('Failed to create silent mode schedule');
+            toast.error(t('silentMode.toasts.createFailed', 'Failed to create silent mode schedule'));
             console.error(error);
         }
     });
@@ -57,12 +57,12 @@ function SilentModeManager() {
         ({ id, data }) => apiService.updateSilentModeSchedule(id, data),
         {
             onSuccess: () => {
-            toast.success(t('silentMode.toasts.updated'));
+                toast.success(t('silentMode.toasts.updated'));
                 queryClient.invalidateQueries('silentModeSchedules');
                 resetForm();
             },
             onError: (error) => {
-                toast.error('Failed to update silent mode schedule');
+                toast.error(t('silentMode.toasts.updateFailed', 'Failed to update silent mode schedule'));
                 console.error(error);
             }
         }
@@ -70,11 +70,11 @@ function SilentModeManager() {
 
     const deleteMutation = useMutation(apiService.deleteSilentModeSchedule, {
         onSuccess: () => {
-        toast.success(t('silentMode.toasts.deleted'));
+            toast.success(t('silentMode.toasts.deleted'));
             queryClient.invalidateQueries('silentModeSchedules');
         },
         onError: (error) => {
-            toast.error('Failed to delete silent mode schedule');
+            toast.error(t('silentMode.toasts.deleteFailed', 'Failed to delete silent mode schedule'));
             console.error(error);
         }
     });
@@ -285,11 +285,10 @@ function SilentModeManager() {
                                     </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                        schedule.enabled
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${schedule.enabled
                                             ? 'bg-red-100 text-red-800'
                                             : 'bg-gray-100 text-gray-800'
-                                    }`}>
+                                        }`}>
                                         {schedule.enabled ? t('silentMode.status.active') : t('silentMode.status.inactive')}
                                     </span>
                                     <button
@@ -379,11 +378,10 @@ function SilentModeManager() {
                                             key={day.value}
                                             type="button"
                                             onClick={() => toggleDay(day.value)}
-                                            className={`px-3 py-2 text-sm font-medium rounded-md ${
-                                                formData.daysOfWeek.includes(day.value)
+                                            className={`px-3 py-2 text-sm font-medium rounded-md ${formData.daysOfWeek.includes(day.value)
                                                     ? 'bg-blue-600 text-white'
                                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                            }`}
+                                                }`}
                                         >
                                             {day.label}
                                         </button>

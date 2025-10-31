@@ -14,21 +14,39 @@ const AlertsPage = () => {
     const [deviceFilter, setDeviceFilter] = useState('all');
     const [selectedAlert, setSelectedAlert] = useState(null);
     const [acknowledgeNote, setAcknowledgeNote] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageLimit] = useState(50);
 
     // Fetch alerts
-    const { data: alertsData = [], isLoading, refetch } = useQuery(
-        ['alerts', statusFilter, severityFilter, deviceFilter],
+    const { data: alertsResponse, isLoading, refetch } = useQuery(
+        ['alerts', statusFilter, severityFilter, deviceFilter, currentPage, pageLimit],
         async () => {
-            const filters = {};
+            const filters = {
+                page: currentPage,
+                limit: pageLimit
+            };
             if (statusFilter !== 'all') filters.status = statusFilter;
             if (severityFilter !== 'all') filters.severity = severityFilter;
             if (deviceFilter !== 'all') filters.device_id = deviceFilter;
 
             const response = await apiService.getAlerts(filters);
-            return Array.isArray(response) ? response : (response?.alerts || []);
+            return response;
         },
-        { refetchInterval: 30000 }
+        {
+            refetchInterval: 30000,
+            keepPreviousData: true
+        }
     );
+
+    const alertsData = alertsResponse?.alerts || [];
+    const pagination = alertsResponse?.pagination || {
+        page: 1,
+        limit: pageLimit,
+        total: 0,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false
+    };
 
     // Fetch devices for filtering
     const { data: devices = [] } = useQuery(
@@ -39,13 +57,18 @@ const AlertsPage = () => {
         }
     );
 
+    // Reset page when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter, severityFilter, deviceFilter]);
+
     // Acknowledge alert mutation
     const acknowledgeMutation = useMutation(
         ({ alertId, note }) => apiService.acknowledgeAlert(alertId, note),
         {
             onSuccess: () => {
                 toast.success(t('alerts.acknowledgeSuccess', 'Alert acknowledged'));
-                refetch();
+                queryClient.invalidateQueries('alerts');
                 setSelectedAlert(null);
                 setAcknowledgeNote('');
             },
@@ -61,7 +84,7 @@ const AlertsPage = () => {
         {
             onSuccess: () => {
                 toast.success(t('alerts.resolveSuccess', 'Alert resolved'));
-                refetch();
+                queryClient.invalidateQueries('alerts');
                 setSelectedAlert(null);
                 setAcknowledgeNote('');
             },
@@ -104,13 +127,30 @@ const AlertsPage = () => {
         return new Date(date).toLocaleString();
     };
 
-    const stats = {
-        total: alertsData.length,
-        active: alertsData.filter(a => a.status === 'active').length,
-        acknowledged: alertsData.filter(a => a.status === 'acknowledged').length,
-        resolved: alertsData.filter(a => a.status === 'resolved').length,
-        critical: alertsData.filter(a => a.severity === 'critical').length
-    };
+    // Stats based on current page data and total
+    const stats = React.useMemo(() => {
+        const apiStats = alertsResponse?.stats;
+
+        if (apiStats) {
+            // Use stats from API (global counts across all alerts)
+            return {
+                total: apiStats.total || 0,
+                active: apiStats.active || 0,
+                acknowledged: apiStats.acknowledged || 0,
+                resolved: apiStats.resolved || 0,
+                critical: apiStats.critical || 0
+            };
+        }
+
+        // Fallback to current page calculations if stats not available
+        return {
+            total: pagination.total,
+            active: alertsData.filter(a => a.status === 'active').length,
+            acknowledged: alertsData.filter(a => a.status === 'acknowledged').length,
+            resolved: alertsData.filter(a => a.status === 'resolved').length,
+            critical: alertsData.filter(a => a.severity === 'critical').length
+        };
+    }, [alertsData, pagination.total, alertsResponse]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6 space-y-6 animate-fade-in">
@@ -325,6 +365,66 @@ const AlertsPage = () => {
                     </table>
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {!isLoading && alertsData.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm p-4 mt-4">
+                    <div className="flex items-center justify-between">
+                        <div className="text-sm text-gray-700">
+                            {t('common.showing', 'Showing')} <span className="font-medium">{((currentPage - 1) * pageLimit) + 1}</span> {t('common.to', 'to')} <span className="font-medium">{Math.min(currentPage * pageLimit, pagination.total)}</span> {t('common.of', 'of')} <span className="font-medium">{pagination.total}</span> {t('common.results', 'results')}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={!pagination.hasPrev}
+                                className={`px-3 py-2 text-sm font-medium rounded-md ${pagination.hasPrev
+                                        ? 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                        : 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed'
+                                    }`}
+                            >
+                                {t('common.previous', 'Previous')}
+                            </button>
+                            <div className="flex items-center gap-1">
+                                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                    let pageNum;
+                                    if (pagination.totalPages <= 5) {
+                                        pageNum = i + 1;
+                                    } else if (currentPage <= 3) {
+                                        pageNum = i + 1;
+                                    } else if (currentPage >= pagination.totalPages - 2) {
+                                        pageNum = pagination.totalPages - 4 + i;
+                                    } else {
+                                        pageNum = currentPage - 2 + i;
+                                    }
+
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setCurrentPage(pageNum)}
+                                            className={`px-3 py-2 text-sm font-medium rounded-md ${currentPage === pageNum
+                                                    ? 'text-white bg-indigo-600'
+                                                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                                disabled={!pagination.hasNext}
+                                className={`px-3 py-2 text-sm font-medium rounded-md ${pagination.hasNext
+                                        ? 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                        : 'text-gray-400 bg-gray-100 border border-gray-200 cursor-not-allowed'
+                                    }`}
+                            >
+                                {t('common.next', 'Next')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Acknowledge/Resolve Modal */}
             {selectedAlert && (

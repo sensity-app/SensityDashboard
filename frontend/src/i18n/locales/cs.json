@@ -71,6 +71,10 @@
     "next": "Další",
     "previous": "Předchozí",
     "pageOfTotal": "Strana {{current}} z {{total}}",
+    "to": "až",
+    "of": "z",
+    "results": "výsledků",
+    "showing": "Zobrazeno",
     "none": "Žádné",
     "excellent": "Výborné",
     "veryGood": "Velmi dobré",
@@ -313,7 +317,10 @@
     "toasts": {
       "created": "Plán tichého režimu byl vytvořen.",
       "updated": "Plán tichého režimu byl aktualizován.",
-      "deleted": "Plán tichého režimu byl odstraněn."
+      "deleted": "Plán tichého režimu byl odstraněn.",
+      "createFailed": "Nepodařilo se vytvořit plán tichého režimu",
+      "updateFailed": "Nepodařilo se aktualizovat plán tichého režimu",
+      "deleteFailed": "Nepodařilo se odstranit plán tichého režimu"
     },
     "errors": {
       "nameRequired": "Zadejte název plánu.",
@@ -715,7 +722,12 @@
     "deleteSuccess": "Pravidlo bylo odstraněno",
     "deleteError": "Odstranění pravidla se nezdařilo",
     "confirmDelete": "Opravdu chcete toto pravidlo odstranit?",
-    "sensorType": "Typ senzoru"
+    "sensorType": "Typ senzoru",
+    "recommendationsApplied": "Doporučené prahy byly použity",
+    "analyzingData": "Analyzuji historická data...",
+    "suggestedMin": "Navrhované minimum",
+    "suggestedMax": "Navrhované maximum",
+    "failedToLoad": "Nepodařilo se načíst doporučení"
   },
   "license": {
     "managementTitle": "Správa licence",
@@ -929,7 +941,9 @@
       "sensorUpdateFailed": "Aktualizace senzoru se nezdařila: {{message}}",
       "otaRebuildStarted": "Přestavba firmwaru spuštěna!",
       "otaRebuildSensors": "Nakonfigurované senzory: {{count}}",
-      "otaRebuildError": "Nepodařilo se spustit přestavbu firmwaru"
+      "otaRebuildError": "Nepodařilo se spustit přestavbu firmwaru",
+      "refreshingData": "Obnovuji data zařízení...",
+      "refreshingSensors": "Obnovuji senzory..."
     },
     "modal": {
       "title": "Upravit senzor: {{name}}",
@@ -2352,5 +2366,35 @@
   },
   "app": {
     "title": "Sensity"
+  },
+  "wifi": {
+    "title": "Správa WiFi",
+    "subtitle": "Spravujte uložené WiFi sítě pro snadnou konfiguraci zařízení",
+    "addNetwork": "Přidat síť",
+    "cancel": "Zrušit",
+    "addNewNetwork": "Přidat novou WiFi síť",
+    "ssid": "SSID (Název sítě)",
+    "ssidRequired": "SSID je povinné",
+    "password": "Heslo",
+    "security": "Zabezpečení",
+    "saveNetwork": "Uložit síť",
+    "loading": "Načítám sítě...",
+    "noNetworks": "Zatím nejsou nakonfigurovány žádné WiFi sítě",
+    "addToGetStarted": "Přidejte síť pro začátek",
+    "edit": "Upravit",
+    "delete": "Smazat",
+    "save": "Uložit",
+    "usedByDevices": "Používá {{count}} {{count, plural, one{zařízení} few{zařízení} other{zařízení}}}",
+    "devices": "Zařízení",
+    "moreDevices": "+{{count}} dalších",
+    "noPassword": "Bez hesla",
+    "confirmDelete": "Tato síť je používána {{count}} zařízením(i). Opravdu chcete pokračovat?",
+    "networkAdded": "WiFi síť byla přidána do seznamu",
+    "networkRemoved": "WiFi síť byla odstraněna",
+    "networkUpdated": "WiFi síť byla aktualizována",
+    "placeholder": {
+      "ssid": "Moje WiFi síť",
+      "password": "Heslo k síti"
+    }
   }
 }

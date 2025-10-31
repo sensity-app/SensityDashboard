@@ -71,6 +71,10 @@
     "next": "Next",
     "previous": "Previous",
     "pageOfTotal": "Page {{current}} of {{total}}",
+    "to": "to",
+    "of": "of",
+    "results": "results",
+    "showing": "Showing",
     "none": "None",
     "excellent": "Excellent",
     "veryGood": "Very good",
@@ -141,7 +145,10 @@
     "toasts": {
       "created": "Silent mode schedule created.",
       "updated": "Silent mode schedule updated.",
-      "deleted": "Silent mode schedule deleted."
+      "deleted": "Silent mode schedule deleted.",
+      "createFailed": "Failed to create silent mode schedule",
+      "updateFailed": "Failed to update silent mode schedule",
+      "deleteFailed": "Failed to delete silent mode schedule"
     },
     "errors": {
       "nameRequired": "Please enter a schedule name.",
@@ -543,7 +550,12 @@
     "deleteSuccess": "Rule deleted successfully",
     "deleteError": "Failed to delete rule",
     "confirmDelete": "Are you sure you want to delete this rule?",
-    "sensorType": "Sensor Type"
+    "sensorType": "Sensor Type",
+    "recommendationsApplied": "Recommended thresholds applied",
+    "analyzingData": "Analyzing historical data...",
+    "suggestedMin": "Suggested Min",
+    "suggestedMax": "Suggested Max",
+    "failedToLoad": "Failed to load recommendations"
   },
   "license": {
     "managementTitle": "License Management",
@@ -757,7 +769,9 @@
       "sensorUpdateFailed": "Failed to update sensor: {{message}}",
       "otaRebuildStarted": "Firmware rebuild initiated!",
       "otaRebuildSensors": "Sensors configured: {{count}}",
-      "otaRebuildError": "Failed to initiate firmware rebuild"
+      "otaRebuildError": "Failed to initiate firmware rebuild",
+      "refreshingData": "Refreshing device data...",
+      "refreshingSensors": "Refreshing sensors..."
     },
     "modal": {
       "title": "Edit sensor: {{name}}",
@@ -2350,5 +2364,35 @@
   },
   "app": {
     "title": "Sensity"
+  },
+  "wifi": {
+    "title": "WiFi Management",
+    "subtitle": "Manage saved WiFi networks for easy device configuration",
+    "addNetwork": "Add Network",
+    "cancel": "Cancel",
+    "addNewNetwork": "Add New WiFi Network",
+    "ssid": "SSID (Network Name)",
+    "ssidRequired": "SSID is required",
+    "password": "Password",
+    "security": "Security",
+    "saveNetwork": "Save Network",
+    "loading": "Loading networks...",
+    "noNetworks": "No WiFi networks configured yet",
+    "addToGetStarted": "Add a network to get started",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "usedByDevices": "Used by {{count}} device{{count, plural, one{} other{s}}}",
+    "devices": "Devices",
+    "moreDevices": "+{{count}} more",
+    "noPassword": "No password",
+    "confirmDelete": "This network is used by {{count}} device(s). Are you sure?",
+    "networkAdded": "WiFi network added to list",
+    "networkRemoved": "WiFi network removed",
+    "networkUpdated": "WiFi network updated",
+    "placeholder": {
+      "ssid": "My WiFi Network",
+      "password": "Network password"
+    }
   }
 }

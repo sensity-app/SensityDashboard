@@ -806,7 +806,7 @@ function DeviceDetail() {
                                             onClick={() => {
                                                 queryClient.invalidateQueries(['device-sensors', id]);
                                                 queryClient.invalidateQueries(['device', id]);
-                                                toast.success('Refreshing device data...');
+                                                toast.success(t('deviceDetail.toast.refreshingData', 'Refreshing device data...'));
                                             }}
                                             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
                                         >
@@ -851,7 +851,7 @@ function DeviceDetail() {
                                             <button
                                                 onClick={() => {
                                                     queryClient.invalidateQueries(['device-sensors', id]);
-                                                    toast.success('Refreshing sensors...');
+                                                    toast.success(t('deviceDetail.toast.refreshingSensors', 'Refreshing sensors...'));
                                                 }}
                                                 className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                                             >
@@ -1113,9 +1113,9 @@ function DeviceDetail() {
                                             <div
                                                 key={alert.id || `${alert.alert_type}-${alert.triggered_at || alert.created_at}`}
                                                 className={`rounded-lg border-l-4 p-4 transition-all hover:shadow-md ${severity === 'critical' ? 'border-red-500 bg-gradient-to-r from-red-50 to-red-100/50' :
-                                                        severity === 'high' ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100/50' :
-                                                            severity === 'medium' ? 'border-yellow-500 bg-gradient-to-r from-yellow-50 to-yellow-100/50' :
-                                                                'border-green-500 bg-gradient-to-r from-green-50 to-green-100/50'
+                                                    severity === 'high' ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100/50' :
+                                                        severity === 'medium' ? 'border-yellow-500 bg-gradient-to-r from-yellow-50 to-yellow-100/50' :
+                                                            'border-green-500 bg-gradient-to-r from-green-50 to-green-100/50'
                                                     }`}
                                             >
                                                 <div className="flex items-start justify-between gap-2">

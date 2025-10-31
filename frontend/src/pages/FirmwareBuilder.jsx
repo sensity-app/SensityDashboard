@@ -499,12 +499,12 @@ const FirmwareBuilder = () => {
                                             <button
                                                 onClick={() => canAccess && setCurrentStep(index)}
                                                 className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${isActive
-                                                        ? 'border-primary bg-primary text-white shadow-lg'
-                                                        : isCompleted
-                                                            ? 'border-green-500 bg-green-500 text-white'
-                                                            : canAccess
-                                                                ? 'border-gray-300 bg-white text-gray-400 hover:border-gray-400'
-                                                                : 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed'
+                                                    ? 'border-primary bg-primary text-white shadow-lg'
+                                                    : isCompleted
+                                                        ? 'border-green-500 bg-green-500 text-white'
+                                                        : canAccess
+                                                            ? 'border-gray-300 bg-white text-gray-400 hover:border-gray-400'
+                                                            : 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed'
                                                     }`}
                                             >
                                                 {isCompleted ? (
@@ -571,8 +571,8 @@ const FirmwareBuilder = () => {
                                                         fetchSensorOptions(); // Reload sensor options for new platform
                                                     }}
                                                     className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${config.platform === platform.value
-                                                            ? 'border-primary bg-primary/10 shadow-lg'
-                                                            : 'border-gray-200 hover:border-gray-300 bg-white'
+                                                        ? 'border-primary bg-primary/10 shadow-lg'
+                                                        : 'border-gray-200 hover:border-gray-300 bg-white'
                                                         }`}
                                                 >
                                                     <div className="text-2xl mb-2">{platform.icon}</div>
@@ -824,14 +824,14 @@ const FirmwareBuilder = () => {
                                             <label className="form-label">
                                                 {getCopy('sections.network.server.fields.url.label', 'Server URL *')}
                                             </label>
-                                                <input
-                                                    type="url"
-                                                    value={config.server_url}
-                                                    readOnly
-                                                    disabled
-                                                    className="input-field bg-gray-100 cursor-not-allowed"
-                                                    placeholder={getCopy('sections.network.server.fields.url.placeholder', 'https://your-server.com')}
-                                                />
+                                            <input
+                                                type="url"
+                                                value={config.server_url}
+                                                readOnly
+                                                disabled
+                                                className="input-field bg-gray-100 cursor-not-allowed"
+                                                placeholder={getCopy('sections.network.server.fields.url.placeholder', 'https://your-server.com')}
+                                            />
                                             <p className="text-xs text-gray-500 mt-1">
                                                 {getCopy('sections.network.server.fields.url.helper', 'Server URL is automatically set to this dashboard (non-changeable)')}
                                             </p>
@@ -985,8 +985,8 @@ const FirmwareBuilder = () => {
                                                                 <div className="flex items-center justify-between mb-2">
                                                                     <h5 className="font-medium text-gray-900">{sensorInfo.name || sensorKey}</h5>
                                                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${sensorInfo.pin_type === 'analog' ?
-                                                                            'bg-green-100 text-green-800' :
-                                                                            'bg-blue-100 text-blue-800'
+                                                                        'bg-green-100 text-green-800' :
+                                                                        'bg-blue-100 text-blue-800'
                                                                         }`}>
                                                                         {sensorInfo.pin_type || 'digital'}
                                                                     </span>
@@ -1054,8 +1054,8 @@ const FirmwareBuilder = () => {
                                                                             {sensor.name}
                                                                         </span>
                                                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${sensorInfo?.pin_type === 'analog' ?
-                                                                                'bg-green-100 text-green-800' :
-                                                                                'bg-blue-100 text-blue-800'
+                                                                            'bg-green-100 text-green-800' :
+                                                                            'bg-blue-100 text-blue-800'
                                                                             }`}>
                                                                             {sensorInfo?.pin_type || 'digital'}
                                                                         </span>
@@ -1238,8 +1238,8 @@ const FirmwareBuilder = () => {
                                                                     <div className="flex items-center space-x-3">
                                                                         <span className="font-medium text-gray-900">{sensor.name}</span>
                                                                         <span className={`px-2 py-1 text-xs rounded-full ${sensorInfo?.pin_type === 'analog' ?
-                                                                                'bg-green-100 text-green-800' :
-                                                                                'bg-blue-100 text-blue-800'
+                                                                            'bg-green-100 text-green-800' :
+                                                                            'bg-blue-100 text-blue-800'
                                                                             }`}>
                                                                             {sensorInfo?.pin_type || 'digital'}
                                                                         </span>
@@ -1314,10 +1314,10 @@ const FirmwareBuilder = () => {
                                                     onClick={() => setShowWebFlasher(true)}
                                                     disabled={loading || pinConflicts.length > 0}
                                                     className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium ${loading || pinConflicts.length > 0
-                                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                            : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
+                                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
                                                         }`}
-                                                    title="Flash firmware directly via Web Serial API"
+                                                    title={getCopy('actions.flashTooltip', 'Flash firmware directly via Web Serial API')}
                                                 >
                                                     <Zap className="w-5 h-5" />
                                                     <span>{getCopy('actions.flash')}</span>
@@ -1326,8 +1326,8 @@ const FirmwareBuilder = () => {
                                                     onClick={buildFirmware}
                                                     disabled={loading || pinConflicts.length > 0}
                                                     className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium ${loading || pinConflicts.length > 0
-                                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                            : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
                                                         }`}
                                                 >
                                                     {loading ? (

@@ -78,13 +78,32 @@ router.get('/', authenticateToken, [
         query += ` ORDER BY a.triggered_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
         params.push(limit, offset);
 
-        const [alertResult, countResult] = await Promise.all([
+        // Get stats for all alerts (unfiltered)
+        const statsQuery = `
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+                SUM(CASE WHEN status = 'acknowledged' THEN 1 ELSE 0 END) as acknowledged,
+                SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved,
+                SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical
+            FROM alerts
+        `;
+
+        const [alertResult, countResult, statsResult] = await Promise.all([
             db.query(query, params),
-            db.query(countQuery, params.slice(0, -2)) // Remove limit and offset for count
+            db.query(countQuery, params.slice(0, -2)), // Remove limit and offset for count
+            db.query(statsQuery)
         ]);
 
         const total = parseInt(countResult.rows[0].total);
         const totalPages = Math.ceil(total / limit);
+        const stats = {
+            total: parseInt(statsResult.rows[0].total),
+            active: parseInt(statsResult.rows[0].active),
+            acknowledged: parseInt(statsResult.rows[0].acknowledged),
+            resolved: parseInt(statsResult.rows[0].resolved),
+            critical: parseInt(statsResult.rows[0].critical)
+        };
 
         res.json({
             alerts: alertResult.rows,
@@ -95,7 +114,8 @@ router.get('/', authenticateToken, [
                 totalPages,
                 hasNext: page < totalPages,
                 hasPrev: page > 1
-            }
+            },
+            stats
         });
     } catch (error) {
         logger.error('Get alerts error:', error);

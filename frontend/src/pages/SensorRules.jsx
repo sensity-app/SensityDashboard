@@ -394,7 +394,7 @@ function CreateRuleModal({ rule, devices, locations, onClose, onSuccess }) {
         if (recommendations?.suggested_max !== undefined) {
             setThresholdMax(recommendations.suggested_max.toFixed(2));
         }
-        toast.success('Recommended thresholds applied');
+        toast.success(t('sensorRules.recommendationsApplied', 'Recommended thresholds applied'));
     };
 
     return (
@@ -542,7 +542,7 @@ function CreateRuleModal({ rule, devices, locations, onClose, onSuccess }) {
                             {loadingRecommendations && (
                                 <div className="flex items-center justify-center py-4">
                                     <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
-                                    <span className="ml-2 text-sm text-gray-600">Analyzing historical data...</span>
+                                    <span className="ml-2 text-sm text-gray-600">{t('sensorRules.analyzingData', 'Analyzing historical data...')}</span>
                                 </div>
                             )}
 
@@ -556,7 +556,7 @@ function CreateRuleModal({ rule, devices, locations, onClose, onSuccess }) {
                                         <>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="bg-white rounded-lg p-3 border border-blue-200">
-                                                    <div className="text-xs text-gray-600 mb-1">Suggested Min</div>
+                                                    <div className="text-xs text-gray-600 mb-1">{t('sensorRules.suggestedMin', 'Suggested Min')}</div>
                                                     <div className="text-lg font-bold text-blue-900">
                                                         {recommendations.suggested_min?.toFixed(2) ?? 'N/A'}
                                                     </div>
@@ -565,7 +565,7 @@ function CreateRuleModal({ rule, devices, locations, onClose, onSuccess }) {
                                                     </div>
                                                 </div>
                                                 <div className="bg-white rounded-lg p-3 border border-blue-200">
-                                                    <div className="text-xs text-gray-600 mb-1">Suggested Max</div>
+                                                    <div className="text-xs text-gray-600 mb-1">{t('sensorRules.suggestedMax', 'Suggested Max')}</div>
                                                     <div className="text-lg font-bold text-blue-900">
                                                         {recommendations.suggested_max?.toFixed(2) ?? 'N/A'}
                                                     </div>
@@ -623,7 +623,7 @@ function CreateRuleModal({ rule, devices, locations, onClose, onSuccess }) {
                                     <div className="flex items-start gap-2">
                                         <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
                                         <div className="text-sm text-red-800">
-                                            <p className="font-medium">Failed to load recommendations</p>
+                                            <p className="font-medium">{t('sensorRules.failedToLoad', 'Failed to load recommendations')}</p>
                                             <p className="text-xs mt-1">
                                                 Unable to fetch threshold suggestions. Try again later.
                                             </p>

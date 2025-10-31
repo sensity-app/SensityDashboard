@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Wifi, Plus, Edit2, Trash2, Save, X, Eye, EyeOff, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiService } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 function WifiManagement() {
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
     const [wifiNetworks, setWifiNetworks] = useState([]);
     const [editingId, setEditingId] = useState(null);
@@ -50,7 +52,7 @@ function WifiManagement() {
 
     const handleAdd = () => {
         if (!formData.ssid) {
-            toast.error('SSID is required');
+            toast.error(t('wifi.ssidRequired', 'SSID is required'));
             return;
         }
 
@@ -64,7 +66,7 @@ function WifiManagement() {
         };
 
         setWifiNetworks([...wifiNetworks, newNetwork]);
-        toast.success('WiFi network added to list');
+        toast.success(t('wifi.networkAdded', 'WiFi network added to list'));
         setShowAddForm(false);
         setFormData({ ssid: '', password: '', security: 'WPA2' });
     };
@@ -72,12 +74,12 @@ function WifiManagement() {
     const handleDelete = (ssid) => {
         const network = wifiNetworks.find(n => n.ssid === ssid);
         if (network && network.deviceCount > 0) {
-            if (!window.confirm(`This network is used by ${network.deviceCount} device(s). Are you sure?`)) {
+            if (!window.confirm(t('wifi.confirmDelete', { count: network.deviceCount, defaultValue: `This network is used by ${network.deviceCount} device(s). Are you sure?` }))) {
                 return;
             }
         }
         setWifiNetworks(wifiNetworks.filter(n => n.ssid !== ssid));
-        toast.success('WiFi network removed');
+        toast.success(t('wifi.networkRemoved', 'WiFi network removed'));
     };
 
     const handleEdit = (network) => {
@@ -97,7 +99,7 @@ function WifiManagement() {
         ));
         setEditingId(null);
         setFormData({ ssid: '', password: '', security: 'WPA2' });
-        toast.success('WiFi network updated');
+        toast.success(t('wifi.networkUpdated', 'WiFi network updated'));
     };
 
     const togglePasswordVisibility = (id) => {
@@ -109,9 +111,9 @@ function WifiManagement() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">WiFi Management</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">{t('wifi.title', 'WiFi Management')}</h1>
                     <p className="text-sm text-gray-600 mt-1">
-                        Manage saved WiFi networks for easy device configuration
+                        {t('wifi.subtitle', 'Manage saved WiFi networks for easy device configuration')}
                     </p>
                 </div>
                 <button
@@ -119,42 +121,42 @@ function WifiManagement() {
                     className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
                 >
                     {showAddForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                    {showAddForm ? 'Cancel' : 'Add Network'}
+                    {showAddForm ? t('wifi.cancel', 'Cancel') : t('wifi.addNetwork', 'Add Network')}
                 </button>
             </div>
 
             {/* Add Form */}
             {showAddForm && (
                 <div className="rounded-lg border-2 border-indigo-200 bg-indigo-50 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New WiFi Network</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('wifi.addNewNetwork', 'Add New WiFi Network')}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                SSID (Network Name) *
+                                {t('wifi.ssid', 'SSID (Network Name)')} *
                             </label>
                             <input
                                 type="text"
                                 value={formData.ssid}
                                 onChange={(e) => setFormData({ ...formData, ssid: e.target.value })}
                                 className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                                placeholder="My WiFi Network"
+                                placeholder={t('wifi.placeholder.ssid', 'My WiFi Network')}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Password
+                                {t('wifi.password', 'Password')}
                             </label>
                             <input
                                 type="password"
                                 value={formData.password}
                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                                placeholder="Network password"
+                                placeholder={t('wifi.placeholder.password', 'Network password')}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Security
+                                {t('wifi.security', 'Security')}
                             </label>
                             <select
                                 value={formData.security}
@@ -174,7 +176,7 @@ function WifiManagement() {
                             className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
                         >
                             <Save className="h-4 w-4" />
-                            Save Network
+                            {t('wifi.saveNetwork', 'Save Network')}
                         </button>
                     </div>
                 </div>
@@ -184,13 +186,13 @@ function WifiManagement() {
             {isLoading ? (
                 <div className="text-center py-12">
                     <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
-                    <p className="mt-2 text-gray-600">Loading networks...</p>
+                    <p className="mt-2 text-gray-600">{t('wifi.loading', 'Loading networks...')}</p>
                 </div>
             ) : wifiNetworks.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                     <Wifi className="h-12 w-12 mx-auto text-gray-400" />
-                    <p className="mt-2 text-gray-600">No WiFi networks configured yet</p>
-                    <p className="text-sm text-gray-500">Add a network to get started</p>
+                    <p className="mt-2 text-gray-600">{t('wifi.noNetworks', 'No WiFi networks configured yet')}</p>
+                    <p className="text-sm text-gray-500">{t('wifi.addToGetStarted', 'Add a network to get started')}</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-4">
@@ -247,14 +249,14 @@ function WifiManagement() {
                                             className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
                                         >
                                             <Save className="h-4 w-4" />
-                                            Save
+                                            {t('wifi.save', 'Save')}
                                         </button>
                                         <button
                                             onClick={() => setEditingId(null)}
                                             className="inline-flex items-center gap-2 rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
                                         >
                                             <X className="h-4 w-4" />
-                                            Cancel
+                                            {t('wifi.cancel', 'Cancel')}
                                         </button>
                                     </div>
                                 </div>
@@ -286,7 +288,7 @@ function WifiManagement() {
                                                         )}
                                                         <span className="font-mono">
                                                             {showPassword[network.id]
-                                                                ? (network.password || 'No password')
+                                                                ? (network.password || t('wifi.noPassword', 'No password'))
                                                                 : '••••••••'
                                                             }
                                                         </span>
@@ -294,14 +296,14 @@ function WifiManagement() {
                                                 </div>
                                                 {network.deviceCount > 0 && (
                                                     <span className="text-green-600 font-medium">
-                                                        Used by {network.deviceCount} device{network.deviceCount > 1 ? 's' : ''}
+                                                        {t('wifi.usedByDevices', { count: network.deviceCount, defaultValue: `Used by ${network.deviceCount} device${network.deviceCount > 1 ? 's' : ''}` })}
                                                     </span>
                                                 )}
                                             </div>
                                             {network.devices && network.devices.length > 0 && (
                                                 <div className="mt-2 text-xs text-gray-500">
-                                                    Devices: {network.devices.slice(0, 3).join(', ')}
-                                                    {network.devices.length > 3 && ` +${network.devices.length - 3} more`}
+                                                    {t('wifi.devices', 'Devices')}: {network.devices.slice(0, 3).join(', ')}
+                                                    {network.devices.length > 3 && ` ${t('wifi.moreDevices', { count: network.devices.length - 3, defaultValue: `+${network.devices.length - 3} more` })}`}
                                                 </div>
                                             )}
                                         </div>
@@ -312,14 +314,14 @@ function WifiManagement() {
                                             className="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
                                         >
                                             <Edit2 className="h-4 w-4" />
-                                            Edit
+                                            {t('wifi.edit', 'Edit')}
                                         </button>
                                         <button
                                             onClick={() => handleDelete(network.ssid)}
                                             className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
                                         >
                                             <Trash2 className="h-4 w-4" />
-                                            Delete
+                                            {t('wifi.delete', 'Delete')}
                                         </button>
                                     </div>
                                 </div>

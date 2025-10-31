@@ -53,6 +53,29 @@ const GITHUB_REPO = 'sensity-app/SensityDashboard';
 const GITHUB_RAW_URL = `https://raw.githubusercontent.com/${GITHUB_REPO}/main`;
 
 /**
+ * Detect instance name from project root path
+ * @param {string} projectRoot - Project root directory path
+ * @returns {string} - Instance name (e.g., 'default', 'dev', 'staging')
+ */
+function detectInstanceName(projectRoot) {
+    const normalizedPath = path.normalize(projectRoot);
+
+    // Check if it's the default instance
+    if (normalizedPath === '/opt/sensity-platform' || normalizedPath.endsWith('/opt/sensity-platform')) {
+        return 'default';
+    }
+
+    // Check if it matches pattern /opt/sensity-platform-{instance}
+    const match = normalizedPath.match(/sensity-platform-([^/]+)$/);
+    if (match) {
+        return match[1]; // Return the instance name (dev, staging, etc.)
+    }
+
+    // For development or non-standard paths, return 'default'
+    return 'default';
+}
+
+/**
  * Download update script from GitHub
  * @param {string} scriptName - Name of the script to download
  * @param {string} targetPath - Path where to save the script
@@ -443,9 +466,13 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
                 const projectRoot = process.cwd().includes('/backend') ?
                     path.join(process.cwd(), '..') : process.cwd();
 
+                // Detect which instance we're running on
+                const instanceName = detectInstanceName(projectRoot);
+                logger.info(`Detected instance: ${instanceName} (from path: ${projectRoot})`);
+
                 let updateCommand;
-                let scriptPath;
                 let scriptName;
+                let scriptPath;
 
                 if (isDevelopment) {
                     // Development: use development-friendly script
@@ -476,8 +503,9 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
                     if (globalUpdateCommand) {
                         scriptName = 'update-system';
                         scriptPath = globalUpdateCommand;
-                        updateCommand = `sudo "${scriptPath}"`;
-                        logger.info(`Production mode: Using global update-system command at ${scriptPath}`);
+                        // Pass instance name to update only this specific instance
+                        updateCommand = `sudo "${scriptPath}" "${instanceName}"`;
+                        logger.info(`Production mode: Using global update-system command at ${scriptPath} for instance: ${instanceName}`);
                     } else {
                         // Fall back to bundled production script
                         scriptName = 'update-system.sh';
@@ -490,8 +518,9 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
                             throw new Error('Unable to find or download update script');
                         }
 
-                        updateCommand = `sudo bash "${scriptPath}"`;
-                        logger.info(`Production mode: Using bundled update script: ${scriptPath}`);
+                        // Pass instance name to update only this specific instance
+                        updateCommand = `sudo bash "${scriptPath}" "${instanceName}"`;
+                        logger.info(`Production mode: Using bundled update script: ${scriptPath} for instance: ${instanceName}`);
                     }
 
                     // In production, check if we can run sudo without password

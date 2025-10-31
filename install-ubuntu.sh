@@ -1104,10 +1104,21 @@ EOF
     chown root:root "$wrapper_path"
     chmod 750 "$wrapper_path"
 
-    local sudoers_line="$APP_USER ALL=(root) NOPASSWD: $update_script, $wrapper_path"
+    # Prepare sudoers entry allowing the app user to invoke the updater without a password
+    # Allow both the specific update scripts AND general commands needed for privilege checks
     local tmp_file
     tmp_file=$(mktemp)
-    echo "$sudoers_line" > "$tmp_file"
+    
+    cat > "$tmp_file" <<SUDOERS_EOF
+# Allow $APP_USER to check sudo access (needed by backend)
+$APP_USER ALL=(root) NOPASSWD: /usr/bin/true
+
+# Allow $APP_USER to run platform update scripts
+$APP_USER ALL=(root) NOPASSWD: $update_script, $wrapper_path
+
+# Allow $APP_USER to run bash with update scripts
+$APP_USER ALL=(root) NOPASSWD: /usr/bin/bash $update_script, /bin/bash $update_script
+SUDOERS_EOF
 
     if visudo -cf "$tmp_file" >/dev/null 2>&1; then
         install -m 440 -o root -g root "$tmp_file" "$sudoers_file"

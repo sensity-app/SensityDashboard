@@ -7,15 +7,23 @@
 # Supports multiple instances
 #
 # Usage:
-#   sudo ./update-system.sh              # Update default instance
-#   sudo ./update-system.sh staging      # Update staging instance
-#   sudo ./update-system.sh dev          # Update dev instance
+#   sudo ./update-system.sh              # Update ALL instances on server
+#   sudo ./update-system.sh staging      # Update staging instance only
+#   sudo ./update-system.sh dev          # Update dev instance only
+#   sudo ./update-system.sh default      # Update default instance only
 ###############################################################################
 
 set -e
 
-# Check for instance parameter
-INSTANCE_NAME="${1:-default}"
+# Detect if script was called with a parameter
+# If no parameter, we'll update all instances
+UPDATE_ALL_INSTANCES=false
+if [[ -z "$1" ]] || [[ "$1" == "update" ]]; then
+    UPDATE_ALL_INSTANCES=true
+    INSTANCE_NAME="default"
+else
+    INSTANCE_NAME="$1"
+fi
 
 # Configuration based on instance
 if [[ "$INSTANCE_NAME" == "default" ]]; then
@@ -138,10 +146,20 @@ EOF
     chmod 750 "$wrapper_path"
 
     # Prepare sudoers entry allowing the app user to invoke the updater without a password
-    local sudoers_line="$APP_USER ALL=(root) NOPASSWD: $update_script, $wrapper_path"
+    # Allow both the specific update scripts AND general commands needed for privilege checks
     local tmp_file
     tmp_file=$(mktemp)
-    echo "$sudoers_line" > "$tmp_file"
+    
+    cat > "$tmp_file" <<SUDOERS_EOF
+# Allow $APP_USER to check sudo access (needed by backend)
+$APP_USER ALL=(root) NOPASSWD: /usr/bin/true
+
+# Allow $APP_USER to run platform update scripts
+$APP_USER ALL=(root) NOPASSWD: $update_script, $wrapper_path
+
+# Allow $APP_USER to run bash with update scripts
+$APP_USER ALL=(root) NOPASSWD: /usr/bin/bash $update_script, /bin/bash $update_script
+SUDOERS_EOF
 
     if visudo -cf "$tmp_file" >/dev/null 2>&1; then
         install -m 440 -o root -g root "$tmp_file" "$sudoers_file"
@@ -158,6 +176,63 @@ check_root() {
         print_error "This script must be run as root (use sudo)"
         exit 1
     fi
+}
+
+# Function to detect all platform instances on the server
+detect_all_instances() {
+    local instances=()
+    
+    # Check for default instance
+    if [[ -d "/opt/sensity-platform" ]]; then
+        instances+=("default")
+    fi
+    
+    # Check for named instances
+    for dir in /opt/sensity-platform-*; do
+        if [[ -d "$dir" ]]; then
+            local inst_name=$(basename "$dir" | sed 's/sensity-platform-//')
+            instances+=("$inst_name")
+        fi
+    done
+    
+    echo "${instances[@]}"
+}
+
+# Function to update all instances on the server
+update_all_instances() {
+    local instances=($(detect_all_instances))
+    local instance_count=${#instances[@]}
+    
+    if [[ $instance_count -eq 0 ]]; then
+        print_error "No Sensity Platform instances found on this server"
+        exit 1
+    fi
+    
+    print_status "╔══════════════════════════════════════════════════════════════╗"
+    print_status "║  Detected $instance_count instance(s) - Updating all...            ║"
+    print_status "╚══════════════════════════════════════════════════════════════╝"
+    echo
+    
+    for instance in "${instances[@]}"; do
+        print_status "════════════════════════════════════════════════════════"
+        print_status "   Updating instance: $instance"
+        print_status "════════════════════════════════════════════════════════"
+        echo
+        
+        # Call this script recursively for each instance
+        if "$0" "$instance" update; then
+            print_success "✅ Instance '$instance' updated successfully"
+        else
+            print_error "❌ Instance '$instance' update failed"
+            print_warning "Continuing with remaining instances..."
+        fi
+        echo
+        echo
+    done
+    
+    print_success "╔══════════════════════════════════════════════════════════════╗"
+    print_success "║  All instances updated!                                      ║"
+    print_success "╚══════════════════════════════════════════════════════════════╝"
 }
 
 check_instance_exists() {
@@ -618,6 +693,14 @@ main() {
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo
     
+    # If no parameter provided (or just "update"), update all instances
+    if [[ "$UPDATE_ALL_INSTANCES" == "true" ]] && [[ "$2" != "rollback" ]] && [[ "$2" != "reset-first-user" ]] && [[ "$2" != "create-test-admin" ]]; then
+        print_status "No specific instance provided - updating ALL instances on this server"
+        echo
+        update_all_instances
+        exit 0
+    fi
+    
     if [[ "$INSTANCE_NAME" != "default" ]]; then
         print_status "Targeting instance: $INSTANCE_LABEL"
         print_status "Directory: $APP_DIR"
@@ -645,17 +728,19 @@ main() {
         update_system
     else
         echo "Usage:"
-        echo "  sudo $0 [instance]                    # Update instance (default if not specified)"
-        echo "  sudo $0 [instance] update             # Update instance"
-        echo "  sudo $0 [instance] rollback           # Rollback to previous version"
+        echo "  sudo $0                               # Update ALL instances on server"
+        echo "  sudo $0 [instance]                    # Update specific instance only"
+        echo "  sudo $0 [instance] update             # Update specific instance only"
+        echo "  sudo $0 [instance] rollback           # Rollback instance to previous version"
         echo "  sudo $0 default reset-first-user      # Reset database to allow first user registration"
         echo "  sudo $0 default create-test-admin     # Create test admin user"
         echo
         echo "Examples:"
-        echo "  sudo $0                               # Update default instance"
-        echo "  sudo $0 staging                       # Update staging instance"
-        echo "  sudo $0 dev update                    # Update dev instance"
-        echo "  sudo $0 dev rollback                  # Rollback dev instance"
+        echo "  sudo $0                               # Update all instances (default, staging, dev, etc.)"
+        echo "  sudo $0 default                       # Update ONLY default instance"
+        echo "  sudo $0 staging                       # Update ONLY staging instance"
+        echo "  sudo $0 dev update                    # Update ONLY dev instance"
+        echo "  sudo $0 dev rollback                  # Rollback ONLY dev instance"
         echo
         echo "Available instances:"
         if [[ -d "/opt/sensity-platform" ]]; then

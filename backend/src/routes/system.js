@@ -548,10 +548,19 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
 
                 updateStatus.script = scriptName;
 
+                logger.info(`Executing update command: ${updateCommand}`);
+                logger.info(`Working directory: ${projectRoot}`);
+
                 const updateProcess = spawn('bash', ['-c', updateCommand], {
                     detached: true,
                     stdio: 'pipe',
                     cwd: projectRoot  // Set working directory to project root
+                });
+
+                updateStatus.logs.push({
+                    timestamp: new Date(),
+                    type: 'info',
+                    message: `Starting update for instance: ${instanceName}`
                 });
 
                 updateProcess.stdout.on('data', (data) => {
@@ -618,16 +627,30 @@ router.post('/update', authenticateToken, requireAdmin, async (req, res) => {
                 });
 
                 updateProcess.on('close', (code) => {
+                    const endTime = Date.now();
+                    const duration = updateStatus.startTime ? endTime - new Date(updateStatus.startTime).getTime() : 0;
+
                     if (code === 0) {
                         logger.info('Platform update completed successfully');
                         updateStatus.progress = 100;
                         updateStatus.currentStep = 'Update completed successfully!';
                         updateStatus.isRunning = false;
+                        updateStatus.logs.push({
+                            timestamp: new Date(),
+                            type: 'success',
+                            message: `Update completed successfully in ${Math.round(duration / 1000)}s`
+                        });
                     } else {
                         logger.error(`Platform update failed with code ${code}`);
+                        logger.error('Update logs:', JSON.stringify(updateStatus.logs, null, 2));
                         updateStatus.error = `Update failed with exit code ${code}`;
                         updateStatus.currentStep = 'Update failed';
                         updateStatus.isRunning = false;
+                        updateStatus.logs.push({
+                            timestamp: new Date(),
+                            type: 'error',
+                            message: `Update script exited with code ${code}. Check server logs for details.`
+                        });
                     }
                 });
 

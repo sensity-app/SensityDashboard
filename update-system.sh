@@ -240,13 +240,13 @@ check_instance_exists() {
         print_error "Instance '$INSTANCE_NAME' not found at $APP_DIR"
         print_status "Available instances:"
         
-        # List all installed instances
-        if [[ -d "/opt/sensity-platform" ]]; then
+        # List all installed instances (exclude backups)
+        if [[ -d "/opt/sensity-platform" ]] && [[ ! "/opt/sensity-platform" =~ \.backup\. ]]; then
             echo "  - default (at /opt/sensity-platform)"
         fi
         
         for dir in /opt/sensity-platform-*; do
-            if [[ -d "$dir" ]]; then
+            if [[ -d "$dir" ]] && [[ ! "$dir" =~ \.backup\. ]]; then
                 instance_name=$(basename "$dir" | sed 's/sensity-platform-//')
                 echo "  - $instance_name (at $dir)"
             fi

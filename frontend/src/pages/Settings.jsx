@@ -394,11 +394,10 @@ function Settings() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                                        activeTab === tab.id
+                                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tab.id
                                             ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-500'
                                             : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                                    }`}
+                                        }`}
                                 >
                                     <Icon className="h-5 w-5 mr-3" />
                                     {tab.label}
@@ -487,7 +486,7 @@ function Settings() {
                                         <input
                                             type="text"
                                             value={systemSettings.siteName}
-                                            onChange={(e) => setSystemSettings(prev => ({...prev, siteName: e.target.value}))}
+                                            onChange={(e) => setSystemSettings(prev => ({ ...prev, siteName: e.target.value }))}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
                                     </div>
@@ -499,7 +498,7 @@ function Settings() {
                                         <input
                                             type="email"
                                             value={systemSettings.adminEmail}
-                                            onChange={(e) => setSystemSettings(prev => ({...prev, adminEmail: e.target.value}))}
+                                            onChange={(e) => setSystemSettings(prev => ({ ...prev, adminEmail: e.target.value }))}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
                                     </div>
@@ -509,7 +508,7 @@ function Settings() {
                                             type="checkbox"
                                             id="maintenanceMode"
                                             checked={systemSettings.maintenanceMode}
-                                            onChange={(e) => setSystemSettings(prev => ({...prev, maintenanceMode: e.target.checked}))}
+                                            onChange={(e) => setSystemSettings(prev => ({ ...prev, maintenanceMode: e.target.checked }))}
                                             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                         />
                                         <label htmlFor="maintenanceMode" className="ml-2 block text-sm text-gray-700">
@@ -980,37 +979,37 @@ function Settings() {
                                         {/* Uncategorized Variables */}
                                         {Object.keys(envVars).filter(key => !envData?.categories ||
                                             !Object.values(envData.categories).flat().includes(key)).length > 0 && (
-                                            <div className="mb-8">
-                                                <h4 className="text-md font-semibold text-gray-800 mb-4 border-b pb-2">
-                                                    {t('settings.environment.otherVariables', 'Other Variables')}
-                                                </h4>
-                                                <div className="space-y-4">
-                                                    {Object.keys(envVars)
-                                                        .filter(key => !envData?.categories || !Object.values(envData.categories).flat().includes(key))
-                                                        .map(varName => (
-                                                        <div key={varName} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 bg-gray-50 rounded-lg">
-                                                            <div className="flex flex-col">
-                                                                <label className="text-sm font-medium text-gray-700 mb-1">
-                                                                    {varName}
-                                                                </label>
-                                                            </div>
-                                                            <div className="md:col-span-2">
-                                                                <input
-                                                                    type="text"
-                                                                    value={envVars[varName] || ''}
-                                                                    onChange={(e) => handleEnvVarChange(varName, e.target.value)}
-                                                                    placeholder={t('settings.environment.enterValue', {
-                                                                        name: varName,
-                                                                        defaultValue: `Enter ${varName}`
-                                                                    })}
-                                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                                <div className="mb-8">
+                                                    <h4 className="text-md font-semibold text-gray-800 mb-4 border-b pb-2">
+                                                        {t('settings.environment.otherVariables', 'Other Variables')}
+                                                    </h4>
+                                                    <div className="space-y-4">
+                                                        {Object.keys(envVars)
+                                                            .filter(key => !envData?.categories || !Object.values(envData.categories).flat().includes(key))
+                                                            .map(varName => (
+                                                                <div key={varName} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 bg-gray-50 rounded-lg">
+                                                                    <div className="flex flex-col">
+                                                                        <label className="text-sm font-medium text-gray-700 mb-1">
+                                                                            {varName}
+                                                                        </label>
+                                                                    </div>
+                                                                    <div className="md:col-span-2">
+                                                                        <input
+                                                                            type="text"
+                                                                            value={envVars[varName] || ''}
+                                                                            onChange={(e) => handleEnvVarChange(varName, e.target.value)}
+                                                                            placeholder={t('settings.environment.enterValue', {
+                                                                                name: varName,
+                                                                                defaultValue: `Enter ${varName}`
+                                                                            })}
+                                                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
 
                                         {/* Save Button */}
                                         <div className="flex justify-between items-center pt-6 border-t border-gray-200">
@@ -1098,7 +1097,7 @@ function Settings() {
                                                     min="1"
                                                     max="365"
                                                     value={systemSettings.backupRetentionDays}
-                                                    onChange={(e) => setSystemSettings(prev => ({...prev, backupRetentionDays: parseInt(e.target.value)}))}
+                                                    onChange={(e) => setSystemSettings(prev => ({ ...prev, backupRetentionDays: parseInt(e.target.value) }))}
                                                     className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 />
                                             </div>
@@ -1112,7 +1111,7 @@ function Settings() {
                                                     min="1"
                                                     max="90"
                                                     value={systemSettings.logRetentionDays}
-                                                    onChange={(e) => setSystemSettings(prev => ({...prev, logRetentionDays: parseInt(e.target.value)}))}
+                                                    onChange={(e) => setSystemSettings(prev => ({ ...prev, logRetentionDays: parseInt(e.target.value) }))}
                                                     className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                 />
                                             </div>
@@ -1281,6 +1280,21 @@ function PlatformUpdateTab() {
     const { t } = useTranslation();
     const [updating, setUpdating] = useState(false);
     const [showLogs, setShowLogs] = useState(false);
+
+    const updateCopy = useMemo(() => {
+        const result = t('settings.update', { returnObjects: true });
+        return typeof result === 'string' ? {} : result;
+    }, [t]);
+
+    const getUpdate = (path, fallback) => {
+        const value = path.split('.').reduce((acc, key) => {
+            if (acc && typeof acc === 'object' && key in acc) {
+                return acc[key];
+            }
+            return undefined;
+        }, updateCopy);
+        return value ?? fallback;
+    };
 
     // Query system version - NO auto-refresh
     const { data: versionData, isLoading: versionLoading, refetch: refetchVersion } = useQuery(
@@ -1492,11 +1506,10 @@ function PlatformUpdateTab() {
                             <button
                                 onClick={handleUpdate}
                                 disabled={updating}
-                                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                                    updating
+                                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${updating
                                         ? 'bg-gray-400 cursor-not-allowed'
                                         : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                                }`}
+                                    }`}
                             >
                                 {updating ? (
                                     <>
@@ -1650,9 +1663,8 @@ function PlatformUpdateTab() {
                                             {progressData.status.logs.slice(-20).map((log, index) => (
                                                 <div
                                                     key={index}
-                                                    className={`mb-1 ${
-                                                        log.type === 'error' ? 'text-red-300' : 'text-gray-300'
-                                                    }`}
+                                                    className={`mb-1 ${log.type === 'error' ? 'text-red-300' : 'text-gray-300'
+                                                        }`}
                                                 >
                                                     <span className="text-gray-500 mr-2">
                                                         {new Date(log.timestamp).toLocaleTimeString()}

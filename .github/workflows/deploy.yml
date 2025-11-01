@@ -1,0 +1,110 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual deployment
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup deployment key
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+    
+    - name: Deploy to server
+      env:
+        SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+        APP_DIR: ${{ secrets.APP_DIR }}
+      run: |
+        ssh -i ~/.ssh/deploy_key ${SERVER_USER}@${SERVER_HOST} << 'ENDSSH'
+          set -e
+          
+          echo "=========================================="
+          echo "Deploying SensityDashboard"
+          echo "=========================================="
+          
+          # Navigate to app directory
+          cd ${APP_DIR}
+          
+          # Stash any local changes
+          git stash
+          
+          # Pull latest changes
+          echo "Pulling latest changes..."
+          git fetch origin
+          git pull origin main
+          
+          # Install backend dependencies if package.json changed
+          if git diff --name-only HEAD@{1} HEAD | grep -q "backend/package.json"; then
+            echo "Backend dependencies changed, running npm install..."
+            cd backend
+            npm install --production
+            cd ..
+          fi
+          
+          # Install frontend dependencies if package.json changed
+          if git diff --name-only HEAD@{1} HEAD | grep -q "frontend/package.json"; then
+            echo "Frontend dependencies changed, running npm install..."
+            cd frontend
+            npm install
+            npm run build
+            cd ..
+          fi
+          
+          # Run database migrations if they exist
+          if [ -d "backend/migrations" ]; then
+            echo "Running database migrations..."
+            cd backend
+            npm run migrate || true
+            cd ..
+          fi
+          
+          # Restart PM2 services
+          echo "Restarting services..."
+          pm2 restart sensity-backend || pm2 restart server || true
+          
+          # Wait for services to stabilize
+          sleep 3
+          
+          # Check status
+          pm2 status
+          
+          echo "=========================================="
+          echo "Deployment Complete!"
+          echo "=========================================="
+        ENDSSH
+    
+    - name: Verify deployment
+      env:
+        SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+      run: |
+        ssh -i ~/.ssh/deploy_key ${SERVER_USER}@${SERVER_HOST} << 'ENDSSH'
+          # Check if services are running
+          pm2 list | grep "online" || exit 1
+          echo "✅ Services are running"
+        ENDSSH
+    
+    - name: Cleanup
+      if: always()
+      run: |
+        rm -f ~/.ssh/deploy_key
+    
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Deployment failed! Check the logs above."
+        exit 1

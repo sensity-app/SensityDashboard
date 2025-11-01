@@ -49,13 +49,6 @@ APP_DIR="/opt/sensity-platform"
 DB_NAME="sensity_platform"
 NODE_VERSION="18"
 
-# Check for non-interactive mode
-NON_INTERACTIVE=false
-if [[ ! -t 0 ]] || [[ "${CI:-false}" == "true" ]] || [[ "${NON_INTERACTIVE_INSTALL:-false}" == "true" ]]; then
-    NON_INTERACTIVE=true
-    print_warning "Running in non-interactive mode - using default values"
-fi
-
 # Function to print colored output
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"
@@ -79,6 +72,13 @@ print_header() {
 ║                 SENSITY IOT PLATFORM INSTALLER              ║
 ╚══════════════════════════════════════════════════════════════╝${NC}"
 }
+
+# Check for non-interactive mode
+NON_INTERACTIVE=false
+if [[ ! -t 0 ]] || [[ "${CI:-false}" == "true" ]] || [[ "${NON_INTERACTIVE_INSTALL:-false}" == "true" ]]; then
+    NON_INTERACTIVE=true
+    print_warning "Running in non-interactive mode - using default values"
+fi
 
 # Function to display progress bar
 show_progress() {
